@@ -1,7 +1,5 @@
 # fedpkg bash completion
 
-have fedpkg || return 1
-
 _fedpkg()
 {
     COMPREPLY=()
