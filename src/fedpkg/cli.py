@@ -29,7 +29,6 @@ class fedpkgClient(cliClient):
         """Register the fedora specific targets"""
 
         self.register_retire()
-        self.register_tagrequest()
         self.register_update()
 
     # Target registry goes here
@@ -47,25 +46,6 @@ class fedpkgClient(cliClient):
                                    nargs='?',
                                    help='Message for retiring the package')
         retire_parser.set_defaults(command=self.retire)
-
-    def register_tagrequest(self):
-        """Register the tagrequest target"""
-
-        tagrequest_parser = self.subparsers.add_parser('tag-request',
-                                          help='Submit current build nvr '
-                                          'as a releng tag request',
-                                          description='This command \
-                                          files a ticket with release \
-                                          engineering, usually for a \
-                                          buildroot override.  It will \
-                                          discover the build n-v-r \
-                                          automatically but can be \
-                                          overridden.')
-        tagrequest_parser.add_argument('--desc',
-                                       help='Description of tag request')
-        tagrequest_parser.add_argument('--build',
-                                       help='Override the build n-v-r')
-        tagrequest_parser.set_defaults(command=self.tagrequest)
 
     def register_update(self):
         update_parser = self.subparsers.add_parser('update',
@@ -108,21 +88,6 @@ class fedpkgClient(cliClient):
             self.cmd._run_command(cmd, cwd=self.cmd.path)
         except Exception, e:
             self.log.error('Could not retire package: %s' % e)
-            sys.exit(1)
-
-    def tagrequest(self):
-        self.cmd.tracbaseurl = self.cmd.get('fedpkg', 'tracbaseurl', raw=True)
-        passwd = getpass.getpass('Password for %s: ' % self.cmd.user)
-
-        if not self.args.desc:
-            self.args.desc = raw_input('\nAdd a description to your request: ')
-
-        try:
-            ticket = self.cmd.new_ticket(passwd, self.args.desc,
-                                         self.args.build)
-            print('Ticket #%s filed successfully' % ticket)
-        except Exception, e:
-            print('Could not request a tag release: %s' % e)
             sys.exit(1)
 
     def _format_update_clog(self, clog):

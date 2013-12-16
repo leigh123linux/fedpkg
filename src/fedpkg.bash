@@ -38,7 +38,7 @@ _fedpkg()
     local options_value="--dist --user --path"
     local commands="build chain-build ci clean clog clone co commit compile diff gimmespec giturl help \
     gitbuildurl import install lint local mockbuild mock-config new new-sources patch prep pull push retire scratch-build sources \
-    srpm switch-branch tag tag-request unused-patches update upload verify-files verrel"
+    srpm switch-branch tag unused-patches update upload verify-files verrel"
 
     # parse main options and get command
 
@@ -191,9 +191,6 @@ _fedpkg()
             options_string="--message"
             options_file="--file"
             after_more=true
-            ;;
-        tag-request)
-            options_string="--desc --build"
             ;;
         upload|new-sources)
             after="file"
