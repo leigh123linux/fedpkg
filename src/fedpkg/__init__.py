@@ -223,7 +223,8 @@ class Commands(pyrpkg.Commands):
         # This is overloaded to add in the fedora user's cert
         cmd = ['curl', '-k', '--cert', self.cert_file, '--fail', '-o',
                '/dev/null', '--show-error', '--progress-bar', '-F',
-               'name=%s' % self.module_name, '-F', 'md5sum=%s' % file_hash,
+               'name=%s' % self.module_name,
+               '-F', '%ssum=%s' % (self.lookasidehash, file_hash),
                '-F', 'file=@%s' % file]
         if self.quiet:
             cmd.append('-s')
