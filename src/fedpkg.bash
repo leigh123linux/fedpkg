@@ -88,7 +88,7 @@ _fedpkg()
     # parse command specific options
 
     local options=
-    local options_target= options_arches= options_branch= options_string= options_file= options_dir= options_srpm=
+    local options_target= options_arches= options_branch= options_string= options_file= options_dir= options_srpm= options_mroot=
     local after= after_more=
 
     case $command in
@@ -197,7 +197,7 @@ _fedpkg()
     esac
 
     local all_options="--help $options"
-    local all_options_value="$options_target $options_arches $options_branch $options_string $options_file $options_dir $options_srpm"
+    local all_options_value="$options_target $options_arches $options_branch $options_string $options_file $options_dir $options_srpm $options_mroot"
 
     # count non-option parameters
 
@@ -241,6 +241,14 @@ _fedpkg()
 
     elif [[ -n $options_string ]] && in_array "$prev" "$options_string"; then
         COMPREPLY=( )
+
+    elif [[ -n $options_mroot ]] && in_array "$prev" "$options_mroot"; then
+        COMPREPLY=( )
+        if declare -F _mock_root &>/dev/null; then
+            _mock_root
+        elif declare -F _xfunc &>/dev/null; then
+            _xfunc mock _mock_root
+        fi
 
     else
         local after_options=
