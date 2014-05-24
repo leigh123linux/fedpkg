@@ -413,7 +413,7 @@ class Commands(pyrpkg.Commands):
         self.log.debug('Task %s created' % ticket)
         return ticket
 
-    def retire(self, message=None):
+    def retire(self, message):
         """Delete all tracked files and commit a new dead.package file
 
         Use optional message in commit.
@@ -427,9 +427,6 @@ class Commands(pyrpkg.Commands):
             cmd.append('--quiet')
         cmd.extend(['rm', '-rf', '.'])
         self._run_command(cmd, cwd=self.path)
-
-        if not message:
-            message = 'Package is retired'
 
         fd = open(os.path.join(self.path, 'dead.package'), 'w')
         fd.write(message + '\n')

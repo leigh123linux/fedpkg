@@ -46,9 +46,8 @@ class fedpkgClient(cliClient):
                         'leave a dead.package file, push the changes and '
                         'retire the package in pkgdb.'
         )
-        retire_parser.add_argument('msg',
-                                   nargs='?',
-                                   help='Message for retiring the package')
+        retire_parser.add_argument('reason',
+                                   help='Reason for retiring the package')
         retire_parser.set_defaults(command=self.retire)
 
     def register_update(self):
