@@ -20,6 +20,10 @@ import textwrap
 import hashlib
 
 
+import pkgdb2client
+import fedora_cert
+
+
 class fedpkgClient(cliClient):
     def __init__(self, config, name='fedpkg'):
         super(fedpkgClient, self).__init__(config, name)
@@ -78,14 +82,12 @@ class fedpkgClient(cliClient):
                                           {'user': self.cmd.user,
                                           'module': ''})[1]
             branch = self.cmd.branch_merge
-            if branch == 'master':
-                branch = 'devel'
-            cmd = ['pkgdb-cli',
-                   'orphan',
-                   '--retire',
-                   module_name,
-                   branch]
-            self.cmd._run_command(cmd, cwd=self.cmd.path)
+            pkgdb = pkgdb2client.PkgDB()
+            username = fedora_cert.read_user_cert()
+            password = getpass.getpass(
+                "Please enter FAS password for user {0}: ".format(username))
+            pkgdb.login(username, password)
+            pkgdb.retire_packages(module_name, branch)
         except Exception, e:
             self.log.error('Could not retire package: %s' % e)
             sys.exit(1)

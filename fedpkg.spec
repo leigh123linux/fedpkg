@@ -14,7 +14,7 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires:       pyrpkg >= 1.13, redhat-rpm-config
 Requires:       python-pycurl, koji, python-fedora
-Requires:       fedora-cert, python-offtrac, bodhi-client, packagedb-cli
+Requires:       fedora-cert, python-offtrac, bodhi-client, packagedb-cli > 2.2
 %if 0%{?rhel} == 5 || 0%{?rhel} == 4
 Requires:       python-kitchen
 %endif
