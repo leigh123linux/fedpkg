@@ -2,7 +2,7 @@
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
 
 Name:           fedpkg
-Version:        1.15
+Version:        1.16
 Release:        1%{?dist}
 Summary:        Fedora utility for working with dist-git
 
@@ -65,6 +65,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Jun 24 2014 Dennis Gilmore <dennis@ausil.us> - 1.16-1
+- retire: Make retirement message/reason mandatory (opensource)
+- retire: Use pkgdb2 API (opensource)
+- Don't check for the config file if the user is asking for help (bochecha)
+
 * Mon Aug 26 2013 Dennis Gilmore <dennis@ausil.us> - 1.14-1
 - clean up arches in fedpkg bash completeion - drop sparc - add i686 - add arm
   variants - add ppc64p7 (dennis)
