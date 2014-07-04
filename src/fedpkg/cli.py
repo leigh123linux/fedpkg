@@ -69,7 +69,7 @@ class fedpkgClient(cliClient):
                               'retired - will not remove files from git or '
                               'overwrite existing dead.package file')
             else:
-                self.cmd.retire(self.args.msg)
+                self.cmd.retire(self.args.reason)
             self.push()
 
             # get module name from git, because pyrpkg gets it from SPEC,
