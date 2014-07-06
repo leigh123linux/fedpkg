@@ -13,7 +13,6 @@ from pyrpkg.cli import cliClient
 import sys
 import os
 import logging
-import getpass
 import re
 import subprocess
 import textwrap
@@ -21,7 +20,6 @@ import hashlib
 
 
 import pkgdb2client
-import fedora_cert
 
 
 class fedpkgClient(cliClient):
@@ -82,11 +80,8 @@ class fedpkgClient(cliClient):
                                           {'user': self.cmd.user,
                                           'module': ''})[1]
             branch = self.cmd.branch_merge
-            pkgdb = pkgdb2client.PkgDB()
-            username = fedora_cert.read_user_cert()
-            password = getpass.getpass(
-                "Please enter FAS password for user {0}: ".format(username))
-            pkgdb.login(username, password)
+            pkgdb = pkgdb2client.PkgDB(
+                login_callback=pkgdb2client.ask_password)
             pkgdb.retire_packages(module_name, branch)
         except Exception, e:
             self.log.error('Could not retire package: %s' % e)
