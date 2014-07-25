@@ -25,7 +25,7 @@ import fedora_cert
 
 
 class fedpkgClient(cliClient):
-    def __init__(self, config, name='fedpkg'):
+    def __init__(self, config, name=None):
         super(fedpkgClient, self).__init__(config, name)
         self.setup_fed_subparsers()
 
