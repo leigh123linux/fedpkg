@@ -26,6 +26,7 @@ import fedora_cert
 
 class fedpkgClient(cliClient):
     def __init__(self, config, name=None):
+        self.DEFAULT_CLI_NAME = 'fedpkg'
         super(fedpkgClient, self).__init__(config, name)
         self.setup_fed_subparsers()
 
