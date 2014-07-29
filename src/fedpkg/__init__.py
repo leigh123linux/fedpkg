@@ -12,7 +12,6 @@
 import pyrpkg
 import os
 import cli
-import offtrac
 import git
 import re
 import pycurl
@@ -356,62 +355,6 @@ class Commands(pyrpkg.Commands):
 
         # fall through, return None
         return None
-
-    def new_ticket(self, passwd, desc, build=None):
-        """Open a new ticket on Rel-Eng trac instance.
-
-        Get ticket component and assignee from current branch
-
-        Create a new task ticket using username/password/desc
-
-        Discover build nvr from module or optional build argument
-
-        Return ticket number on success
-        """
-
-        override = self.override
-        if not override:
-            raise pyrpkg.rpkgError('Override tag is not required for %s' %
-                                   self.branch_merge)
-
-        uri = self.tracbaseurl % {'user': self.user, 'password': passwd}
-        self.trac = offtrac.TracServer(uri)
-
-        # Set trac's component and assignee from related distvar
-        if self.distvar == 'fedora':
-            component = 'koji'
-            #owner = 'rel-eng@lists.fedoraproject.org'
-        elif self.distvar == 'rhel':
-            component = 'epel'
-            #owner = 'releng-epel@lists.fedoraproject.org'
-
-        # Raise if people request a tag against something that self updates
-        build_target = self.anon_kojisession.getBuildTarget(self.target)
-        if not build_target:
-            raise pyrpkg.rpkgError('Unknown build target: %s' % self.target)
-        dest_tag = self.anon_kojisession.getTag(build_target['dest_tag_name'])
-        ancestors = self.anon_kojisession.getFullInheritance(
-                                                    build_target['build_tag'])
-        if dest_tag['id'] in [build_target['build_tag']] + \
-                                  [ancestor['parent_id'] for
-                                   ancestor in ancestors]:
-            raise pyrpkg.rpkgError('Override tag is not required for %s' %
-                                   self.branch_merge)
-
-        if not build:
-            build = self.nvr
-
-        summary = 'Tag request %s for %s' % (build, override)
-        type = 'task'
-        try:
-            ticket = self.trac.create_ticket(summary, desc,
-                                             component=component,
-                                             notify=True)
-        except Exception, e:
-            raise pyrpkg.rpkgError('Could not request tag %s: %s' % (build, e))
-
-        self.log.debug('Task %s created' % ticket)
-        return ticket
 
     def retire(self, message):
         """Delete all tracked files and commit a new dead.package file
