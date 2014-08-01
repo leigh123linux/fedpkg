@@ -83,7 +83,10 @@ class Commands(pyrpkg.Commands):
                 'lsvpd',
                 'powerpc-utils',
                 'powerpc-utils-papr',
+                'powerpc-utils-python',
+                'ppc64-diag',
                 'ppc64-utils',
+                'servicelog',
                 'yaboot',
             ], 'arm': ['xorg-x11-drv-omapfb'],
                's390': ['s390utils', 'openssl-ibmca', 'libica']
