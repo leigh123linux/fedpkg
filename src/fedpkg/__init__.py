@@ -89,7 +89,7 @@ class Commands(pyrpkg.Commands):
                 'servicelog',
                 'yaboot',
             ], 'arm': ['xorg-x11-drv-omapfb'],
-               's390': ['s390utils', 'openssl-ibmca', 'libica']
+               's390': ['s390utils', 'openssl-ibmca', 'libica', 'libzfcphbaapi']
         }
 
         # New properties
