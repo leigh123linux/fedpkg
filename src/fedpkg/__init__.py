@@ -18,6 +18,7 @@ import pycurl
 import fedora_cert
 import platform
 
+
 # This check (decorator) can go away after a few months
 def _check_newstyle_branches(func):
     """Check to see if the branches are "newstyle" or not.
@@ -57,6 +58,7 @@ def _check_newstyle_branches(func):
         return func(self, *args, **kwargs)
     return(checky)
 
+
 class Commands(pyrpkg.Commands):
 
     def __init__(self, path, lookaside, lookasidehash, lookaside_cgi,
@@ -68,9 +70,9 @@ class Commands(pyrpkg.Commands):
         # We are subclassing to set kojiconfig to none, so that we can
         # make it a property to potentially use a secondary config
         super(Commands, self).__init__(path, lookaside, lookasidehash,
-                                 lookaside_cgi, gitbaseurl, anongiturl,
-                                 branchre, kojiconfig, build_client, user,
-                                 dist, target, quiet)
+                                       lookaside_cgi, gitbaseurl, anongiturl,
+                                       branchre, kojiconfig, build_client,
+                                       user, dist, target, quiet)
 
         # New data
         self.secondary_arch = {
@@ -321,7 +323,7 @@ class Commands(pyrpkg.Commands):
             # We may not have Fedoras.  Find out what rawhide target does.
             try:
                 rawhidetarget = self.anon_kojisession.getBuildTarget(
-                                                              'rawhide')
+                    'rawhide')
             except:
                 # We couldn't hit koji, bail.
                 raise pyrpkg.rpkgError('Unable to query koji to find rawhide \
@@ -335,21 +337,21 @@ class Commands(pyrpkg.Commands):
         """
 
         try:
-           mydist = platform.linux_distribution()
+            mydist = platform.linux_distribution()
         except:
-           # This is marked as eventually being deprecated.
-           try:
-              mydist = platform.dist()
-           except:
-              runtime_os = 'unknown'
-              runtime_version = '0'
+            # This is marked as eventually being deprecated.
+            try:
+                mydist = platform.dist()
+            except:
+                runtime_os = 'unknown'
+                runtime_version = '0'
 
         if mydist:
-           runtime_os = mydist[0]
-           runtime_version = mydist[1]
+            runtime_os = mydist[0]
+            runtime_version = mydist[1]
         else:
-           runtime_os = 'unknown'
-           runtime_version = '0'
+            runtime_os = 'unknown'
+            runtime_version = '0'
 
         if runtime_os in ['redhat', 'centos']:
             return 'el%s' % runtime_version
@@ -366,8 +368,6 @@ class Commands(pyrpkg.Commands):
 
         Runs the commands and returns nothing
         """
-
-
         cmd = ['git']
         if self.quiet:
             cmd.append('--quiet')
@@ -382,7 +382,6 @@ class Commands(pyrpkg.Commands):
         self._run_command(cmd, cwd=self.path)
 
         self.commit(message=message)
-
 
     def update(self, template='bodhi.template', bugs=[]):
         """Submit an update to bodhi using the provided template."""

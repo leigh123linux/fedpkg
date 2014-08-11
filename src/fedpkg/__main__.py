@@ -43,7 +43,7 @@ def main():
 
     if not client.args.path:
         try:
-            client.args.path=os.getcwd()
+            client.args.path = os.getcwd()
         except:
             print('Could not get current path, have you deleted it?')
             sys.exit(1)

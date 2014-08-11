@@ -18,7 +18,6 @@ import subprocess
 import textwrap
 import hashlib
 
-
 import pkgdb2client
 
 
@@ -50,12 +49,12 @@ class fedpkgClient(cliClient):
         retire_parser.set_defaults(command=self.retire)
 
     def register_update(self):
-        update_parser = self.subparsers.add_parser('update',
-                                          help='Submit last build as an '
-                                          'update',
-                                          description='This will create a \
-                                          bodhi update request for the \
-                                          current package n-v-r.')
+        update_parser = self.subparsers.add_parser(
+            'update',
+            help='Submit last build as update',
+            description='This will create a bodhi update request for the '
+                        'current package n-v-r.'
+        )
         update_parser.set_defaults(command=self.update)
 
     # Target functions go here
@@ -78,7 +77,7 @@ class fedpkgClient(cliClient):
             module_name = \
                 module_name.strip().split(self.cmd.gitbaseurl %
                                           {'user': self.cmd.user,
-                                          'module': ''})[1]
+                                           'module': ''})[1]
             branch = self.cmd.branch_merge
             pkgdb = pkgdb2client.PkgDB(
                 login_callback=pkgdb2client.ask_password)
@@ -143,8 +142,8 @@ suggest_reboot=False
             bodhi_args['bugs'] = ','.join(bugs)
 
         # Use clog as default message
-        bodhi_args['descr'], bodhi_args['changelog']= \
-           self._format_update_clog(clog)
+        bodhi_args['descr'], bodhi_args['changelog'] = \
+            self._format_update_clog(clog)
 
         template = textwrap.dedent(template) % bodhi_args
 
