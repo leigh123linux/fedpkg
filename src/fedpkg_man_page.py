@@ -149,9 +149,8 @@ def generate(parser, subparsers):
 if __name__ == '__main__':
     try:
         import fedpkg
-        client = fedpkg.cli.fedpkgClient(config=None)
     except ImportError:
         sys.path.append('src/')
         import fedpkg
-        client = fedpkg.cli.fedpkgClient(config=None)
-    client.parse_cmdline(manpage=True)
+    client = fedpkg.cli.fedpkgClient(config=None, name='fedpkg')
+    generate(client.parser, client.subparsers)
