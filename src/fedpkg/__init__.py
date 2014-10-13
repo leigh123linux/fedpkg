@@ -153,7 +153,7 @@ class Commands(pyrpkg.Commands):
             self._distval = self._findmasterbranch()
             self._distvar = 'fedora'
             self.dist = 'fc%s' % self._distval
-            self.mockconfig = 'fedora-devel-%s' % self.localarch
+            self.mockconfig = 'fedora-rawhide-%s' % self.localarch
             self.override = None
             self._distunset = 'rhel'
         # If we don't match one of the above, punt
