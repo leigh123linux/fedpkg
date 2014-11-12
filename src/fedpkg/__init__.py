@@ -32,7 +32,8 @@ class Commands(pyrpkg.Commands):
         super(Commands, self).__init__(path, lookaside, lookasidehash,
                                        lookaside_cgi, gitbaseurl, anongiturl,
                                        branchre, kojiconfig, build_client,
-                                       user, dist, target, quiet)
+                                       user=user, dist=dist, target=target,
+                                       quiet=quiet)
 
         # New data
         self.secondary_arch = {
