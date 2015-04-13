@@ -151,7 +151,7 @@ _fedpkg()
             options_arch="--arch"
             ;;
         mockbuild)
-            options="--md5"
+            options="--md5 --no-clean --no-cleanup-after --no-clean-all"
             options_mroot="--root"
             ;;
         patch)
