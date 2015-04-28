@@ -17,6 +17,7 @@ import re
 import fedora_cert
 import platform
 
+from .lookaside import FedoraLookasideCache
 from pyrpkg.utils import cached_property
 
 
@@ -112,6 +113,16 @@ class Commands(pyrpkg.Commands):
         CA certificate.
         """
         return os.path.expanduser('~/.fedora-server-ca.cert')
+
+    @cached_property
+    def lookasidecache(self):
+        """A helper to interact with the lookaside cache
+
+        We override this because we need a different download path.
+        """
+        return FedoraLookasideCache(
+            self.lookasidehash, self.lookaside, self.lookaside_cgi,
+            client_cert=self.cert_file, ca_cert=self.ca_cert)
 
     # Overloaded property loaders
     def load_rpmdefines(self):
