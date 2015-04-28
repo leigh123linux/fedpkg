@@ -14,7 +14,6 @@ import os
 import cli
 import git
 import re
-import pycurl
 import fedora_cert
 import platform
 
@@ -196,41 +195,6 @@ class Commands(pyrpkg.Commands):
             super(Commands, self).load_user()
 
     # New functionality
-    def _create_curl(self):
-        """Common curl setup options used for all requests to lookaside."""
-
-        # Overloaded to add cert files to curl objects
-        # Call the super class
-        curl = super(Commands, self)._create_curl()
-
-        # Set the users Fedora certificate:
-        if os.path.exists(self.cert_file):
-            curl.setopt(pycurl.SSLCERT, self.cert_file)
-        else:
-            self.log.warn("Missing certificate: %s" % self.cert_file)
-
-        # Set the Fedora CA certificate:
-        if os.path.exists(self.ca_cert):
-            curl.setopt(pycurl.CAINFO, self.ca_cert)
-        else:
-            self.log.warn("Missing certificate: %s" % self.ca_cert)
-
-        return curl
-
-    def _do_curl(self, file_hash, file):
-        """Use curl manually to upload a file"""
-
-        # This is overloaded to add in the fedora user's cert
-        cmd = ['curl', '-k', '--cert', self.cert_file, '--fail', '-o',
-               '/dev/null', '--show-error', '--progress-bar', '-F',
-               'name=%s' % self.module_name,
-               '-F', '%ssum=%s' % (self.lookasidehash, file_hash),
-               '-F', 'file=@%s' % file]
-        if self.quiet:
-            cmd.append('-s')
-        cmd.append(self.lookaside_cgi)
-        self._run_command(cmd)
-
     def _findmasterbranch(self):
         """Find the right "fedora" for master"""
 
