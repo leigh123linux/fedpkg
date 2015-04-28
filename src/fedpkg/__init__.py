@@ -17,6 +17,8 @@ import re
 import fedora_cert
 import platform
 
+from pyrpkg.utils import cached_property
+
 
 class Commands(pyrpkg.Commands):
 
@@ -56,8 +58,6 @@ class Commands(pyrpkg.Commands):
 
         # New properties
         self._kojiconfig = None
-        self._cert_file = None
-        self._ca_cert = None
         # Store this for later
         self._orig_kojiconfig = kojiconfig
 
@@ -95,27 +95,23 @@ class Commands(pyrpkg.Commands):
                 return
         self._kojiconfig = self._orig_kojiconfig
 
-    @property
+    @cached_property
     def cert_file(self):
-        """This property ensures the cert_file attribute"""
+        """A client-side certificate for SSL authentication
 
-        if not self._cert_file:
-            self.load_cert_files()
-        return self._cert_file
+        We override this from pyrpkg because we actually need a client-side
+        certificate.
+        """
+        return os.path.expanduser('~/.fedora.cert')
 
-    @property
+    @cached_property
     def ca_cert(self):
-        """This property ensures the ca_cert attribute"""
+        """A CA certificate to authenticate the server in SSL connections
 
-        if not self._ca_cert:
-            self.load_cert_files()
-        return self._ca_cert
-
-    def load_cert_files(self):
-        """This loads the cert_file attribute"""
-
-        self._cert_file = os.path.expanduser('~/.fedora.cert')
-        self._ca_cert = os.path.expanduser('~/.fedora-server-ca.cert')
+        We override this from pyrpkg because we actually need a custom
+        CA certificate.
+        """
+        return os.path.expanduser('~/.fedora-server-ca.cert')
 
     # Overloaded property loaders
     def load_rpmdefines(self):
