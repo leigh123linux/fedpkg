@@ -46,6 +46,8 @@ class Commands(pyrpkg.Commands):
         # Store this for later
         self._orig_kojiconfig = kojiconfig
 
+        self.source_entry_type = 'bsd'
+
     # Add new properties
     @property
     def kojiconfig(self):
