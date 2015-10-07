@@ -166,7 +166,7 @@ suggest_reboot=False
             self.log.error('No bodhi update details saved!')
             sys.exit(1)
         # If the template was changed, submit it to bodhi
-        hash = self.cmd._hash_file('bodhi.template', 'sha1')
+        hash = self.cmd.lookasidecache.hash_file('bodhi.template', 'sha1')
         if hash != orig_hash:
             try:
                 self.cmd.update('bodhi.template')
