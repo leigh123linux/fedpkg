@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="fedpkg",
-    version="1.20",
+    version="1.21",
     author="Dennis Gilmore",
     author_email="dgilmore@fedoraproject.org",
     description=("Fedora plugin to rpkg to manage "
