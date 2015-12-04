@@ -53,8 +53,9 @@ class Commands(pyrpkg.Commands):
                 'ppc64-utils',
                 'servicelog',
                 'yaboot',
-            ], 'arm': ['xorg-x11-drv-omapfb'],
-               's390': ['s390utils', 'openssl-ibmca', 'libica', 'libzfcphbaapi']
+            ],
+            'arm': ['xorg-x11-drv-omapfb'],
+            's390': ['s390utils', 'openssl-ibmca', 'libica', 'libzfcphbaapi'],
         }
 
         # New properties
@@ -142,7 +143,8 @@ class Commands(pyrpkg.Commands):
             self.override = 'f%s-override' % self._distval
             self._distunset = 'rhel'
         # Works until RHEL 10
-        elif re.match(r'el\d$', self.branch_merge) or re.match(r'epel\d$', self.branch_merge):
+        elif re.match(r'el\d$', self.branch_merge) or \
+                re.match(r'epel\d$', self.branch_merge):
             self._distval = self.branch_merge.split('el')[1]
             self._distvar = 'rhel'
             self.dist = 'el%s' % self._distval
@@ -174,7 +176,8 @@ class Commands(pyrpkg.Commands):
                             "--define '_srcrpmdir %s'" % self.path,
                             "--define '_rpmdir %s'" % self.path,
                             "--define 'dist .%s'" % self.dist,
-                            "--define '%s %s'" % (self._distvar, self._distval),
+                            "--define '%s %s'" % (self._distvar,
+                                                  self._distval),
                             "--eval '%%undefine %s'" % self._distunset,
                             "--define '%s 1'" % self.dist]
         if self._runtime_disttag:
@@ -315,7 +318,6 @@ class Commands(pyrpkg.Commands):
                           "https://fedoraproject.org/wiki/Using_the_Koji_build"
                           "_system#Fedora_Account_System_.28FAS2.29_Setup")
             raise
-
 
 
 if __name__ == "__main__":

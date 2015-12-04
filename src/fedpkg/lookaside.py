@@ -14,7 +14,6 @@ download path.
 """
 
 
-from pyrpkg.errors import DownloadError
 from pyrpkg.lookaside import CGILookasideCache
 
 
