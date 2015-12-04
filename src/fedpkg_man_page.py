@@ -85,8 +85,7 @@ def generate(parser, subparsers):
     mf = ManFormatter(man_file)
 
     choices = subparsers.choices
-    k = choices.keys()
-    k.sort()
+    k = sorted(choices.keys())
 
     man_file.write(man_header % man_constants())
 

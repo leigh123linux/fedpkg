@@ -82,7 +82,7 @@ class fedpkgClient(cliClient):
             pkgdb = pkgdb2client.PkgDB(
                 login_callback=pkgdb2client.ask_password)
             pkgdb.retire_packages(module_name, branch)
-        except Exception, e:
+        except Exception as e:
             self.log.error('Could not retire package: %s' % e)
             sys.exit(1)
 
@@ -170,7 +170,7 @@ suggest_reboot=False
         if hash != orig_hash:
             try:
                 self.cmd.update('bodhi.template')
-            except Exception, e:
+            except Exception as e:
                 self.log.error('Could not generate update request: %s' % e)
                 sys.exit(1)
         else:

@@ -196,7 +196,7 @@ class Commands(pyrpkg.Commands):
         """This sets the user attribute, based on the Fedora SSL cert."""
         try:
             self._user = fedora_cert.read_user_cert()
-        except Exception, e:
+        except Exception as e:
             self.log.debug('Could not read Fedora cert, falling back to '
                            'default method: %s' % e)
             super(Commands, self).load_user()
