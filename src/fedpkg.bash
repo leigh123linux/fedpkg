@@ -29,14 +29,16 @@ _fedpkg()
         cur="${COMP_WORDS[COMP_CWORD]}"
         prev="${COMP_WORDS[COMP_CWORD-1]}"
     fi
-    
+
     # global options
 
     local options="--help -v -q"
     local options_value="--dist --user --path"
-    local commands="build chain-build ci clean clog clone co commit compile diff gimmespec giturl help \
-    gitbuildurl import install lint local mockbuild mock-config new new-sources patch prep pull push retire scratch-build sources \
-    srpm switch-branch tag unused-patches update upload verify-files verrel"
+    local commands="build chain-build ci clean clog clone co commit compile \
+    container-build diff gimmespec giturl help gitbuildurl import install lint \
+    local mockbuild mock-config new new-sources patch prep pull push retire \
+    scratch-build sources srpm switch-branch tag unused-patches update upload \
+    verify-files verrel"
 
     # parse main options and get command
 
@@ -127,6 +129,11 @@ _fedpkg()
             options="--short-circuit"
             options_arch="--arch"
             options_dir="--builddir"
+            ;;
+        container-build)
+            options="--scratch"
+            options_target="--target"
+            options_builder="--build-with"
             ;;
         diff)
             options="--cached"
