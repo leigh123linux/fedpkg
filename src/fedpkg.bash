@@ -90,7 +90,7 @@ _fedpkg()
     # parse command specific options
 
     local options=
-    local options_target= options_arches= options_branch= options_string= options_file= options_dir= options_srpm= options_mroot=
+    local options_target= options_arches= options_branch= options_string= options_file= options_dir= options_srpm= options_mroot= options_builder=
     local after= after_more=
 
     case $command in
@@ -204,7 +204,7 @@ _fedpkg()
     esac
 
     local all_options="--help $options"
-    local all_options_value="$options_target $options_arches $options_branch $options_string $options_file $options_dir $options_srpm $options_mroot"
+    local all_options_value="$options_target $options_arches $options_branch $options_string $options_file $options_dir $options_srpm $options_mroot $options_builder"
 
     # count non-option parameters
 
@@ -233,6 +233,9 @@ _fedpkg()
 
     elif [[ -n $options_arches ]] && in_array "$last_option" "$options_arches"; then
         COMPREPLY=( $(compgen -W "$(_fedpkg_arch) $all_options" -- "$cur") )
+
+    elif [[ -n $options_builder ]] && in_array "$prev" "$options_builder"; then
+        COMPREPLY=( $(compgen -W "$(_fedpkg_builder)" -- "$cur") )
 
     elif [[ -n $options_srpm ]] && in_array "$prev" "$options_srpm"; then
         _filedir_exclude_paths "*.src.rpm"
@@ -289,6 +292,11 @@ _fedpkg_target()
 _fedpkg_arch()
 {
     echo "i386 i686 x86_64 armv5tel armv7hl armv7hnl ppc ppc64 ppc64p7 s390 s390x"
+}
+
+_fedpkg_builder()
+{
+    echo "koji osbs"
 }
 
 _fedpkg_branch()
