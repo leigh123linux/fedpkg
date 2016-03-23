@@ -1,9 +1,13 @@
 #!/usr/bin/python
 from setuptools import setup
+import distutils.command.sdist
 try:
     from subprocess import getstatusoutput
 except:
     from commands import getstatusoutput
+
+
+distutils.command.sdist.sdist.default_format = {'posix': 'bztar'}
 
 
 def bash_completion_dir():
