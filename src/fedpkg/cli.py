@@ -60,6 +60,9 @@ class fedpkgClient(cliClient):
     # Target functions go here
     def retire(self):
         try:
+            module_name = self.cmd.module_name
+            ns_module_name = self.cmd.ns_module_name
+            namespace = ns_module_name.split(module_name)[0].rstrip('/')
             # Skip if package is already retired to allow to retire only in
             # pkgdb
             if os.path.isfile(os.path.join(self.cmd.path, 'dead.package')):
@@ -70,18 +73,10 @@ class fedpkgClient(cliClient):
                 self.cmd.retire(self.args.reason)
             self.push()
 
-            # get module name from git, because pyrpkg gets it from SPEC,
-            # which is deleted at this point
-            cmd = ['git', 'config', '--get', 'remote.origin.url']
-            module_name = subprocess.check_output(cmd, cwd=self.cmd.path)
-            module_name = \
-                module_name.strip().split(self.cmd.gitbaseurl %
-                                          {'user': self.cmd.user,
-                                           'module': ''})[1]
             branch = self.cmd.branch_merge
             pkgdb = pkgdb2client.PkgDB(
                 login_callback=pkgdb2client.ask_password)
-            pkgdb.retire_packages(module_name, branch)
+            pkgdb.retire_packages(module_name, branch, namespace=namespace)
         except Exception as e:
             self.log.error('Could not retire package: %s' % e)
             sys.exit(1)
