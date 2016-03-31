@@ -76,10 +76,13 @@ class RetireTestCase(unittest.TestCase):
         self.assertEqual(PkgDB.return_value.retire_packages.call_args_list,
                          [mock.call('fedpkg', 'master', namespace='rpms')])
 
+    @mock.patch('fedora_cert.read_user_cert')
     @mock.patch('pkgdb2client.PkgDB')
-    def test_retire_without_namespace(self, PkgDB):
+    def test_retire_without_namespace(self, PkgDB, read_user_cert):
         self._setup_repo('ssh://git@pkgs.example.com/fedpkg')
         args = ['fedpkg', '--dist=master', 'retire', 'my reason']
+
+        read_user_cert.return_value = 'packager'
 
         client = self._fake_client(args)
         client.retire()
