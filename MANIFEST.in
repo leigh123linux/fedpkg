@@ -2,3 +2,4 @@ include COPYING
 include src/fedpkg.bash
 include src/fedpkg.conf
 include src/fedpkg_man_page.py
+include test/fedpkg-test.conf
