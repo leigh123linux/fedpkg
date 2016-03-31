@@ -40,8 +40,10 @@ class RetireTestCase(unittest.TestCase):
             cwd=self.tmpdir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     def _get_latest_commit(self):
-        return subprocess.check_output(
-            ['git', 'log', '-n', '1', '--pretty=%s'], cwd=self.tmpdir).strip()
+        proc = subprocess.Popen(['git', 'log', '-n', '1', '--pretty=%s'],
+                                cwd=self.tmpdir, stdout=subprocess.PIPE)
+        out, err = proc.communicate()
+        return out.strip()
 
     def _fake_client(self, args):
         config = ConfigParser.SafeConfigParser()
