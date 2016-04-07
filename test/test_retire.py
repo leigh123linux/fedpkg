@@ -27,6 +27,12 @@ class RetireTestCase(unittest.TestCase):
             ['git', 'init'],
             cwd=self.tmpdir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         subprocess.check_call(
+            ['git', 'config', 'user.name', 'John Doe'],
+            cwd=self.tmpdir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.check_call(
+            ['git', 'config', 'user.email', 'jdoe@example.com'],
+            cwd=self.tmpdir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.check_call(
             ['git', 'remote', 'add', 'origin', origin],
             cwd=self.tmpdir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         subprocess.check_call(
