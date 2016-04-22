@@ -5,3 +5,6 @@ py-compile
 *~
 *.swp
 /src/pyrpkg/*.py
+build/
+dist/
+*.egg-info/
