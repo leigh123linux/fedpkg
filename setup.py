@@ -25,5 +25,6 @@ setup(
     scripts=['src/bin/fedpkg'],
     data_files=[(bash_completion_dir(), ['src/fedpkg.bash']),
                 ('/etc/rpkg', ['src/fedpkg.conf']),
+                ('/usr/share/zsh/site-functions', ['src/_fedpkg']),
                 ],
 )
