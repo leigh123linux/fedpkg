@@ -80,7 +80,7 @@ class RetireTestCase(unittest.TestCase):
         client.retire()
 
         self.assertRetired('my reason')
-        self.assertEqual(client.cmd.push.call_args_list, [mock.call()])
+        self.assertEqual(len(client.cmd.push.call_args_list), 1)
         self.assertEqual(PkgDB.return_value.retire_packages.call_args_list,
                          [mock.call('fedpkg', 'master', namespace='rpms')])
 
@@ -96,6 +96,6 @@ class RetireTestCase(unittest.TestCase):
         client.retire()
 
         self.assertRetired('my reason')
-        self.assertEqual(client.cmd.push.call_args_list, [mock.call()])
+        self.assertEqual(len(client.cmd.push.call_args_list), 1)
         self.assertEqual(PkgDB.return_value.retire_packages.call_args_list,
                          [mock.call('fedpkg', 'master', namespace='rpms')])
