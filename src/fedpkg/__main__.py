@@ -13,8 +13,13 @@
 import os
 import sys
 import logging
-import ConfigParser
 import argparse
+
+import six
+if six.PY3:  # SafeConfigParser == ConfigParser, former deprecated in >= 3.2
+    from six.moves.configparser import ConfigParser
+else:
+    from six.moves.configparser import SafeConfigParser as ConfigParser
 
 import pyrpkg
 import pyrpkg.utils
@@ -36,7 +41,7 @@ def main():
         sys.exit(1)
 
     # Setup a configuration object and read config file data
-    config = ConfigParser.SafeConfigParser()
+    config = ConfigParser()
     config.read(args.config)
 
     client = fedpkg.cli.fedpkgClient(config)
