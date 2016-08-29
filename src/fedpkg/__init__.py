@@ -305,9 +305,8 @@ class Commands(pyrpkg.Commands):
         """Submit an update to bodhi using the provided template."""
 
         # build up the bodhi arguments
-        cmd = ['bodhi', '--new', '--release', self.branch_merge,
-               '--file', 'bodhi.template', self.nvr, '--username',
-               self.user]
+        cmd = ['bodhi', 'updates', 'new', '--file', 'bodhi.template',
+               '--user', self.user, self.nvr]
         self._run_command(cmd, shell=True)
 
     def load_kojisession(self, anon=False):
