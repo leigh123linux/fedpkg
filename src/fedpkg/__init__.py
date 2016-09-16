@@ -11,7 +11,7 @@
 
 import pyrpkg
 import os
-import cli
+from . import cli
 import git
 import re
 import fedora_cert
