@@ -22,7 +22,10 @@ setup(
     url="http://fedorahosted.org/fedpkg",
     package_dir={'': 'src'},
     packages=['fedpkg'],
-    scripts=['src/bin/fedpkg'],
+    scripts=[
+        'src/bin/fedpkg',
+        'src/bin/fedpkg-stage',
+    ],
     data_files=[(bash_completion_dir(), ['src/fedpkg.bash']),
                 ('/etc/rpkg', ['src/fedpkg.conf']),
                 ('/usr/share/zsh/site-functions', ['src/_fedpkg']),

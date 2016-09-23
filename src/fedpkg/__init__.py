@@ -302,18 +302,20 @@ class Commands(pyrpkg.Commands):
 
         self.commit(message=message)
 
-    def update(self, template='bodhi.template', bugs=[]):
+    def update(self, bodhi_config, template='bodhi.template', bugs=[]):
         """Submit an update to bodhi using the provided template."""
 
         # build up the bodhi arguments, based on which version of bodhi is
         # installed
         bodhi_major_version = _get_bodhi_version()[0]
         if bodhi_major_version < 2:
-            cmd = ['bodhi', '--new', '--release', self.branch_merge,
+            cmd = ['bodhi', '--bodhi-url', bodhi_config['url'],
+                   '--new', '--release', self.branch_merge,
                    '--file', 'bodhi.template', self.nvr, '--username',
                    self.user]
         elif bodhi_major_version == 2:
-            cmd = ['bodhi', 'updates', 'new', '--file', 'bodhi.template',
+            cmd = ['bodhi', '--bodhi-url', bodhi_config['url'],
+                   'updates', 'new', '--file', 'bodhi.template',
                    '--user', self.user, self.nvr]
         else:
             msg = 'This system has bodhi v{0}, which is unsupported.'

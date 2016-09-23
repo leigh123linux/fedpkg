@@ -26,11 +26,14 @@ import pyrpkg.utils
 import fedpkg
 
 
+cli_name = os.path.basename(sys.argv[0])
+
+
 def main():
     # Setup an argparser and parse the known commands to get the config file
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('-C', '--config', help='Specify a config file to use',
-                        default='/etc/rpkg/fedpkg.conf')
+                        default='/etc/rpkg/%s.conf' % cli_name)
 
     (args, other) = parser.parse_known_args()
 
@@ -44,7 +47,7 @@ def main():
     config = ConfigParser()
     config.read(args.config)
 
-    client = fedpkg.cli.fedpkgClient(config)
+    client = fedpkg.cli.fedpkgClient(config, name=cli_name)
     client.do_imports(site='fedpkg')
     client.parse_cmdline()
 

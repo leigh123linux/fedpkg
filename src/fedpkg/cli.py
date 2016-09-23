@@ -73,9 +73,10 @@ class fedpkgClient(cliClient):
                 self.cmd.retire(self.args.reason)
             self.push()
 
+            pkgdb_config = dict(self.config.items('%s.pkgdb' % self.name))
             branch = self.cmd.branch_merge
-            pkgdb = pkgdb2client.PkgDB(
-                login_callback=pkgdb2client.ask_password)
+            pkgdb = pkgdb2client.PkgDB(url=pkgdb_config['url'],
+                                       login_callback=pkgdb2client.ask_password)
             pkgdb.retire_packages(module_name, branch, namespace=namespace)
         except Exception as e:
             self.log.error('Could not retire package: %s' % e)
@@ -164,7 +165,8 @@ suggest_reboot=False
         hash = self.cmd.lookasidecache.hash_file('bodhi.template', 'sha1')
         if hash != orig_hash:
             try:
-                self.cmd.update('bodhi.template')
+                bodhi_config = dict(self.config.items('%s.bodhi' % self.name))
+                self.cmd.update(bodhi_config, template='bodhi.template')
             except Exception as e:
                 self.log.error('Could not generate update request: %s' % e)
                 sys.exit(1)
