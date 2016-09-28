@@ -8,3 +8,4 @@ py-compile
 build/
 dist/
 *.egg-info/
+.coverage

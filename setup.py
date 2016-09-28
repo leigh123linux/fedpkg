@@ -30,4 +30,7 @@ setup(
                 ('/etc/rpkg', ['src/fedpkg.conf']),
                 ('/usr/share/zsh/site-functions', ['src/_fedpkg']),
                 ],
+
+    tests_require=['nose', 'mock'],
+    test_suite='nose.collector',
 )
