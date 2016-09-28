@@ -214,7 +214,7 @@ class Commands(pyrpkg.Commands):
         if self._kojisession:
             rawhidetarget = self.kojisession.getBuildTarget('rawhide')
             desttag = rawhidetarget['dest_tag_name']
-            return desttag.replace('f', '')
+            return desttag.split('-')[0].replace('f', '')
 
         # Create a list of "fedoras"
         fedoras = []
