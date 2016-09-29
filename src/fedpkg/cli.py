@@ -14,7 +14,6 @@ import sys
 import os
 import logging
 import re
-import subprocess
 import textwrap
 import hashlib
 

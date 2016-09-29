@@ -11,13 +11,13 @@
 
 import pyrpkg
 import os
-from . import cli
 import git
 import re
 import fedora_cert
 import platform
 import subprocess
 
+from . import cli  # noqa
 from .lookaside import FedoraLookasideCache
 from pyrpkg.utils import cached_property
 
@@ -88,7 +88,7 @@ class Commands(pyrpkg.Commands):
         # We have to allow this to work, even if we don't have a package
         # we're working on, for things like gitbuildhash.
         try:
-            null = self.module_name
+            self.module_name
         except:
             self._kojiconfig = self._orig_kojiconfig
             return

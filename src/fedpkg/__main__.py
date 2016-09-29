@@ -10,20 +10,20 @@
 # option) any later version.  See http://www.gnu.org/copyleft/gpl.html for
 # the full text of the license.
 
+import argparse
+import logging
 import os
 import sys
-import logging
-import argparse
+
+import fedpkg
+import pyrpkg
+import pyrpkg.utils
 
 import six
 if six.PY3:  # SafeConfigParser == ConfigParser, former deprecated in >= 3.2
     from six.moves.configparser import ConfigParser
 else:
     from six.moves.configparser import SafeConfigParser as ConfigParser
-
-import pyrpkg
-import pyrpkg.utils
-import fedpkg
 
 
 cli_name = os.path.basename(sys.argv[0])
