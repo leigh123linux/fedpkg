@@ -1,5 +1,6 @@
 #!/usr/bin/python
-from setuptools import setup
+from setuptools import setup, find_packages
+
 try:
     from subprocess import getstatusoutput
 except:
@@ -20,15 +21,15 @@ setup(
                  "package sources in a git repository"),
     license="GPLv2+",
     url="http://fedorahosted.org/fedpkg",
-    package_dir={'': 'src'},
-    packages=['fedpkg'],
+    packages=find_packages(),
     scripts=[
-        'src/bin/fedpkg',
-        'src/bin/fedpkg-stage',
+        'bin/fedpkg',
+        'bin/fedpkg-stage',
     ],
-    data_files=[(bash_completion_dir(), ['src/fedpkg.bash']),
-                ('/etc/rpkg', ['src/fedpkg.conf']),
-                ('/usr/share/zsh/site-functions', ['src/_fedpkg']),
+    data_files=[(bash_completion_dir(), ['conf/bash-completion/fedpkg.bash']),
+                ('/etc/rpkg', ['conf/etc/rpkg/fedpkg.conf',
+                               'conf/etc/rpkg/fedpkg-stage.conf']),
+                ('/usr/share/zsh/site-functions', ['conf/zsh-completion/_fedpkg']),
                 ],
 
     tests_require=['nose', 'mock'],

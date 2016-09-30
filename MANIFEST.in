@@ -1,6 +1,5 @@
 include COPYING
-include src/_fedpkg
-include src/fedpkg.bash
-include src/fedpkg.conf
-include src/fedpkg_man_page.py
+include doc/fedpkg_man_page.py
 include test/fedpkg-test.conf
+include bin/fedpkg bin/fedpkg-stage
+recursive-include conf *
