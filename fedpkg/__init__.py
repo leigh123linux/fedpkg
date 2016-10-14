@@ -106,7 +106,11 @@ class Commands(pyrpkg.Commands):
         We override this from pyrpkg because we actually need a client-side
         certificate.
         """
-        return os.path.expanduser('~/.fedora.cert')
+        path = os.path.expanduser('~/.fedora.cert')
+        if os.path.exists(path):
+            return path
+        else:
+            return None
 
     @cached_property
     def ca_cert(self):
