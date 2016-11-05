@@ -41,22 +41,6 @@ class Commands(pyrpkg.Commands):
 
         # New data
         self.secondary_arch = {
-            'ppc': [
-                'apmud',
-                'libbsr',
-                'librtas',
-                'libservicelog',
-                'libvpd',
-                'lsvpd',
-                'powerpc-utils',
-                'powerpc-utils-papr',
-                'powerpc-utils-python',
-                'ppc64-diag',
-                'ppc64-utils',
-                'servicelog',
-                'yaboot',
-            ],
-            'arm': ['xorg-x11-drv-omapfb'],
             's390': ['s390utils', 'openssl-ibmca', 'libica', 'libzfcphbaapi'],
         }
 
