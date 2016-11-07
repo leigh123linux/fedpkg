@@ -33,7 +33,7 @@ _fedpkg()
     # global options
 
     local options="--help -v -q"
-    local options_value="--dist --user --path"
+    local options_value="--dist --release --user --path"
     local commands="build chain-build ci clean clog clone co commit compile \
     container-build diff gimmespec giturl help gitbuildhash import install lint \
     local mockbuild mock-config new new-sources patch prep pull push retire \
