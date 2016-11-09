@@ -19,6 +19,8 @@ import hashlib
 
 import pkgdb2client
 
+from pyrpkg import rpkgError
+
 
 class fedpkgClient(cliClient):
     def __init__(self, config, name=None):
@@ -58,28 +60,24 @@ class fedpkgClient(cliClient):
 
     # Target functions go here
     def retire(self):
-        try:
-            module_name = self.cmd.module_name
-            ns_module_name = self.cmd.ns_module_name
-            namespace = ns_module_name.split(module_name)[0].rstrip('/')
-            # Skip if package is already retired to allow to retire only in
-            # pkgdb
-            if os.path.isfile(os.path.join(self.cmd.path, 'dead.package')):
-                self.log.warn('dead.package found, package probably already '
-                              'retired - will not remove files from git or '
-                              'overwrite existing dead.package file')
-            else:
-                self.cmd.retire(self.args.reason)
-            self.push()
+        module_name = self.cmd.module_name
+        ns_module_name = self.cmd.ns_module_name
+        namespace = ns_module_name.split(module_name)[0].rstrip('/')
+        # Skip if package is already retired to allow to retire only in
+        # pkgdb
+        if os.path.isfile(os.path.join(self.cmd.path, 'dead.package')):
+            self.log.warn('dead.package found, package probably already '
+                          'retired - will not remove files from git or '
+                          'overwrite existing dead.package file')
+        else:
+            self.cmd.retire(self.args.reason)
+        self.push()
 
-            pkgdb_config = dict(self.config.items('%s.pkgdb' % self.name))
-            branch = self.cmd.branch_merge
-            pkgdb = pkgdb2client.PkgDB(url=pkgdb_config['url'],
-                                       login_callback=pkgdb2client.ask_password)
-            pkgdb.retire_packages(module_name, branch, namespace=namespace)
-        except Exception as e:
-            self.log.error('Could not retire package: %s' % e)
-            sys.exit(1)
+        pkgdb_config = dict(self.config.items('%s.pkgdb' % self.name))
+        branch = self.cmd.branch_merge
+        pkgdb = pkgdb2client.PkgDB(url=pkgdb_config['url'],
+                                   login_callback=pkgdb2client.ask_password)
+        pkgdb.retire_packages(module_name, branch, namespace=namespace)
 
     def _format_update_clog(self, clog):
         ''' Format clog for the update template. '''
@@ -158,8 +156,8 @@ suggest_reboot=False
 
         # Check to see if we got a template written out.  Bail otherwise
         if not os.path.isfile('bodhi.template'):
-            self.log.error('No bodhi update details saved!')
-            sys.exit(1)
+            raise rpkgError('No bodhi update details saved!')
+
         # If the template was changed, submit it to bodhi
         hash = self.cmd.lookasidecache.hash_file('bodhi.template', 'sha1')
         if hash != orig_hash:
@@ -167,8 +165,7 @@ suggest_reboot=False
                 bodhi_config = dict(self.config.items('%s.bodhi' % self.name))
                 self.cmd.update(bodhi_config, template='bodhi.template')
             except Exception as e:
-                self.log.error('Could not generate update request: %s' % e)
-                sys.exit(1)
+                raise rpkgError('Could not generate update request: %s' % e)
         else:
             self.log.info('Bodhi update aborted!')
 
