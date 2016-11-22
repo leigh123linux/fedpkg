@@ -119,7 +119,7 @@ _fedpkg()
             after="package"
             ;;
         commit|ci)
-            options="--push --clog --raw --tag"
+            options="--push --clog --raw --tag --with-changelog"
             options_string="--message"
             options_file="--file"
             after="file"
