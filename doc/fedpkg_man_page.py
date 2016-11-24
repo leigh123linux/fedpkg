@@ -146,6 +146,9 @@ def generate(parser, subparsers):
 
 
 if __name__ == '__main__':
+    module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    sys.path.insert(0, module_path)
+
     try:
         import fedpkg
     except ImportError:
