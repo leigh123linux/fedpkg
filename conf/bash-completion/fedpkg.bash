@@ -159,7 +159,7 @@ _fedpkg()
             ;;
         mockbuild)
             options="--md5 --no-clean --no-cleanup-after --no-clean-all"
-            options_mroot="--root"
+            options_mroot="--root --mock-config"
             ;;
         patch)
             options="--rediff"
