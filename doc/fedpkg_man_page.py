@@ -1,6 +1,7 @@
 # Print a man page from the help texts.
 
 
+import os
 import sys
 import datetime
 
