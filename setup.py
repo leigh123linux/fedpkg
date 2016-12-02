@@ -12,15 +12,16 @@ def bash_completion_dir():
         'pkg-config --variable=completionsdir bash-completion')
     return output if not sts and output else '/etc/bash_completion.d'
 
+
 setup(
     name="fedpkg",
-    version="1.25",
+    version="1.26",
     author="Dennis Gilmore",
     author_email="dgilmore@fedoraproject.org",
     description=("Fedora plugin to rpkg to manage "
                  "package sources in a git repository"),
     license="GPLv2+",
-    url="http://fedorahosted.org/fedpkg",
+    url="https://pagure.io/fedpkg",
     packages=find_packages(),
     scripts=[
         'bin/fedpkg',

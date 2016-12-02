@@ -1,0 +1,29 @@
+ChangeLog
+=========
+
+v1.26-1 (2016-12-02)
+--------------------
+
+- Specific help of --release for fedpkg - rhbz#1054440 (cqi)
+- Bash completion for --mock-config (cqi)
+- Remove unnecessary entry point (cqi)
+- Add missing import to man page script (lsedlar)
+- lookaside: We now use sha512 to upload the sources (bochecha)
+- Move to the new sources file format (bochecha)
+- Fix man page generator (lsedlar)
+- Accept the realms argument in Commands class - #14 (lsedlar)
+- Add kerberos realm to config files (lsedlar)
+- Move release guide to doc directory (cqi)
+- Add --with-changelog to shell completion (cqi)
+- Avoid sys.exit - #52 (cqi)
+- Add --release to bash completion (cqi)
+- remove the ppc and arm packages as they are now built in regular koji
+  (dennis)
+- Do not send a certificate if none exists (puiterwijk)
+- New source code layout (cqi)
+- Set push.default to simple (cqi)
+- Fix PEP8 errors (cqi)
+- Integration between setuptools and nosetests (cqi)
+- New fedpkg-stage for developers to use stage infra - #41 (cqi)
+- enable target dest for rawhide to have trailing pieces (dennis)
+- python3: improve Python 3.x compatibility (pavlix)

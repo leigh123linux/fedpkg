@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # fedpkg - a script to interact with the Fedora Packaging system
 #
 # Copyright (C) 2011 Red Hat Inc.
