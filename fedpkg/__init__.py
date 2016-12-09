@@ -99,10 +99,9 @@ class Commands(pyrpkg.Commands):
     def ca_cert(self):
         """A CA certificate to authenticate the server in SSL connections
 
-        We override this from pyrpkg because we actually need a custom
-        CA certificate.
+        We now use the system trust list.
         """
-        return os.path.expanduser('~/.fedora-server-ca.cert')
+        return None
 
     @cached_property
     def lookasidecache(self):
