@@ -1,6 +1,18 @@
 ChangeLog
 =========
 
+v1.26-3 (2016-12-12)
+--------------------
+
+- sha512 should be also used in fedpkg-stage (cqi)
+- conf: s/kerberos_realm/kerberos_realms/ (i.gnatenko.brain)
+
+v1.26-2 (2016-12-09)
+--------------------
+
+- Update config with new lookaside url (puiterwijk)
+- Use system trust list for lookaside (puiterwijk)
+
 v1.26-1 (2016-12-02)
 --------------------
 
