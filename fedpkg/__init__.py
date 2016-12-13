@@ -192,6 +192,10 @@ class Commands(pyrpkg.Commands):
                            'default method: %s' % e)
             super(Commands, self).load_user()
 
+    def _tag2version(self, dest_tag):
+        """ get the '26' part of 'f26-foo' string """
+        return dest_tag.split('-')[0].replace('f', '')
+
     # New functionality
     def _findmasterbranch(self):
         """Find the right "fedora" for master"""
@@ -199,8 +203,7 @@ class Commands(pyrpkg.Commands):
         # If we already have a koji session, just get data from the source
         if self._kojisession:
             rawhidetarget = self.kojisession.getBuildTarget('rawhide')
-            desttag = rawhidetarget['dest_tag_name']
-            return desttag.split('-')[0].replace('f', '')
+            return self._tag2version(rawhidetarget['dest_tag_name'])
 
         # Create a list of "fedoras"
         fedoras = []
@@ -233,8 +236,7 @@ class Commands(pyrpkg.Commands):
                 # We couldn't hit koji, bail.
                 raise pyrpkg.rpkgError('Unable to query koji to find rawhide \
                                        target')
-            desttag = rawhidetarget['dest_tag_name']
-            return desttag.replace('f', '')
+            return self._tag2version(rawhidetarget['dest_tag_name'])
 
     def _determine_runtime_env(self):
         """Need to know what the runtime env is, so we can unset anything
