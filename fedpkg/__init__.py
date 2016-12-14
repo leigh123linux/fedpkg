@@ -302,9 +302,11 @@ class Commands(pyrpkg.Commands):
                    '--file', 'bodhi.template', self.nvr, '--username',
                    self.user]
         elif bodhi_major_version == 2:
-            cmd = ['bodhi', '--bodhi-url', bodhi_config['url'],
-                   'updates', 'new', '--file', 'bodhi.template',
-                   '--user', self.user, self.nvr]
+            cmd = ['bodhi', 'updates', 'new', '--file', 'bodhi.template',
+                   '--user', self.user]
+            if bodhi_config['staging']:
+                cmd.append('--staging')
+            cmd.append(self.nvr)
         else:
             msg = 'This system has bodhi v{0}, which is unsupported.'
             msg = msg.format(bodhi_major_version)

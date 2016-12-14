@@ -17,6 +17,8 @@ import hashlib
 
 import pkgdb2client
 
+from six.moves.configparser import NoSectionError
+from six.moves.configparser import NoOptionError
 from pyrpkg import rpkgError
 
 
@@ -160,7 +162,17 @@ suggest_reboot=False
         hash = self.cmd.lookasidecache.hash_file('bodhi.template', 'sha1')
         if hash != orig_hash:
             try:
-                bodhi_config = dict(self.config.items('%s.bodhi' % self.name))
+                section = '%s.bodhi' % self.name
+                bodhi_config = {
+                    'url': self.config.get(section, 'url'),
+                    'staging': self.config.getboolean(section, 'staging'),
+                    }
+            except (ValueError, NoOptionError, NoSectionError) as e:
+                self.log.error(str(e))
+                raise rpkgError('Could not get bodhi options. It seems configuration is changed. '
+                                'Please try to reinstall %s or consult developers to see what '
+                                'is wrong with it.' % self.name)
+            try:
                 self.cmd.update(bodhi_config, template='bodhi.template')
             except Exception as e:
                 raise rpkgError('Could not generate update request: %s' % e)

@@ -1,6 +1,11 @@
 ChangeLog
 =========
 
+NEXT
+----
+
+- Fix: make fedpkg workable with bodhi 2 CLI - #87 (cqi)
+
 v1.26-3 (2016-12-12)
 --------------------
 
