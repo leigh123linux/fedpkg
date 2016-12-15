@@ -4,7 +4,10 @@ ChangeLog
 NEXT
 ----
 
+- fedpkg clone -a uses https transport - BZ#1188634 (cqi)
+- Fix handle unicode chars in git log - BZ#1404724 (cqi)
 - Fix: make fedpkg workable with bodhi 2 CLI - #87 (cqi)
+- Fix --dist/--release option for 'master' %dist detection (praiskup)
 
 v1.26-3 (2016-12-12)
 --------------------
