@@ -1,29 +1,17 @@
 ChangeLog
 =========
 
-NEXT
-----
+v1.26 (2016-12-15)
+------------------
 
 - fedpkg clone -a uses https transport - BZ#1188634 (cqi)
 - Fix handle unicode chars in git log - BZ#1404724 (cqi)
 - Fix: make fedpkg workable with bodhi 2 CLI - #87 (cqi)
 - Fix --dist/--release option for 'master' %dist detection (praiskup)
-
-v1.26-3 (2016-12-12)
---------------------
-
 - sha512 should be also used in fedpkg-stage (cqi)
 - conf: s/kerberos_realm/kerberos_realms/ (i.gnatenko.brain)
-
-v1.26-2 (2016-12-09)
---------------------
-
 - Update config with new lookaside url (puiterwijk)
 - Use system trust list for lookaside (puiterwijk)
-
-v1.26-1 (2016-12-02)
---------------------
-
 - Specific help of --release for fedpkg - rhbz#1054440 (cqi)
 - Bash completion for --mock-config (cqi)
 - Remove unnecessary entry point (cqi)
