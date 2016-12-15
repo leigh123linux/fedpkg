@@ -10,10 +10,11 @@
 # the full text of the license.
 
 from pyrpkg.cli import cliClient
+import hashlib
 import os
 import re
+import six
 import textwrap
-import hashlib
 
 import pkgdb2client
 
@@ -138,16 +139,22 @@ suggest_reboot=False
         bodhi_args['descr'], bodhi_args['changelog'] = \
             self._format_update_clog(clog)
 
+        if six.PY2:
+            # log may contain unicode characters, convert log to unicode string
+            # to ensure text can be wrapped correctly in follow step.
+            bodhi_args['descr'] = bodhi_args['descr'].decode('utf-8')
+            bodhi_args['changelog'] = bodhi_args['changelog'].decode('utf-8')
+
         template = textwrap.dedent(template) % bodhi_args
 
         # Calculate the hash of the unaltered template
         orig_hash = hashlib.new('sha1')
-        orig_hash.update(template)
+        orig_hash.update(template.encode('utf-8'))
         orig_hash = orig_hash.hexdigest()
 
         # Write out the template
         out = file('bodhi.template', 'w')
-        out.write(template)
+        out.write(template.encode('utf-8'))
         out.close()
 
         # Open the template in a text editor
