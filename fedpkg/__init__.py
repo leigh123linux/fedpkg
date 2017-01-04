@@ -126,7 +126,7 @@ class Commands(pyrpkg.Commands):
         if re.match(r'f\d\d$', self.branch_merge):
             self._distval = self.branch_merge.split('f')[1]
             self._distvar = 'fedora'
-            self.dist = 'fc%s' % self._distval
+            self._disttag = 'fc%s' % self._distval
             self.mockconfig = 'fedora-%s-%s' % (self._distval, self.localarch)
             self.override = 'f%s-override' % self._distval
             self._distunset = 'rhel'
@@ -135,21 +135,21 @@ class Commands(pyrpkg.Commands):
                 re.match(r'epel\d$', self.branch_merge):
             self._distval = self.branch_merge.split('el')[1]
             self._distvar = 'rhel'
-            self.dist = 'el%s' % self._distval
+            self._disttag = 'el%s' % self._distval
             self.mockconfig = 'epel-%s-%s' % (self._distval, self.localarch)
             self.override = 'epel%s-override' % self._distval
             self._distunset = 'fedora'
         elif re.match(r'olpc\d$', self.branch_merge):
             self._distval = self.branch_merge.split('olpc')[1]
             self._distvar = 'olpc'
-            self.dist = 'olpc%s' % self._distval
+            self._disttag = 'olpc%s' % self._distval
             self.override = 'dist-olpc%s-override' % self._distval
             self._distunset = 'rhel'
         # master
         elif re.match(r'master$', self.branch_merge):
             self._distval = self._findmasterbranch()
             self._distvar = 'fedora'
-            self.dist = 'fc%s' % self._distval
+            self._disttag = 'fc%s' % self._distval
             self.mockconfig = 'fedora-rawhide-%s' % self.localarch
             self.override = None
             self._distunset = 'rhel'
@@ -163,13 +163,13 @@ class Commands(pyrpkg.Commands):
                             "--define '_builddir %s'" % self.path,
                             "--define '_srcrpmdir %s'" % self.path,
                             "--define '_rpmdir %s'" % self.path,
-                            "--define 'dist .%s'" % self.dist,
+                            "--define 'dist .%s'" % self._disttag,
                             "--define '%s %s'" % (self._distvar,
                                                   self._distval),
                             "--eval '%%undefine %s'" % self._distunset,
-                            "--define '%s 1'" % self.dist]
+                            "--define '%s 1'" % self._disttag]
         if self._runtime_disttag:
-            if self.dist != self._runtime_disttag:
+            if self._disttag != self._runtime_disttag:
                 # This means that the runtime is known, and is different from
                 # the target, so we need to unset the _runtime_disttag
                 self._rpmdefines.append("--eval '%%undefine %s'" %

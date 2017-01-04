@@ -1,6 +1,11 @@
 ChangeLog
 =========
 
+NEXT
+----
+
+- Set disttag properly (cqi)
+
 v1.28 (2017-02-24)
 ------------------
 
