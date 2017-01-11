@@ -268,6 +268,13 @@ class Commands(pyrpkg.Commands):
         # fall through, return None
         return None
 
+    def check_inheritance(self, build_target, dest_tag):
+        """Disable check inheritance
+
+        Tag inheritance check is not required in Fedora when make chain build
+        in Koji.
+        """
+
     def retire(self, message):
         """Delete all tracked files and commit a new dead.package file
 

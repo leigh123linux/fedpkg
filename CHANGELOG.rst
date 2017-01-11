@@ -1,6 +1,11 @@
 ChangeLog
 =========
 
+NEXT
+----
+
+- Disable tag inheritance check - #98 (cqi)
+
 v1.26 (2016-12-15)
 ------------------
 
