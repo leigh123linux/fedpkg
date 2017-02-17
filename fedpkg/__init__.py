@@ -210,7 +210,7 @@ class Commands(pyrpkg.Commands):
 
         # Create a regex to find branches that exactly match f##.  Should not
         # catch branches such as f14-foobar
-        branchre = 'f\d\d$'
+        branchre = r'f\d\d$'
 
         # Find the repo refs
         for ref in self.repo.refs:

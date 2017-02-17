@@ -11,7 +11,7 @@ man_header = """\
 .\\" man page for fedpkg
 .TH fedpkg 1 "%(today)s" "" "RPM packager"
 .SH "NAME"
-fedpkg \- RPM Packaging utility
+fedpkg \\- RPM Packaging utility
 .SH "SYNOPSIS"
 .B "fedpkg"
 [
@@ -30,7 +30,7 @@ fedpkg \- RPM Packaging utility
 .br
 .B "fedpkg"
 .I "command"
-.B "\-\-help"
+.B "\\-\\-help"
 .SH "DESCRIPTION"
 .B "fedpkg"
 is a script to interact with the RPM Packaging system.
@@ -38,8 +38,8 @@ is a script to interact with the RPM Packaging system.
 
 man_footer = """\
 .SH "SEE ALSO"
-.UR "https://fedorahosted.org/fedora\-packager/"
-.BR "https://fedorahosted.org/fedora\-packager/"
+.UR "https://fedorahosted.org/fedora\\-packager/"
+.BR "https://fedorahosted.org/fedora\\-packager/"
 """
 
 
@@ -66,7 +66,7 @@ def strip_usage(s):
 def man_constants():
     """Global constants for man file templates"""
     today = datetime.date.today()
-    today_manstr = today.strftime('%Y\-%m\-%d')
+    today_manstr = today.strftime(r'%Y\-%m\-%d')
     return {'today': today_manstr}
 
 
