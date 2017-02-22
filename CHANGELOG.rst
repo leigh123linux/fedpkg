@@ -1,9 +1,10 @@
 ChangeLog
 =========
 
-NEXT
-----
+v1.27 (2017-02-22)
+------------------
 
+- Python 3.6 invalid escape sequence deprecation fixes (ville.skytta)
 - Disable tag inheritance check - #98 (cqi)
 
 v1.26 (2016-12-15)
