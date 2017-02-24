@@ -15,7 +15,7 @@ def bash_completion_dir():
 
 setup(
     name="fedpkg",
-    version="1.27",
+    version="1.28",
     author="Dennis Gilmore",
     author_email="dgilmore@fedoraproject.org",
     description=("Fedora plugin to rpkg to manage "
