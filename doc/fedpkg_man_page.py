@@ -38,8 +38,8 @@ is a script to interact with the RPM Packaging system.
 
 man_footer = """\
 .SH "SEE ALSO"
-.UR "https://fedorahosted.org/fedora\\-packager/"
-.BR "https://fedorahosted.org/fedora\\-packager/"
+.UR "https://pagure.io/fedora\\-packager/"
+.BR "https://pagure.io/fedora\\-packager/"
 """
 
 
