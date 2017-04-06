@@ -25,15 +25,14 @@ from pyrpkg.utils import cached_property
 class Commands(pyrpkg.Commands):
 
     def __init__(self, path, lookaside, lookasidehash, lookaside_cgi,
-                 gitbaseurl, anongiturl, branchre, kojiconfig,
-                 build_client, **kwargs):
+                 gitbaseurl, anongiturl, branchre,
+                 kojiprofile, build_client,
+                 **kwargs):
         """Init the object and some configuration details."""
 
-        # We are subclassing to set kojiconfig to none, so that we can
-        # make it a property to potentially use a secondary config
         super(Commands, self).__init__(path, lookaside, lookasidehash,
                                        lookaside_cgi, gitbaseurl, anongiturl,
-                                       branchre, kojiconfig, build_client,
+                                       branchre, kojiprofile, build_client,
                                        **kwargs)
 
         # New data
@@ -41,27 +40,27 @@ class Commands(pyrpkg.Commands):
         }
 
         # New properties
-        self._kojiconfig = None
+        self._kojiprofile = None
         # Store this for later
-        self._orig_kojiconfig = kojiconfig
+        self._orig_kojiprofile = kojiprofile
 
         self.source_entry_type = 'bsd'
 
     # Add new properties
     @property
-    def kojiconfig(self):
-        """This property ensures the kojiconfig attribute"""
+    def kojiprofile(self):
+        """This property ensures the kojiprofile attribute"""
 
-        if not self._kojiconfig:
-            self.load_kojiconfig()
-        return self._kojiconfig
+        if not self._kojiprofile:
+            self.load_kojiprofile()
+        return self._kojiprofile
 
-    @kojiconfig.setter
-    def kojiconfig(self, value):
-        self._kojiconfig = value
+    @kojiprofile.setter
+    def kojiprofile(self, value):
+        self._kojiprofile = value
 
-    def load_kojiconfig(self):
-        """This loads the kojiconfig attribute
+    def load_kojiprofile(self):
+        """This loads the kojiprofile attribute
 
         This will either use the one passed in via arguments or a
         secondary arch config depending on the package
@@ -72,14 +71,13 @@ class Commands(pyrpkg.Commands):
         try:
             self.module_name
         except:
-            self._kojiconfig = self._orig_kojiconfig
+            self._kojiprofile = self._orig_kojiprofile
             return
         for arch in self.secondary_arch.keys():
             if self.module_name in self.secondary_arch[arch]:
-                self._kojiconfig = os.path.expanduser('/etc/koji/%s-config' %
-                                                      arch)
+                self._kojiprofile = arch
                 return
-        self._kojiconfig = self._orig_kojiconfig
+        self._kojiprofile = self._orig_kojiprofile
 
     @cached_property
     def cert_file(self):
