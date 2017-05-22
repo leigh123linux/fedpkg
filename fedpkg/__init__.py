@@ -38,7 +38,6 @@ class Commands(pyrpkg.Commands):
 
         # New data
         self.secondary_arch = {
-            's390': ['s390utils', 'openssl-ibmca', 'libica', 'libzfcphbaapi'],
         }
 
         # New properties
