@@ -26,16 +26,10 @@ from pyrpkg.utils import cached_property
 
 class Commands(pyrpkg.Commands):
 
-    def __init__(self, path, lookaside, lookasidehash, lookaside_cgi,
-                 gitbaseurl, anongiturl, branchre,
-                 kojiprofile, build_client,
-                 **kwargs):
+    def __init__(self, *args, **kwargs):
         """Init the object and some configuration details."""
 
-        super(Commands, self).__init__(path, lookaside, lookasidehash,
-                                       lookaside_cgi, gitbaseurl, anongiturl,
-                                       branchre, kojiprofile, build_client,
-                                       **kwargs)
+        super(Commands, self).__init__(*args, **kwargs)
 
         # New data
         self.secondary_arch = {
