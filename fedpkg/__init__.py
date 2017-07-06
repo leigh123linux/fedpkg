@@ -17,8 +17,6 @@ import fedora_cert
 import platform
 import subprocess
 
-import six
-
 from . import cli  # noqa
 from .lookaside import FedoraLookasideCache
 from pyrpkg.utils import cached_property
@@ -31,33 +29,7 @@ class Commands(pyrpkg.Commands):
 
         super(Commands, self).__init__(*args, **kwargs)
 
-        # New data
-        self.secondary_arch = {
-        }
-
-        secondary_arch_profile = self._get_secondary_arch_koji_profile()
-        if secondary_arch_profile:
-            self.kojiprofile = secondary_arch_profile
-
         self.source_entry_type = 'bsd'
-
-    def _get_secondary_arch_koji_profile(self):
-        """Get secondary arch profile depending on the definition
-
-        :return: profile name if there are packages defined for specific arch
-            as secondary arch. None is returned if no package is defined.
-        :rtype: str
-        """
-
-        # We have to allow this to work, even if we don't have a package
-        # we're working on, for things like gitbuildhash.
-        try:
-            self.module_name
-        except:
-            return None
-        for arch, package_names in six.iteritems(self.secondary_arch):
-            if self.module_name in package_names:
-                return arch
 
     @cached_property
     def cert_file(self):
