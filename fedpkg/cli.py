@@ -109,6 +109,11 @@ bugs=%(bugs)s
 
 %(changelog)s
 # Here is where you give an explanation of your update.
+# Content can span multiple lines, as long as they are indented deeper than
+# the first line. For example,
+# notes=first line
+#     second line
+#     and so on
 notes=%(descr)s
 
 # Enable request automation based on the stable/unstable karma thresholds
