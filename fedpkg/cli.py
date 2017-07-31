@@ -29,6 +29,14 @@ class fedpkgClient(cliClient):
         super(fedpkgClient, self).__init__(config, name)
         self.setup_fed_subparsers()
 
+    def setup_argparser(self):
+        super(fedpkgClient, self).setup_argparser()
+
+        opt_release = self.parser._option_string_actions['--release']
+        opt_release.help = 'Override the discovered release, e.g. f25, which has to match ' \
+                           'the remote branch name created in package repository. ' \
+                           'Particularly, use master to build RPMs for rawhide.'
+
     def setup_fed_subparsers(self):
         """Register the fedora specific targets"""
 
