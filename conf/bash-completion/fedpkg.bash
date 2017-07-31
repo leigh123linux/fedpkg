@@ -98,6 +98,7 @@ _fedpkg()
             ;;
         build)
             options="--nowait --background --skip-tag --scratch"
+            options_arches="--arches"
             options_srpm="--srpm"
             options_target="--target"
             ;;
