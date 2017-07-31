@@ -291,7 +291,7 @@ _fedpkg_target()
 
 _fedpkg_arch()
 {
-    echo "i386 i686 x86_64 armv5tel armv7hl armv7hnl ppc ppc64 ppc64p7 s390 s390x"
+    echo "i386 i686 x86_64 armv5tel armv7hl armv7hnl ppc ppc64 ppc64le ppc64p7 s390 s390x"
 }
 
 _fedpkg_builder()
