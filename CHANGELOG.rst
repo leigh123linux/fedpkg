@@ -1,10 +1,25 @@
 ChangeLog
 =========
 
-NEXT
-----
+v1.29 (2017-08-11)
+------------------
 
+- Remove unused variable in Commands.retire (cqi)
+- No more pkgdb. (rbean)
+- Add --arches to build completions (ville.skytta)
+- Add ppc64le to arch completions (ville.skytta)
+- Explain how to write a note in multiple lines in update template - #123 (cqi)
+- Remove code that handles secondary arch (cqi)
+- Simplify passing arguments when creating Command object - #14 (cqi)
+- Set koji profile for secondary arch immediately (cqi)
+- Use profile to load Koji configuration - #97 (cqi)
+- Remove push.default from clone_default - #109 (cqi)
+- remove special handling of s390 specific packages (dan)
+- Replace fedorahosted.org with pagure.io in manpage - #113 (cqi)
+- Remove tracbaseurl from conf file - #112 (cqi)
 - Set disttag properly (cqi)
+- koji stage config moved, update fedpkg defaults (maxamillion)
+- Specific help of --release for fedpkg - rhbz#1054440 (cqi)
 
 v1.28 (2017-02-24)
 ------------------
