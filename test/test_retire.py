@@ -71,8 +71,7 @@ class RetireTestCase(unittest.TestCase):
                                                      'fedpkg.spec')))
         self.assertEqual(self._get_latest_commit(), reason)
 
-    @mock.patch('pkgdb2client.PkgDB')
-    def test_retire_with_namespace(self, PkgDB):
+    def test_retire_with_namespace(self):
         self._setup_repo('ssh://git@pkgs.example.com/rpms/fedpkg')
         args = ['fedpkg', '--dist=master', 'retire', 'my reason']
 
@@ -81,12 +80,9 @@ class RetireTestCase(unittest.TestCase):
 
         self.assertRetired('my reason')
         self.assertEqual(len(client.cmd.push.call_args_list), 1)
-        self.assertEqual(PkgDB.return_value.retire_packages.call_args_list,
-                         [mock.call('fedpkg', 'master', namespace='rpms')])
 
     @mock.patch('fedora_cert.read_user_cert')
-    @mock.patch('pkgdb2client.PkgDB')
-    def test_retire_without_namespace(self, PkgDB, read_user_cert):
+    def test_retire_without_namespace(self, read_user_cert):
         self._setup_repo('ssh://git@pkgs.example.com/fedpkg')
         args = ['fedpkg', '--dist=master', 'retire', 'my reason']
 
@@ -97,5 +93,3 @@ class RetireTestCase(unittest.TestCase):
 
         self.assertRetired('my reason')
         self.assertEqual(len(client.cmd.push.call_args_list), 1)
-        self.assertEqual(PkgDB.return_value.retire_packages.call_args_list,
-                         [mock.call('fedpkg', 'master', namespace='rpms')])

@@ -16,8 +16,6 @@ import re
 import six
 import textwrap
 
-import pkgdb2client
-
 from six.moves.configparser import NoSectionError
 from six.moves.configparser import NoOptionError
 from pyrpkg import rpkgError
@@ -51,8 +49,7 @@ class fedpkgClient(cliClient):
             'retire',
             help='Retire a package',
             description='This command will remove all files from the repo, '
-                        'leave a dead.package file, push the changes and '
-                        'retire the package in pkgdb.'
+                        'leave a dead.package file, and push the changes.'
         )
         retire_parser.add_argument('reason',
                                    help='Reason for retiring the package')
@@ -72,8 +69,7 @@ class fedpkgClient(cliClient):
         module_name = self.cmd.module_name
         ns_module_name = self.cmd.ns_module_name
         namespace = ns_module_name.split(module_name)[0].rstrip('/')
-        # Skip if package is already retired to allow to retire only in
-        # pkgdb
+        # Skip if package is already retired...
         if os.path.isfile(os.path.join(self.cmd.path, 'dead.package')):
             self.log.warn('dead.package found, package probably already '
                           'retired - will not remove files from git or '
@@ -81,12 +77,6 @@ class fedpkgClient(cliClient):
         else:
             self.cmd.retire(self.args.reason)
         self.push()
-
-        pkgdb_config = dict(self.config.items('%s.pkgdb' % self.name))
-        branch = self.cmd.branch_merge
-        pkgdb = pkgdb2client.PkgDB(url=pkgdb_config['url'],
-                                   login_callback=pkgdb2client.ask_password)
-        pkgdb.retire_packages(module_name, branch, namespace=namespace)
 
     def _format_update_clog(self, clog):
         ''' Format clog for the update template. '''
