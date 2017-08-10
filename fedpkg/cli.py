@@ -66,9 +66,6 @@ class fedpkgClient(cliClient):
 
     # Target functions go here
     def retire(self):
-        module_name = self.cmd.module_name
-        ns_module_name = self.cmd.ns_module_name
-        namespace = ns_module_name.split(module_name)[0].rstrip('/')
         # Skip if package is already retired...
         if os.path.isfile(os.path.join(self.cmd.path, 'dead.package')):
             self.log.warn('dead.package found, package probably already '
