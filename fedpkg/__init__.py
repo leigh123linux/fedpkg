@@ -104,8 +104,8 @@ class Commands(pyrpkg.Commands):
             self._distunset = 'rhel'
         # If we don't match one of the above, punt
         else:
-            raise pyrpkg.rpkgError('Could not find the dist from branch name '
-                                   '%s\nPlease specify with --dist' %
+            raise pyrpkg.rpkgError('Could not find the release/dist from branch name '
+                                   '%s\nPlease specify with --release' %
                                    self.branch_merge)
         self._rpmdefines = ["--define '_sourcedir %s'" % self.path,
                             "--define '_specdir %s'" % self.path,
