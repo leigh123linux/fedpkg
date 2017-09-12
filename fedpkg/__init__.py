@@ -132,6 +132,12 @@ class Commands(pyrpkg.Commands):
         else:
             self._target = '%s-candidate' % self.branch_merge
 
+    def load_container_build_target(self):
+        if self.branch_merge == 'master':
+            self._target = 'rawhide-%s-candidate' % self.ns
+        else:
+            super(Commands, self).load_container_build_target()
+
     def load_user(self):
         """This sets the user attribute, based on the Fedora SSL cert."""
         try:
