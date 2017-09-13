@@ -134,7 +134,7 @@ class Commands(pyrpkg.Commands):
 
     def load_container_build_target(self):
         if self.branch_merge == 'master':
-            self._target = 'rawhide-%s-candidate' % self.ns
+            self._container_build_target = 'rawhide-%s-candidate' % self.ns
         else:
             super(Commands, self).load_container_build_target()
 
