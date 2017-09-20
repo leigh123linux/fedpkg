@@ -132,7 +132,8 @@ _fedpkg()
             options_dir="--builddir"
             ;;
         container-build)
-            options="--scratch"
+            options="--scratch --nowait --repo-url"
+            options_arches="--arches"
             options_target="--target"
             ;;
         diff)
