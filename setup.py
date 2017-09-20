@@ -23,10 +23,6 @@ setup(
     license="GPLv2+",
     url="https://pagure.io/fedpkg",
     packages=find_packages(),
-    scripts=[
-        'bin/fedpkg',
-        'bin/fedpkg-stage',
-    ],
     data_files=[(bash_completion_dir(), ['conf/bash-completion/fedpkg.bash']),
                 ('/etc/rpkg', ['conf/etc/rpkg/fedpkg.conf',
                                'conf/etc/rpkg/fedpkg-stage.conf']),
@@ -35,4 +31,11 @@ setup(
 
     tests_require=['nose', 'mock'],
     test_suite='nose.collector',
+
+    entry_points={
+        'console_scripts': [
+            'fedpkg = fedpkg.__main__:main',
+            'fedpkg-stage = fedpkg.__main__:main',
+        ],
+    }
 )
