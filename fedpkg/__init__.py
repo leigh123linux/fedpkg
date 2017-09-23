@@ -275,16 +275,6 @@ class Commands(pyrpkg.Commands):
             raise Exception(msg)
         self._run_command(cmd, shell=True)
 
-    def load_kojisession(self, anon=False):
-        try:
-            return super(Commands, self).load_kojisession(anon)
-        except pyrpkg.rpkgAuthError:
-            self.log.info("You might want to run fedora-packager-setup to "
-                          "regenerate SSL certificate. For more info see "
-                          "https://fedoraproject.org/wiki/Using_the_Koji_build"
-                          "_system#Fedora_Account_System_.28FAS2.29_Setup")
-            raise
-
 
 def _get_bodhi_version():
     """
