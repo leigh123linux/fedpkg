@@ -32,3 +32,23 @@ class TestDetermineRuntimeEnv(CommandTestCase):
         linux_distribution.side_effect = ValueError
 
         self.assertEqual(None, self.cmd._determine_runtime_env())
+
+    @patch('platform.linux_distribution')
+    def test_return_for_rhel(self, linux_distribution):
+        linux_distribution.return_value = ('Red Hat Enterprise Linux Server',
+                                           '6.8',
+                                           'Santiago')
+
+        result = self.cmd._determine_runtime_env()
+        self.assertEqual('el6', result)
+
+    def test_return_for_centos(self):
+        dists = [
+            (('CentOS', '6.9', 'Final'), 'el6'),
+            (('CentOS Linux', '7.3.1611', 'Core'), 'el7'),
+        ]
+
+        for dist, expected_dist_tag in dists:
+            with patch('platform.linux_distribution', return_value=dist):
+                result = self.cmd._determine_runtime_env()
+                self.assertEqual(expected_dist_tag, result)

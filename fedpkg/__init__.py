@@ -206,6 +206,9 @@ class Commands(pyrpkg.Commands):
             return 'el%s' % runtime_version
         if runtime_os == 'Fedora':
             return 'fc%s' % runtime_version
+        if (runtime_os == 'Red Hat Enterprise Linux Server' or
+                runtime_os.startswith('CentOS')):
+            return 'el{0}'.format(runtime_version.split('.')[0])
 
     def check_inheritance(self, build_target, dest_tag):
         """Disable check inheritance
