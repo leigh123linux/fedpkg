@@ -329,3 +329,17 @@ class TestFindMasterBranch(CommandTestCase):
 
         koji_session.getBuildTarget.assert_called_once_with('rawhide')
         self.assertEqual('28', result)
+
+
+class TestOverrideBuildURL(CommandTestCase):
+    """Test Commands.construct_build_url"""
+
+    @patch('pyrpkg.Commands.construct_build_url')
+    def test_override(self, super_construct_build_url):
+        super_construct_build_url.return_value = 'https://localhost/rpms/pkg'
+        cmd = self.make_commands()
+
+        overrided_url = cmd.construct_build_url()
+        self.assertEqual(
+            'git+{0}'.format(super_construct_build_url.return_value),
+            overrided_url)
