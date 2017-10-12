@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # cli.py - a cli client class module for fedpkg
 #
 # Copyright (C) 2011 Red Hat Inc.
@@ -90,6 +91,18 @@ class fedpkgClient(cliClient):
         return lines[0], "\n".join(log)
 
     def update(self):
+        try:
+            section = '%s.bodhi' % self.name
+            bodhi_config = {
+                'url': self.config.get(section, 'url'),
+                'staging': self.config.getboolean(section, 'staging'),
+                }
+        except (ValueError, NoOptionError, NoSectionError) as e:
+            self.log.error(str(e))
+            raise rpkgError('Could not get bodhi options. It seems configuration is changed. '
+                            'Please try to reinstall %s or consult developers to see what '
+                            'is wrong with it.' % self.name)
+
         template = """\
 [ %(nvr)s ]
 
@@ -130,7 +143,8 @@ suggest_reboot=False
 
         # Extract bug numbers from the latest changelog entry
         self.cmd.clog()
-        clog = file('clog').read()
+        with open('clog', 'r') as f:
+            clog = f.read()
         bugs = re.findall(r'#([0-9]*)', clog)
         if bugs:
             bodhi_args['bugs'] = ','.join(bugs)
@@ -153,9 +167,8 @@ suggest_reboot=False
         orig_hash = orig_hash.hexdigest()
 
         # Write out the template
-        out = file('bodhi.template', 'w')
-        out.write(template.encode('utf-8'))
-        out.close()
+        with open('bodhi.template', 'w') as f:
+            f.write(template.encode('utf-8'))
 
         # Open the template in a text editor
         editor = os.getenv('EDITOR', 'vi')
@@ -166,19 +179,8 @@ suggest_reboot=False
             raise rpkgError('No bodhi update details saved!')
 
         # If the template was changed, submit it to bodhi
-        hash = self.cmd.lookasidecache.hash_file('bodhi.template', 'sha1')
-        if hash != orig_hash:
-            try:
-                section = '%s.bodhi' % self.name
-                bodhi_config = {
-                    'url': self.config.get(section, 'url'),
-                    'staging': self.config.getboolean(section, 'staging'),
-                    }
-            except (ValueError, NoOptionError, NoSectionError) as e:
-                self.log.error(str(e))
-                raise rpkgError('Could not get bodhi options. It seems configuration is changed. '
-                                'Please try to reinstall %s or consult developers to see what '
-                                'is wrong with it.' % self.name)
+        new_hash = self.cmd.lookasidecache.hash_file('bodhi.template', 'sha1')
+        if new_hash != orig_hash:
             try:
                 self.cmd.update(bodhi_config, template='bodhi.template')
             except Exception as e:

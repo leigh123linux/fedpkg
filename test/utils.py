@@ -13,11 +13,19 @@
 import os
 import subprocess
 import tempfile
-import unittest
 import shutil
+import logging
+
+import pyrpkg
+import fedpkg.cli
 
 from six.moves import configparser
 from fedpkg import Commands
+
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 
 
 class Assertions(object):
@@ -216,3 +224,26 @@ rm -rf $$RPM_BUILD_ROOT
 
     def create_branch(self, repo, branch_name):
         repo.git.branch(branch_name)
+
+
+class CliTestCase(CommandTestCase):
+    """Base test case for testing from command line interface"""
+
+    default_config_file = os.path.join(os.path.dirname(__file__),
+                                       'fedpkg-test.conf')
+
+    def new_cli(self, name='fedpkg', cfg=None):
+        config = configparser.SafeConfigParser()
+        if cfg:
+            config_file = os.path.join(os.path.dirname(__file__), cfg)
+        else:
+            config_file = self.default_config_file
+        config.read(config_file)
+
+        client = fedpkg.cli.fedpkgClient(config, name=name)
+        client.setupLogging(pyrpkg.log)
+        pyrpkg.log.setLevel(logging.CRITICAL)
+        client.do_imports(site='fedpkg')
+        client.parse_cmdline()
+
+        return client
