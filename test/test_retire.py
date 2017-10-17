@@ -81,12 +81,9 @@ class RetireTestCase(unittest.TestCase):
         self.assertRetired('my reason')
         self.assertEqual(len(client.cmd.push.call_args_list), 1)
 
-    @mock.patch('fedora_cert.read_user_cert')
-    def test_retire_without_namespace(self, read_user_cert):
+    def test_retire_without_namespace(self):
         self._setup_repo('ssh://git@pkgs.example.com/fedpkg')
         args = ['fedpkg', '--dist=master', 'retire', 'my reason']
-
-        read_user_cert.return_value = 'packager'
 
         client = self._fake_client(args)
         client.retire()

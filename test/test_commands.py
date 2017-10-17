@@ -158,19 +158,12 @@ class TestLookaside(CommandTestCase):
         super(TestLookaside, self).setUp()
         self.cmd = self.make_commands()
 
-    @patch('fedpkg.Commands.cert_file', new_callable=PropertyMock)
-    @patch('fedpkg.Commands.ca_cert', new_callable=PropertyMock)
-    def test_get_lookaside(self, ca_cert, cert_file):
-        ca_cert.return_value = None
-        cert_file.return_value = None
-
+    def test_get_lookaside(self):
         lookaside = self.cmd.lookasidecache
 
         self.assertEqual(self.cmd.lookasidehash, lookaside.hashtype)
         self.assertEqual(self.cmd.lookaside, lookaside.download_url)
         self.assertEqual(self.cmd.lookaside_cgi, lookaside.upload_url)
-        self.assertEqual(None, lookaside.client_cert)
-        self.assertEqual(None, lookaside.ca_cert)
 
 
 class TestLoadRpmDefines(CommandTestCase):
