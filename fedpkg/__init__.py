@@ -13,7 +13,6 @@ import pyrpkg
 import os
 import git
 import re
-import fedora_cert
 import platform
 import subprocess
 
@@ -31,26 +30,16 @@ class Commands(pyrpkg.Commands):
 
         self.source_entry_type = 'bsd'
 
-    @cached_property
-    def cert_file(self):
-        """A client-side certificate for SSL authentication
-
-        We override this from pyrpkg because we actually need a client-side
-        certificate.
-        """
-        path = os.path.expanduser('~/.fedora.cert')
-        if os.path.exists(path):
-            return path
+    def load_user(self):
+        """This sets the user attribute, based on the Fedora SSL cert."""
+        fedora_upn = os.path.expanduser('~/.fedora.upn')
+        if os.path.exists(fedora_upn):
+            with open(fedora_upn, 'r') as f:
+                self._user = f.read().strip()
         else:
-            return None
-
-    @cached_property
-    def ca_cert(self):
-        """A CA certificate to authenticate the server in SSL connections
-
-        We now use the system trust list.
-        """
-        return None
+            self.log.debug('Could not get user from .fedora.upn, falling back'
+                           ' to default method')
+            super(Commands, self).load_user()
 
     @cached_property
     def lookasidecache(self):
@@ -59,8 +48,7 @@ class Commands(pyrpkg.Commands):
         We override this because we need a different download path.
         """
         return FedoraLookasideCache(
-            self.lookasidehash, self.lookaside, self.lookaside_cgi,
-            client_cert=self.cert_file, ca_cert=self.ca_cert)
+            self.lookasidehash, self.lookaside, self.lookaside_cgi)
 
     # Overloaded property loaders
     def load_rpmdefines(self):
@@ -137,15 +125,6 @@ class Commands(pyrpkg.Commands):
             self._container_build_target = 'rawhide-%s-candidate' % self.ns
         else:
             super(Commands, self).load_container_build_target()
-
-    def load_user(self):
-        """This sets the user attribute, based on the Fedora SSL cert."""
-        try:
-            self._user = fedora_cert.read_user_cert()
-        except Exception as e:
-            self.log.debug('Could not read Fedora cert, falling back to '
-                           'default method: %s' % e)
-            super(Commands, self).load_user()
 
     def _tag2version(self, dest_tag):
         """ get the '26' part of 'f26-foo' string """

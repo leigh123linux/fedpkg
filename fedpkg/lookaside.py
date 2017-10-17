@@ -18,11 +18,9 @@ from pyrpkg.lookaside import CGILookasideCache
 
 
 class FedoraLookasideCache(CGILookasideCache):
-    def __init__(self, hashtype, download_url, upload_url,
-                 client_cert=None, ca_cert=None):
+    def __init__(self, hashtype, download_url, upload_url):
         super(FedoraLookasideCache, self).__init__(
-            hashtype, download_url, upload_url, client_cert=client_cert,
-            ca_cert=ca_cert)
+            hashtype, download_url, upload_url)
 
         self.download_path = (
             '%(name)s/%(filename)s/%(hashtype)s/%(hash)s/%(filename)s')

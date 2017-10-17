@@ -14,9 +14,7 @@ import unittest
 from pyrpkg.errors import rpkgError
 from fedpkg import _get_bodhi_version
 from utils import CommandTestCase
-from mock import patch
-from mock import Mock
-from mock import PropertyMock
+from mock import call, patch, Mock, PropertyMock, mock_open
 
 
 class TestDetermineRuntimeEnv(CommandTestCase):
@@ -117,20 +115,26 @@ class TestLoadUser(CommandTestCase):
         super(TestLoadUser, self).setUp()
         self.cmd = self.make_commands()
 
-    @patch('fedora_cert.read_user_cert')
-    def test_load_from_load_fedora_cert(self, read_user_cert):
-        read_user_cert.return_value = 'someone'
+    @patch('os.path.expanduser')
+    @patch('os.path.exists')
+    def test_load_from_fedora_upn(self, exists, expanduser):
+        exists.return_value = True
+        expanduser.return_value = '/home/user/.fedora.upn'
+        with patch('__builtin__.open', mock_open(read_data='user')) as m:
+            self.cmd.load_user()
+        m.assert_has_calls([
+            call(expanduser.return_value, 'r')
+        ])
+        self.assertEqual('user', self.cmd._user)
 
-        self.cmd.load_user()
-        self.assertEqual('someone', self.cmd._user)
-
-    @patch('fedora_cert.read_user_cert')
+    @patch('os.path.expanduser')
+    @patch('os.path.exists')
     @patch('os.getuid')
     @patch('pwd.getpwuid')
     def test_fall_back_to_super_load_user(
-            self, getpwuid, getuid, read_user_cert):
+            self, getpwuid, getuid, exists, expanduser):
+        exists.return_value = False
         getpwuid.return_value = ('someone', None)
-        read_user_cert.side_effect = Exception
 
         self.cmd.load_user()
         self.assertEqual('someone', self.cmd._user)
