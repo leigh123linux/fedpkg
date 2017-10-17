@@ -210,6 +210,55 @@ _fedpkg-mock-config () {
     '--arch[override local arch]:arch:_fedpkg_arches'
 }
 
+(( $+functions[_fedpkg-module-build] )) ||
+_fedpkg-module-build () {
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[show help message and exit]' \
+    '(-w --watch)'{-w,--watch}'[Watch the module build]' \
+    '--optional[MBS optional arguments in the form of "key=value"]:optional' \
+    ':scm_url' \
+    ':branch'
+}
+
+(( $+functions[_fedpkg-module-build-cancel] )) ||
+_fedpkg-module-build-cancel () {
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[show help message and exit]' \
+    ':build_id'
+}
+
+(( $+functions[_fedpkg-module-build-info] )) ||
+_fedpkg-module-build-info () {
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[show help message and exit]' \
+    ':build_id'
+}
+
+(( $+functions[_fedpkg-module-build-local] )) ||
+_fedpkg-module-build-local () {
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[show help message and exit]' \
+    '--skip-tests[Adds a macro for skipping the check section]' \
+    '--add-local-build[Import previously finished local module builds into MBS]:build_id' \
+    ':scm_url' \
+    ':branch'
+}
+
+(( $+functions[_fedpkg-module-overview] )) ||
+_fedpkg-module-overview () {
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[show help message and exit]' \
+    '--unfinished[Show unfinished module builds]' \
+    '--limit[The number of most recent module builds to display]:limit'
+}
+
+(( $+functions[_fedpkg-module-build-watch] )) ||
+_fedpkg-module-build-watch () {
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[show help message and exit]' \
+    ':build_id'
+}
+
 (( $+functions[_fedpkg-new] )) ||
 _fedpkg-new () {
   _arguments -C \
@@ -365,6 +414,12 @@ _fedpkg_commands () {
     local:'local test rpmbuild binary'
     mockbuild:'local test build using mock'
     mock-config:'generate a mock config'
+    module-build:'build a module using MBS'
+    module-build-cancel:'cancel an MBS module build'
+    module-build-info:'show information of an MBS module build'
+    module-build-local:'build a module locally using the mbs-manager command'
+    module-build-watch:'watch an MBS build'
+    module-overview:'shows an overview of MBS builds'
     new:'diff against last tag'
     new-sources:'upload new source files'
     patch:'create and add a gendiff patch file'
