@@ -36,9 +36,10 @@ _fedpkg()
     local options_value="--dist --release --user --path"
     local commands="build chain-build ci clean clog clone co commit compile \
     container-build diff gimmespec giturl help gitbuildhash import install lint \
-    local mockbuild mock-config new new-sources patch prep pull push retire \
-    scratch-build sources srpm switch-branch tag unused-patches update upload \
-    verify-files verrel"
+    local mockbuild mock-config module-build module-build-cancel \
+    module-build-local module-build-info module-build-watch module-overview \
+    new new-sources patch prep pull push retire scratch-build sources srpm \
+    switch-branch tag unused-patches update upload verify-files verrel"
 
     # parse main options and get command
 
@@ -161,6 +162,18 @@ _fedpkg()
         mockbuild)
             options="--md5 --no-clean --no-cleanup-after --no-clean-all"
             options_mroot="--root --mock-config"
+            ;;
+        module-build)
+            options="--watch"
+            options_string="--optional"
+            ;;
+        module-build-local)
+            options="--skip-tests"
+            options_string="--add-local-build"
+            ;;
+        module-overview)
+            options="--unfinished"
+            options_string="--limit"
             ;;
         patch)
             options="--rediff"
