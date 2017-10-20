@@ -1,6 +1,28 @@
 ChangeLog
 =========
 
+1.30 (2017-10-20)
+-----------------
+
+- Add missing files to dist tarball (cqi)
+- Tests for update command (cqi)
+- Add support for module commands (mprahl)
+- Clean rest cert related code (cqi)
+- Remove fedora cert (cqi)
+- Override build URL for Koji (cqi)
+- changing anongiturl to use src.fp.o instead of pkgs.fp.o. - #119 (tflink)
+- Add tests (cqi)
+- Enable lookaside_namespaced - #130 (cqi)
+- Detect dist tag correctly for RHEL and CentOS - #141 (cqi)
+- Remove deprecated call to platform.dist (cqi)
+- Do not prompt hint for SSL cert if fail to log into Koji (cqi)
+- Add more container-build options to bash completion (cqi)
+- Remove osbs from bash completion - #138 (cqi)
+- Install executables via entry_points - #134 (cqi)
+- Fix container build target (lsedlar)
+- Get correct build target for rawhide containers (lsedlar)
+- Update error message to reflect deprecation of --dist option (pgier)
+
 v1.29 (2017-08-11)
 ------------------
 
