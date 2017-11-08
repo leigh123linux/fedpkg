@@ -196,12 +196,12 @@ class Commands(pyrpkg.Commands):
         in Koji.
         """
 
-    def construct_build_url(self):
+    def construct_build_url(self, *args, **kwargs):
         """Override build URL for Fedora Koji build
 
         In Fedora Koji, anonymous URL should have prefix "git+https://"
         """
-        url = super(Commands, self).construct_build_url()
+        url = super(Commands, self).construct_build_url(*args, **kwargs)
         return 'git+{0}'.format(url)
 
     def retire(self, message):
