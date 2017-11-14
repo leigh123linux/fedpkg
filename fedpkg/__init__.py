@@ -237,7 +237,9 @@ class Commands(pyrpkg.Commands):
                    '--new', '--release', self.branch_merge,
                    '--file', 'bodhi.template', self.nvr, '--username',
                    self.user]
-        elif bodhi_major_version == 2:
+        elif bodhi_major_version < 4:
+            # Version 3 is compatible with 2, it was bumped for server side
+            # reasons.
             cmd = ['bodhi', 'updates', 'new', '--file', 'bodhi.template',
                    '--user', self.user]
             if bodhi_config['staging']:
