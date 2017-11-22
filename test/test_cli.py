@@ -146,8 +146,8 @@ class TestUpdate(CliTestCase):
     @patch('fedpkg.lookaside.FedoraLookasideCache.hash_file')
     def test_fail_if_bodhi_version_is_not_supported(
             self, hash_file, hashlib_new, isfile):
-        # As of writing this test, only supports version v2 and <v2.
-        self.mock_get_bodhi_version.return_value = [3, 1, 2]
+        # As of writing this test, only supports version v3, v2, and <v2.
+        self.mock_get_bodhi_version.return_value = [4, 1, 2]
         hashlib_new.return_value.hexdigest.return_value = 'origin hash'
         hash_file.return_value = 'different hash'
 
@@ -155,7 +155,7 @@ class TestUpdate(CliTestCase):
 
         cli = self.get_cli(cli_cmd)
         six.assertRaisesRegex(
-            self, rpkgError, 'This system has bodhi v3, which is unsupported',
+            self, rpkgError, 'This system has bodhi v4, which is unsupported',
             self.create_bodhi_update, cli)
 
     @patch('os.path.isfile', return_value=True)
