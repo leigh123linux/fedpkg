@@ -15,6 +15,7 @@ import os
 import sys
 
 import fedpkg
+import fedpkg.utils
 import pyrpkg
 import pyrpkg.utils
 
@@ -29,10 +30,15 @@ cli_name = os.path.basename(sys.argv[0])
 
 
 def main():
+    default_user_config_path = os.path.join(
+        os.path.expanduser('~'), '.config', 'rpkg', '%s.conf' % cli_name)
     # Setup an argparser and parse the known commands to get the config file
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('-C', '--config', help='Specify a config file to use',
                         default='/etc/rpkg/%s.conf' % cli_name)
+    parser.add_argument(
+        '--user-config', help='Specify a user config file to use',
+        default=default_user_config_path)
 
     (args, other) = parser.parse_known_args()
 
@@ -45,6 +51,7 @@ def main():
     # Setup a configuration object and read config file data
     config = ConfigParser()
     config.read(args.config)
+    config.read(args.user_config)
 
     client = fedpkg.cli.fedpkgClient(config, name=cli_name)
     client.do_imports(site='fedpkg')

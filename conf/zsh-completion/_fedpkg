@@ -302,6 +302,28 @@ _fedpkg-push () {
     '(-h --help)'{-h,--help}'[show help message and exit]'
 }
 
+(( $+functions[_fedpkg-request-branch] )) ||
+_fedpkg-request-branch () {
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[show help message and exit]' \
+    '(--sl)'{--sl}'[The service levels (SLs) tied to the branch]' \
+    '--no-git-branch[Do not create the branch in git but still create it in PDC]:optional' \
+    '--all-releases[Make a new branch request for every active Fedora release]:optional' \
+    ':branch'
+}
+
+(( $+functions[_fedpkg-request-repo] )) ||
+_fedpkg-request-repo () {
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[show help message and exit]' \
+    '(-d --description)'{-d,--description}'[The description in dist-git]' \
+    '(-m --monitor)'{-m,--monitor}'[The Koshei monitoring type for the repo]' \
+    '(-u --upstreamurl)'{-u,--upstreamurl}'[The upstream URL of the project]' \
+    '(-s --summary)'{-s,--summary}'[Override the package summary from the Bugzilla bug]' \
+    '--exception[The package is an exception to the regular package review process]:optional' \
+    ':bug'
+}
+
 (( $+functions[_fedpkg-scratch-build] )) ||
 _fedpkg-scratch-build () {
   _arguments -C \
@@ -426,6 +448,8 @@ _fedpkg_commands () {
     prep:'local test rpmbuild prep'
     pull:'pull changes from remote repository and update working copy'
     push:'push changes to remote repository'
+    request-branch:'request a new dist-git branch'
+    request-repo:'request a new dist-git repository'
     scratch-build:'request scratch build'
     sources:'download source files'
     srpm:'create a source rpm'
@@ -462,6 +486,7 @@ _fedpkg() {
   _arguments -C \
     '(- :)'{-h,--help}'[show help message and exit]' \
     '(-C --config)'{-C,--config}'[specify a config file to use]:config file:_files' \
+    '--user-config[specify a user config file to use]:user config file:_files' \
     '--dist[override the discovered distribution]:distribution' \
     '--release[override the discovered release]:release' \
     '--user[override the discovered user name]:user' \

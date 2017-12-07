@@ -10,16 +10,22 @@
 # option) any later version.  See http://www.gnu.org/copyleft/gpl.html for
 # the full text of the license.
 
+from __future__ import print_function
 from pyrpkg.cli import cliClient
 import hashlib
 import os
 import re
+import json
 import six
 import textwrap
 
 from six.moves.configparser import NoSectionError
 from six.moves.configparser import NoOptionError
 from pyrpkg import rpkgError
+from fedpkg.bugzilla import BugzillaClient
+from fedpkg.utils import (
+    get_release_branches, sl_list_to_dict, verify_sls, new_pagure_issue,
+    get_pagure_token)
 
 
 class fedpkgClient(cliClient):
@@ -31,6 +37,10 @@ class fedpkgClient(cliClient):
     def setup_argparser(self):
         super(fedpkgClient, self).setup_argparser()
 
+        # This line is added here so that it shows up with the "--help" option,
+        # but it isn't used for anything else
+        self.parser.add_argument(
+            '--user-config', help='Specify a user config file to use')
         opt_release = self.parser._option_string_actions['--release']
         opt_release.help = 'Override the discovered release, e.g. f25, which has to match ' \
                            'the remote branch name created in package repository. ' \
@@ -41,6 +51,8 @@ class fedpkgClient(cliClient):
 
         self.register_retire()
         self.register_update()
+        self.register_request_repo()
+        self.register_request_branch()
 
     # Target registry goes here
     def register_retire(self):
@@ -64,6 +76,55 @@ class fedpkgClient(cliClient):
                         'current package n-v-r.'
         )
         update_parser.set_defaults(command=self.update)
+
+    def register_request_repo(self):
+        help_msg = 'Request a new dist-git repository'
+        request_repo_parser = self.subparsers.add_parser(
+            'request-repo', help=help_msg, description=help_msg)
+        request_repo_parser.add_argument(
+            'bug', nargs='?', type=int,
+            help='Bugzilla bug ID of the package review request')
+        request_repo_parser.add_argument(
+            '--description', '-d', help='The repo\'s description in dist-git')
+        monitoring_choices = [
+            'no-monitoring', 'monitoring', 'monitoring-with-scratch']
+        request_repo_parser.add_argument(
+            '--monitor', '-m', help='The Koshei monitoring type for the repo',
+            choices=monitoring_choices, default=monitoring_choices[1])
+        request_repo_parser.add_argument(
+            '--upstreamurl', '-u',
+            help='The upstream URL of the project')
+        request_repo_parser.add_argument(
+            '--summary', '-s',
+            help='Override the package\'s summary from the Bugzilla bug')
+        request_repo_parser.add_argument(
+            '--exception', action='store_true',
+            help='The package is an exception to the regular package review '
+                 'process (specifically, it does not require a Bugzilla bug)')
+        request_repo_parser.set_defaults(command=self.request_repo)
+
+    def register_request_branch(self):
+        help_msg = 'Request a new dist-git branch'
+        request_branch_parser = self.subparsers.add_parser(
+            'request-branch', help=help_msg, description=help_msg)
+        request_branch_parser.add_argument(
+            'branch', nargs='?', help='The branch to request')
+        request_branch_parser.add_argument(
+            '--sl', nargs='*',
+            help=('The service levels (SLs) tied to the branch. This must be '
+                  'in the format of "sl_name:2020-12-01". This is only for '
+                  'non-release branches. You may provide more than one by '
+                  'separating each SL with a space.')
+        )
+        request_branch_parser.add_argument(
+            '--no-git-branch', default=False, action='store_true',
+            help='Don\'t create the branch in git but still create it in PDC'
+        )
+        request_branch_parser.add_argument(
+            '--all-releases', default=False, action='store_true',
+            help='Make a new branch request for every active Fedora release'
+        )
+        request_branch_parser.set_defaults(command=self.request_branch)
 
     # Target functions go here
     def retire(self):
@@ -191,3 +252,125 @@ suggest_reboot=False
         # Clean up
         os.unlink('bodhi.template')
         os.unlink('clog')
+
+    def request_repo(self):
+        # bug is not a required parameter in the event the packager has an
+        # exception, in which case, they may use the --exception flag
+        if not self.args.bug and not self.args.exception:
+            raise rpkgError(
+                'A Bugzilla bug is required on new repository requests')
+        repo_regex = r'^[a-zA-Z0-9_][a-zA-Z0-9-_.+]*$'
+        if not bool(re.match(repo_regex, self.cmd.module_name)):
+            raise rpkgError(
+                'The repository name "{0}" is invalid. It must be at least '
+                'two characters long with only letters, numbers, hyphens, '
+                'underscores, plus signs, and/or periods. Please note that '
+                'the project cannot start with a period or a plus sign.'
+                .format(self.cmd.module_name))
+
+        summary_from_bug = ''
+        if self.args.bug:
+            bz_url = self.config.get('{0}.bugzilla'.format(self.name), 'url')
+            bz_client = BugzillaClient(bz_url)
+            bug = bz_client.get_review_bug(
+                self.args.bug, self.cmd.ns, self.cmd.module_name)
+            summary_from_bug = bug.summary.split(' - ', 1)[1].strip()
+
+        ticket_body = {
+            'action': 'new_repo',
+            'branch': 'master',
+            'bug_id': self.args.bug or '',
+            'description': self.args.description or '',
+            'exception': self.args.exception,
+            'monitor': self.args.monitor,
+            'namespace': self.cmd.ns,
+            'repo': self.cmd.module_name,
+            'summary': self.args.summary or summary_from_bug,
+            'upstreamurl': self.args.upstreamurl or ''
+        }
+
+        ticket_body = json.dumps(ticket_body, indent=True)
+        ticket_body = '```\n{0}\n```'.format(ticket_body)
+        ticket_title = 'New Repo for "{0}/{1}"'.format(
+            self.cmd.ns, self.cmd.module_name)
+
+        pagure_url = self.config.get('{0}.pagure'.format(self.name), 'url')
+        pagure_token = get_pagure_token(self.config, self.name)
+        print(new_pagure_issue(
+            pagure_url, pagure_token, ticket_title, ticket_body))
+
+    def request_branch(self):
+        service_levels = self.args.sl
+        branch = None
+
+        if self.args.all_releases:
+            if self.args.branch:
+                raise rpkgError('You cannot specify a branch with the '
+                                '"--all-releases" option')
+            elif service_levels:
+                raise rpkgError('You cannot specify service levels with the '
+                                '"--all-releases" option')
+        elif not self.args.branch:
+            try:
+                branch = self.cmd.repo.active_branch.name
+            except rpkgError:
+                raise rpkgError('You must specify a branch if you are not in '
+                                'a git repository')
+        else:
+            branch = self.args.branch
+
+        bodhi_url = self.config.get('{0}.bodhi'.format(self.name), 'url')
+        if branch:
+            if self.cmd.ns in ['modules', 'test-modules']:
+                branch_valid = bool(re.match(r'^[a-zA-Z0-9.\-_+]+$', branch))
+                if not branch_valid:
+                    raise rpkgError(
+                        'Only characters, numbers, periods, dashes, '
+                        'underscores, and pluses are allowed in module branch '
+                        'names')
+            release_branches = get_release_branches(bodhi_url)
+            if branch in release_branches:
+                if service_levels:
+                    raise rpkgError(
+                        'You can\'t provide SLs for release branches')
+            else:
+                if re.match(r'^(f\d+|el\d+|epel\d+)$', branch):
+                    raise rpkgError('{0} is not a current release branch'
+                                    .format(branch))
+                elif not service_levels:
+                    raise rpkgError(
+                        'You must provide SLs for non-release branches')
+
+        # If service levels were provided, verify them
+        if service_levels:
+            pdc_url = self.config.get('{0}.pdc'.format(self.name), 'url')
+            sl_dict = sl_list_to_dict(service_levels)
+            verify_sls(pdc_url, sl_dict)
+
+        pagure_url = self.config.get('{0}.pagure'.format(self.name), 'url')
+        pagure_token = get_pagure_token(self.config, self.name)
+        if self.args.all_releases:
+            release_branches = get_release_branches(bodhi_url)
+            branches = [b for b in release_branches
+                        if re.match(r'^(f\d+)$', b)]
+        else:
+            branches = [branch]
+
+        for b in sorted(list(branches), reverse=True):
+            ticket_body = {
+                'action': 'new_branch',
+                'branch': b,
+                'namespace': self.cmd.ns,
+                'repo': self.cmd.module_name,
+                'create_git_branch': not self.args.no_git_branch
+            }
+            if service_levels:
+                ticket_body['sls'] = sl_dict
+
+            ticket_body = json.dumps(ticket_body, indent=True)
+            ticket_body = '```\n{0}\n```'.format(ticket_body)
+            ticket_title = 'New Branch "{0}" for "{1}/{2}"'.format(
+                b, self.cmd.ns, self.cmd.module_name)
+
+            print(new_pagure_issue(
+                pagure_url, pagure_token, ticket_title, ticket_body))

@@ -33,13 +33,14 @@ _fedpkg()
     # global options
 
     local options="--help -v -q"
-    local options_value="--dist --release --user --path"
+    local options_value="--dist --release --user --path --user-config"
     local commands="build chain-build ci clean clog clone co commit compile \
     container-build diff gimmespec giturl help gitbuildhash import install lint \
     local mockbuild mock-config module-build module-build-cancel \
     module-build-local module-build-info module-build-watch module-overview \
-    new new-sources patch prep pull push retire scratch-build sources srpm \
-    switch-branch tag unused-patches update upload verify-files verrel"
+    new new-sources patch prep pull push retire request-branch request-repo \
+    scratch-build sources srpm switch-branch tag unused-patches update upload \
+    verify-files verrel"
 
     # parse main options and get command
 
@@ -188,6 +189,13 @@ _fedpkg()
             ;;
         retire)
             after_more=true
+            ;;
+        request-branch)
+            options="--no-git-branch --all-releases"
+            options_string="--sl"
+        request-repo)
+            options="--exception"
+            options_string="--description --monitor --upstreamurl --summary"
             ;;
         scratch-build)
             options="--nowait --background"

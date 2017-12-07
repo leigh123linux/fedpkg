@@ -136,7 +136,10 @@ rm -rf $$RPM_BUILD_ROOT
 
     def setUp(self):
         # create a base repo
-        self.repo_path = tempfile.mkdtemp(prefix='fedpkg-commands-tests-')
+        self.repo_base = tempfile.mkdtemp(prefix='fedpkg-commands-tests-')
+        # Have a namespace of rpms and a repo name of testpkg
+        self.repo_path = os.path.join(self.repo_base, 'rpms', 'testpkg')
+        os.makedirs(self.repo_path)
 
         self.spec_filename = 'docpkg.spec'
 
@@ -175,7 +178,7 @@ rm -rf $$RPM_BUILD_ROOT
             self.run_cmd(cmd, cwd=self.cloned_repo_path)
 
     def tearDown(self):
-        shutil.rmtree(self.repo_path)
+        shutil.rmtree(self.repo_base)
         shutil.rmtree(self.cloned_repo_path)
 
     def make_commands(self, path=None, user=None, dist=None, target=None,
@@ -232,13 +235,18 @@ class CliTestCase(CommandTestCase):
     default_config_file = os.path.join(os.path.dirname(__file__),
                                        'fedpkg-test.conf')
 
-    def new_cli(self, name='fedpkg', cfg=None):
+    def new_cli(self, name='fedpkg', cfg=None, user_cfg=None):
         config = configparser.SafeConfigParser()
         if cfg:
             config_file = os.path.join(os.path.dirname(__file__), cfg)
         else:
             config_file = self.default_config_file
         config.read(config_file)
+
+        if user_cfg:
+            user_config_file = os.path.join(
+                os.path.dirname(__file__), user_cfg)
+            config.read(user_config_file)
 
         client = fedpkg.cli.fedpkgClient(config, name=name)
         client.setupLogging(pyrpkg.log)
