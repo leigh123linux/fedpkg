@@ -25,7 +25,7 @@ from pyrpkg import rpkgError
 from fedpkg.bugzilla import BugzillaClient
 from fedpkg.utils import (
     get_release_branches, sl_list_to_dict, verify_sls, new_pagure_issue,
-    get_pagure_token)
+    get_pagure_token, is_epel, assert_valid_epel_package)
 
 
 class fedpkgClient(cliClient):
@@ -321,6 +321,9 @@ suggest_reboot=False
 
         bodhi_url = self.config.get('{0}.bodhi'.format(self.name), 'url')
         if branch:
+            if is_epel(branch):
+                assert_valid_epel_package(self.cmd.module_name, branch)
+
             if self.cmd.ns in ['modules', 'test-modules']:
                 branch_valid = bool(re.match(r'^[a-zA-Z0-9.\-_+]+$', branch))
                 if not branch_valid:

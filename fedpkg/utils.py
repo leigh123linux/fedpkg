@@ -185,3 +185,61 @@ def get_pagure_token(config, cli_name):
         raise rpkgError('The "token" value must be set under the "{0}" '
                         'section in your "{1}" user configuration'
                         .format(conf_section, cli_name))
+
+
+def is_epel(branch):
+    """
+    Determines if this is or will be an epel branch
+    :param branch: a string of the branch name
+    :return: a boolean
+    """
+    return bool(re.match(r'^(?:el|epel)\d+$', branch))
+
+
+def assert_valid_epel_package(name, branch):
+    """
+    Determines if the package is allowed to have an EPEL branch. If it can't,
+    an rpkgError will be raised.
+    :param name: a string of the package name
+    :param branch: a string of the EPEL branch name (e.g. epel7)
+    :return: None or rpkgError
+    """
+    # Extract any digits in the branch name to determine the EL version
+    version = ''.join([i for i in branch if re.match(r'\d', i)])
+    url = ('https://infrastructure.fedoraproject.org/repo/json/pkg_el{0}.json'
+           .format(version))
+    error_msg = ('The connection to infrastructure.fedoraproject.org failed '
+                 'while trying to determine if this is a valid EPEL package.')
+    try:
+        rv = requests.get(url, timeout=60)
+    except ConnectionError as error:
+        error_msg += ' The error was: {0}'.format(str(error))
+        raise rpkgError(error_msg)
+
+    if not rv.ok:
+        raise rpkgError(error_msg + ' The status code was: {0}'.format(
+            rv.status_code))
+
+    rv_json = rv.json()
+    # Remove noarch from this because noarch is treated specially
+    all_arches = set(rv_json['arches']) - set(['noarch'])
+    # On EL6, also remove ppc and i386 as many packages will
+    # have these arches missing and cause false positives
+    if int(version) == 6:
+        all_arches = all_arches - set(['ppc', 'i386'])
+    # On EL7 and later, also remove ppc and i686 as many packages will
+    # have these arches missing and cause false positives
+    elif int(version) >= 7:
+        all_arches = all_arches - set(['ppc', 'i686'])
+
+    error_msg_two = (
+        'This package is already an EL package and is built on all supported '
+        'arches, therefore, it cannot be in EPEL. If this is a mistake or you '
+        'have an exception, please contact the Release Engineering team.')
+    for pkg_name, pkg_info in rv_json['packages'].items():
+        # If the EL package is noarch only or is available on all supported
+        # arches, then don't allow an EPEL branch
+        if pkg_name == name:
+            pkg_arches = set(pkg_info['arch'])
+            if pkg_arches == set(['noarch']) or not (all_arches - pkg_arches):
+                raise rpkgError(error_msg_two)

@@ -954,3 +954,32 @@ https://pagure.stg.example.com/releng/fedora-scm-requests/issue/3"""
             self.assertEqual(str(error), expected_error)
         finally:
             rmdir(tempdir)
+
+    @patch('requests.get')
+    def test_request_branch_invalid_epel_package(self, mock_get):
+        """Test request-branch raises an exception when an EPEL branch is
+        requested but ths package is already an EL package on all supported
+        arches"""
+        mock_rv = Mock()
+        mock_rv.ok = True
+        mock_rv.json.return_value = {
+            'arches': ['noarch', 'x86_64', 'i686', 'ppc64', 'ppc', 'ppc64le'],
+            'packages': {
+                'kernel': {'arch': [
+                    'noarch', 'x86_64', 'ppc64', 'ppc64le']},
+                'glibc': {'arch': [
+                    'i686', 'x86_64', 'ppc', 'ppc64', 'ppc64le']}
+            }
+        }
+        mock_get.return_value = mock_rv
+
+        cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
+                   '--module-name', 'kernel', 'request-branch', 'epel7']
+        cli = self.get_cli(cli_cmd)
+        expected_error = (
+            'This package is already an EL package and is built on all '
+            'supported arches, therefore, it cannot be in EPEL. If this is a '
+            'mistake or you have an exception, please contact the Release '
+            'Engineering team.')
+        with six.assertRaisesRegex(self, rpkgError, expected_error):
+            cli.request_branch()
