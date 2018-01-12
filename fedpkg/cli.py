@@ -12,6 +12,7 @@
 
 from __future__ import print_function
 from pyrpkg.cli import cliClient
+import argparse
 import hashlib
 import os
 import re
@@ -21,6 +22,7 @@ import textwrap
 
 from six.moves.configparser import NoSectionError
 from six.moves.configparser import NoOptionError
+from six.moves.urllib_parse import urlparse
 from pyrpkg import rpkgError
 from fedpkg.bugzilla import BugzillaClient
 from fedpkg.utils import (
@@ -79,8 +81,29 @@ class fedpkgClient(cliClient):
 
     def register_request_repo(self):
         help_msg = 'Request a new dist-git repository'
+        description = '''Request a new dist-git repository
+
+Before requesting a new dist-git repository for a new package, you need to
+generate a pagure.io API token at https://{1}/settings/token/new, and save it
+into your local user configuration located at ~/.config/rpkg/{0}.conf. For
+example:
+
+    [{0}.pagure]
+    token = <api_key_here>
+
+Below is a basic example of the command to request a dist-git repository for
+the package foo:
+
+    fedpkg --module-name foo request-repo 1234
+
+'''.format(self.name, urlparse(self.config.get(
+            '{0}.pagure'.format(self.name), 'url')).netloc)
+
         request_repo_parser = self.subparsers.add_parser(
-            'request-repo', help=help_msg, description=help_msg)
+            'request-repo',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            help=help_msg,
+            description=description)
         request_repo_parser.add_argument(
             'bug', nargs='?', type=int,
             help='Bugzilla bug ID of the package review request')
@@ -105,8 +128,28 @@ class fedpkgClient(cliClient):
 
     def register_request_branch(self):
         help_msg = 'Request a new dist-git branch'
+        description = '''Request a new dist-git branch
+
+Please refer to the request-repo command to see what has to be done before
+requesting a dist-git branch.
+
+Below are various examples of requesting a dist-git branch.
+
+Request a branch inside a cloned package repository:
+
+    fedpkg request-branch f27
+
+Request a branch without waiting for the requested repository to be approved
+and created:
+
+    fedpkg --module-name foo request-branch f27
+
+'''
         request_branch_parser = self.subparsers.add_parser(
-            'request-branch', help=help_msg, description=help_msg)
+            'request-branch',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            help=help_msg,
+            description=description)
         request_branch_parser.add_argument(
             'branch', nargs='?', help='The branch to request')
         request_branch_parser.add_argument(

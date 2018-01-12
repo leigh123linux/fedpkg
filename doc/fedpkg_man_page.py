@@ -5,6 +5,8 @@ import os
 import sys
 import datetime
 
+from six.moves.configparser import ConfigParser
+
 
 # We could substitute the "" in .TH with the fedpkg version if we knew it
 man_header = """\
@@ -150,10 +152,14 @@ if __name__ == '__main__':
     module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     sys.path.insert(0, module_path)
 
+    config = ConfigParser()
+    config.read(
+        os.path.join(module_path, 'conf', 'etc', 'rpkg', 'fedpkg.conf'))
+
     try:
         import fedpkg
     except ImportError:
         sys.path.append('src/')
         import fedpkg
-    client = fedpkg.cli.fedpkgClient(config=None, name='fedpkg')
+    client = fedpkg.cli.fedpkgClient(config=config, name='fedpkg')
     generate(client.parser, client.subparsers)
