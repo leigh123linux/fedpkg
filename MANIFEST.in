@@ -1,6 +1,6 @@
 include COPYING README git-changelog CHANGELOG.rst
 include doc/fedpkg_man_page.py
 include doc/release-guide.markdown
-include test/fedpkg-test.conf test/fedpkg-stage.conf
 include test/utils.py
+include test *.conf
 recursive-include conf *
