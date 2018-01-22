@@ -1,6 +1,18 @@
 ChangeLog
 =========
 
+1.31 (2018-01-22)
+-----------------
+
+- Include missing conf file in test (cqi)
+- Add more document to request-repo and request-branch (cqi)
+- Stop allowing EPEL branches on official EL packages (mprahl)
+- Port fedrepo-req and fedrepo-req-branch to fedpkg (mprahl)
+- Fix test for unsupported Bodhi version (lsedlar)
+- Work with Bodhi 3 - rhbz#1507410 (lsedlar)
+- Allow any parameters in construct_build_url (cqi)
+- Fix the anongiturl (patrick)
+
 1.30 (2017-10-20)
 -----------------
 
