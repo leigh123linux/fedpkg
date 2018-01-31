@@ -798,6 +798,21 @@ class TestRequestBranch(CliTestCase):
         cli = self.get_cli(cli_cmd)
         cli.request_branch()
 
+        # Get the data that was submitted to Pagure
+        output = sys.stdout.getvalue().strip()
+        # Three bugs are filed.  One for the rpm branch, and one for a new
+        # module repo, and one for the matching module branch.
+        expected_output = (
+            'https://pagure.stg.example.com/releng/'
+            'fedora-scm-requests/issue/2\n'
+            'https://pagure.stg.example.com/releng/'
+            'fedora-scm-requests/issue/2\n'
+            'https://pagure.stg.example.com/releng/'
+            'fedora-scm-requests/issue/2'
+        )
+        self.assertMultiLineEqual(output, expected_output)
+
+        # Check for rpm branch..
         expected_issue_content = {
             'action': 'new_branch',
             'repo': 'nethack',
@@ -809,15 +824,46 @@ class TestRequestBranch(CliTestCase):
                 'bug_fixes': '2030-12-01'
             }
         }
-        # Get the data that was submitted to Pagure
         post_data = mock_request_post.call_args_list[0][1]['data']
         actual_issue_content = json.loads(json.loads(
             post_data)['issue_content'].strip('```'))
-        self.assertEqual(expected_issue_content, actual_issue_content)
-        output = sys.stdout.getvalue().strip()
-        expected_output = ('https://pagure.stg.example.com/releng/'
-                           'fedora-scm-requests/issue/2')
-        self.assertEqual(output, expected_output)
+        self.assertDictEqual(expected_issue_content, actual_issue_content)
+
+        # Check for the module repo request..
+        summary = u'Automatically requested module for rpms/nethack:9.'
+        expected_issue_content = {
+            u'action': u'new_repo',
+            u'branch': u'master',
+            u'bug_id': u'',
+            u'description': summary,
+            u'exception': True,
+            u'monitor': u'no-monitoring',
+            u'namespace': u'modules',
+            u'repo': u'nethack',
+            u'summary': summary,
+            u'upstreamurl': u''
+        }
+        post_data = mock_request_post.call_args_list[1][1]['data']
+        actual_issue_content = json.loads(json.loads(
+            post_data)['issue_content'].strip('```'))
+        self.assertDictEqual(expected_issue_content, actual_issue_content)
+
+        # Check for module branch..
+        expected_issue_content = {
+            'action': 'new_branch',
+            'repo': 'nethack',
+            'namespace': 'modules',
+            'branch': '9',
+            'create_git_branch': True,
+            'sls': {
+                'security_fixes': '2030-12-01',
+                'bug_fixes': '2030-12-01'
+            }
+        }
+        post_data = mock_request_post.call_args_list[2][1]['data']
+        actual_issue_content = json.loads(json.loads(
+            post_data)['issue_content'].strip('```'))
+        self.assertDictEqual(expected_issue_content, actual_issue_content)
 
     @patch('requests.post')
     @patch('fedpkg.cli.get_release_branches')

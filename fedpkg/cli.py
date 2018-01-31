@@ -166,6 +166,12 @@ and created:
             help='Don\'t create the branch in git but still create it in PDC'
         )
         request_branch_parser.add_argument(
+            '--no-auto-module', default=False, action='store_true',
+            help='If requesting an rpm arbitrary branch, do not '
+            'also request a new matching module.  See '
+            'https://pagure.io/fedrepo_req/issue/129'
+        )
+        request_branch_parser.add_argument(
             '--all-releases', default=False, action='store_true',
             help='Make a new branch request for every active Fedora release'
         )
@@ -372,13 +378,14 @@ suggest_reboot=False
             module_name=self.cmd.module_name,
             ns=self.cmd.ns,
             no_git_branch=self.args.no_git_branch,
+            no_auto_module=self.args.no_auto_module,
             name=self.name,
             config=self.config,
         )
 
     @staticmethod
     def _request_branch(service_levels, all_releases, branch, active_branch,
-                        module_name, ns, no_git_branch,
+                        module_name, ns, no_git_branch, no_auto_module,
                         name, config):
         if all_releases:
             if branch:
@@ -452,3 +459,39 @@ suggest_reboot=False
 
             print(new_pagure_issue(
                 pagure_url, pagure_token, ticket_title, ticket_body))
+
+            # For non-standard rpm branch requests, also request a matching new
+            # module repo with a matching branch.
+            auto_module = (
+                ns == 'rpms'
+                and not re.match(RELEASE_BRANCH_REGEX, b)
+                and not no_auto_module
+            )
+            if auto_module:
+                summary = ('Automatically requested module for '
+                           'rpms/%s:%s.' % (module_name, b))
+                fedpkgClient._request_repo(
+                    module_name=module_name,
+                    ns='modules',
+                    branch='master',
+                    summary=summary,
+                    description=summary,
+                    upstreamurl=None,
+                    monitor='no-monitoring',
+                    bug=None,
+                    exception=True,
+                    name=name,
+                    config=config,
+                )
+                fedpkgClient._request_branch(
+                    service_levels=service_levels,
+                    all_releases=all_releases,
+                    branch=b,
+                    active_branch=active_branch,
+                    module_name=module_name,
+                    ns='modules',
+                    no_git_branch=no_git_branch,
+                    no_auto_module=True,  # Avoid infinite recursion.
+                    name=name,
+                    config=config,
+                )
