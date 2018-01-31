@@ -29,6 +29,8 @@ from fedpkg.utils import (
     get_release_branches, sl_list_to_dict, verify_sls, new_pagure_issue,
     get_pagure_token, is_epel, assert_valid_epel_package)
 
+RELEASE_BRANCH_REGEX = r'^(f\d+|el\d+|epel\d+)$'
+
 
 class fedpkgClient(cliClient):
     def __init__(self, config, name=None):
@@ -297,77 +299,107 @@ suggest_reboot=False
         os.unlink('clog')
 
     def request_repo(self):
+        self._request_repo(
+            module_name=self.cmd.module_name,
+            ns=self.cmd.ns,
+            branch='master',
+            summary=self.args.summary,
+            description=self.args.description,
+            upstreamurl=self.args.upstreamurl,
+            monitor=self.args.monitor,
+            bug=self.args.bug,
+            exception=self.args.exception,
+            name=self.name,
+            config=self.config,
+        )
+
+    @staticmethod
+    def _request_repo(module_name, ns, branch, summary, description,
+                      upstreamurl, monitor, bug, exception, name, config):
         # bug is not a required parameter in the event the packager has an
         # exception, in which case, they may use the --exception flag
-        if not self.args.bug and not self.args.exception:
+        if not bug and not exception:
             raise rpkgError(
                 'A Bugzilla bug is required on new repository requests')
         repo_regex = r'^[a-zA-Z0-9_][a-zA-Z0-9-_.+]*$'
-        if not bool(re.match(repo_regex, self.cmd.module_name)):
+        if not bool(re.match(repo_regex, module_name)):
             raise rpkgError(
                 'The repository name "{0}" is invalid. It must be at least '
                 'two characters long with only letters, numbers, hyphens, '
                 'underscores, plus signs, and/or periods. Please note that '
                 'the project cannot start with a period or a plus sign.'
-                .format(self.cmd.module_name))
+                .format(module_name))
 
         summary_from_bug = ''
-        if self.args.bug:
-            bz_url = self.config.get('{0}.bugzilla'.format(self.name), 'url')
+        if bug:
+            bz_url = config.get('{0}.bugzilla'.format(name), 'url')
             bz_client = BugzillaClient(bz_url)
-            bug = bz_client.get_review_bug(
-                self.args.bug, self.cmd.ns, self.cmd.module_name)
-            summary_from_bug = bug.summary.split(' - ', 1)[1].strip()
+            bug_obj = bz_client.get_review_bug(bug, ns, module_name)
+            summary_from_bug = bug_obj.summary.split(' - ', 1)[1].strip()
 
         ticket_body = {
             'action': 'new_repo',
-            'branch': 'master',
-            'bug_id': self.args.bug or '',
-            'description': self.args.description or '',
-            'exception': self.args.exception,
-            'monitor': self.args.monitor,
-            'namespace': self.cmd.ns,
-            'repo': self.cmd.module_name,
-            'summary': self.args.summary or summary_from_bug,
-            'upstreamurl': self.args.upstreamurl or ''
+            'branch': branch,
+            'bug_id': bug or '',
+            'description': description or '',
+            'exception': exception,
+            'monitor': monitor,
+            'namespace': ns,
+            'repo': module_name,
+            'summary': summary or summary_from_bug,
+            'upstreamurl': upstreamurl or ''
         }
 
         ticket_body = json.dumps(ticket_body, indent=True)
         ticket_body = '```\n{0}\n```'.format(ticket_body)
-        ticket_title = 'New Repo for "{0}/{1}"'.format(
-            self.cmd.ns, self.cmd.module_name)
+        ticket_title = 'New Repo for "{0}/{1}"'.format(ns, module_name)
 
-        pagure_url = self.config.get('{0}.pagure'.format(self.name), 'url')
-        pagure_token = get_pagure_token(self.config, self.name)
+        pagure_url = config.get('{0}.pagure'.format(name), 'url')
+        pagure_token = get_pagure_token(config, name)
         print(new_pagure_issue(
             pagure_url, pagure_token, ticket_title, ticket_body))
 
     def request_branch(self):
-        service_levels = self.args.sl
-        branch = None
+        try:
+            active_branch = self.cmd.repo.active_branch.name
+        except rpkgError:
+            active_branch = None
+        self._request_branch(
+            service_levels=self.args.sl,
+            all_releases=self.args.all_releases,
+            branch=self.args.branch,
+            active_branch=active_branch,
+            module_name=self.cmd.module_name,
+            ns=self.cmd.ns,
+            no_git_branch=self.args.no_git_branch,
+            name=self.name,
+            config=self.config,
+        )
 
-        if self.args.all_releases:
-            if self.args.branch:
+    @staticmethod
+    def _request_branch(service_levels, all_releases, branch, active_branch,
+                        module_name, ns, no_git_branch,
+                        name, config):
+        if all_releases:
+            if branch:
                 raise rpkgError('You cannot specify a branch with the '
                                 '"--all-releases" option')
             elif service_levels:
                 raise rpkgError('You cannot specify service levels with the '
                                 '"--all-releases" option')
-        elif not self.args.branch:
-            try:
-                branch = self.cmd.repo.active_branch.name
-            except rpkgError:
+        elif not branch:
+            if active_branch:
+                branch = active_branch
+            else:
                 raise rpkgError('You must specify a branch if you are not in '
                                 'a git repository')
-        else:
-            branch = self.args.branch
 
-        bodhi_url = self.config.get('{0}.bodhi'.format(self.name), 'url')
+        bodhi_url = config.get('{0}.bodhi'.format(name), 'url')
         if branch:
             if is_epel(branch):
-                assert_valid_epel_package(self.cmd.module_name, branch)
+                assert_valid_epel_package(module_name, branch)
 
-            if self.cmd.ns in ['modules', 'test-modules']:
+            if ns in ['modules', 'test-modules']:
                 branch_valid = bool(re.match(r'^[a-zA-Z0-9.\-_+]+$', branch))
                 if not branch_valid:
                     raise rpkgError(
@@ -380,22 +412,22 @@ suggest_reboot=False
                     raise rpkgError(
                         'You can\'t provide SLs for release branches')
             else:
-                if re.match(r'^(f\d+|el\d+|epel\d+)$', branch):
+                if re.match(RELEASE_BRANCH_REGEX, branch):
                     raise rpkgError('{0} is not a current release branch'
                                     .format(branch))
                 elif not service_levels:
                     raise rpkgError(
-                        'You must provide SLs for non-release branches')
+                        'You must provide SLs for non-release branches (%s)' % branch)
 
         # If service levels were provided, verify them
         if service_levels:
-            pdc_url = self.config.get('{0}.pdc'.format(self.name), 'url')
+            pdc_url = config.get('{0}.pdc'.format(name), 'url')
             sl_dict = sl_list_to_dict(service_levels)
             verify_sls(pdc_url, sl_dict)
 
-        pagure_url = self.config.get('{0}.pagure'.format(self.name), 'url')
-        pagure_token = get_pagure_token(self.config, self.name)
-        if self.args.all_releases:
+        pagure_url = config.get('{0}.pagure'.format(name), 'url')
+        pagure_token = get_pagure_token(config, name)
+        if all_releases:
             release_branches = get_release_branches(bodhi_url)
             branches = [b for b in release_branches
                         if re.match(r'^(f\d+)$', b)]
@@ -406,9 +438,9 @@ suggest_reboot=False
             ticket_body = {
                 'action': 'new_branch',
                 'branch': b,
-                'namespace': self.cmd.ns,
-                'repo': self.cmd.module_name,
-                'create_git_branch': not self.args.no_git_branch
+                'namespace': ns,
+                'repo': module_name,
+                'create_git_branch': not no_git_branch
             }
             if service_levels:
                 ticket_body['sls'] = sl_dict
@@ -416,7 +448,7 @@ suggest_reboot=False
             ticket_body = json.dumps(ticket_body, indent=True)
             ticket_body = '```\n{0}\n```'.format(ticket_body)
             ticket_title = 'New Branch "{0}" for "{1}/{2}"'.format(
-                b, self.cmd.ns, self.cmd.module_name)
+                b, ns, module_name)
 
             print(new_pagure_issue(
                 pagure_url, pagure_token, ticket_title, ticket_body))
