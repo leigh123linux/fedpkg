@@ -787,10 +787,13 @@ class TestRequestBranch(CliTestCase):
                                 mock_request_post):
         """Tests request-branch with service levels"""
         mock_grb.return_value = set(['el6', 'epel7', 'f25', 'f26', 'f27'])
-        mock_rv_post = Mock()
-        mock_rv_post.ok = True
-        mock_rv_post.json.return_value = {'issue': {'id': 2}}
-        mock_request_post.return_value = mock_rv_post
+        responses = []
+        for idx in range(2, 5):
+            mock_rv_post = Mock()
+            mock_rv_post.ok = True
+            mock_rv_post.json.return_value = {'issue': {'id': idx}}
+            responses.append(mock_rv_post)
+        mock_request_post.side_effect = responses
 
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
                    '--module-name', 'nethack', 'request-branch', '9', '--sl',
@@ -806,9 +809,9 @@ class TestRequestBranch(CliTestCase):
             'https://pagure.stg.example.com/releng/'
             'fedora-scm-requests/issue/2\n'
             'https://pagure.stg.example.com/releng/'
-            'fedora-scm-requests/issue/2\n'
+            'fedora-scm-requests/issue/3\n'
             'https://pagure.stg.example.com/releng/'
-            'fedora-scm-requests/issue/2'
+            'fedora-scm-requests/issue/4'
         )
         self.assertMultiLineEqual(output, expected_output)
 
