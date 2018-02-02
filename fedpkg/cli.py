@@ -481,7 +481,7 @@ suggest_reboot=False
                         'You can\'t provide SLs for release branches')
             else:
                 if re.match(RELEASE_BRANCH_REGEX, branch):
-                    raise rpkgError('{0} is not a current release branch'
+                    raise rpkgError('{0} is a current release branch'
                                     .format(branch))
                 elif not service_levels:
                     raise rpkgError(
