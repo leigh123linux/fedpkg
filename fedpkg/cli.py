@@ -322,6 +322,40 @@ suggest_reboot=False
     @staticmethod
     def _request_repo(module_name, ns, branch, summary, description,
                       upstreamurl, monitor, bug, exception, name, config):
+        """ Implementation of `request_repo`.
+
+        Submits a request for a new dist-git repo.
+
+        :param module_name: The repository name string.  Typically the
+            value of `self.cmd.module_name`.
+        :param ns: The repository namespace string, i.e. 'rpms' or 'modules'.
+            Typically takes the value of `self.cmd.ns`.
+        :param branch: The git branch string when requesting a repo.
+            Typically 'master'.
+        :param summary: A string, the summary of the new repo.  Typically
+            takes the value of `self.args.summary`.
+        :param description: A string, the description of the new repo.
+            Typically takes the value of `self.args.description`.
+        :param upstreamurl: A string, the upstreamurl of the new repo.
+            Typically takes the value of `self.args.upstreamurl`.
+        :param monitor: A string, the monitoring flag of the new repo, i.e.
+            `'no-monitoring'`, `'monitoring'`, or `'monitoring-with-scratch'`.
+            Typically takes the value of `self.args.monitor`.
+        :param bug: An integer representing the bugzilla ID of a "package
+            review" associated with this new repo.  Typically takes the
+            value of `self.args.bug`.
+        :param exception: An boolean specifying whether or not this request is
+            an exception to the packaging policy.  Exceptional requests may be
+            granted the right to waive their package review at the discretion of
+            Release Engineering.  Typically takes the value of
+            `self.args.exception`.
+        :param name: A string representing which section of the config should be
+            used.  Typically the value of `self.name`.
+        :param config: A dict containing the configuration, loaded from file.
+            Typically the value of `self.config`.
+        :return: None
+        """
+
         # bug is not a required parameter in the event the packager has an
         # exception, in which case, they may use the --exception flag
         if not bug and not exception:
@@ -387,6 +421,33 @@ suggest_reboot=False
     def _request_branch(service_levels, all_releases, branch, active_branch,
                         module_name, ns, no_git_branch, no_auto_module,
                         name, config):
+        """ Implementation of `request_branch`.
+
+        Submits a request for a new branch of a given dist-git repo.
+
+        :param service_levels: A list of service level strings.  Typically the
+            value of `self.args.service_levels`.
+        :param all_releases: A boolean indicating if this request should be made
+            for all active Fedora branches.
+        :param branch: A string specifying the specific branch to be requested.
+        :param active_branch: A string (or None) specifying the active branch in
+            the current git repo (the branch that is currently checked out).
+        :param module_name: The repository name string.  Typically the
+            value of `self.cmd.module_name`.
+        :param ns: The repository namespace string, i.e. 'rpms' or 'modules'.
+            Typically takes the value of `self.cmd.ns`.
+        :param no_git_branch: A boolean flag.  If True, the SCM admins should
+            create the git branch in PDC, but not in pagure.io.
+        :param no_auto_module: A boolean flag.  If True, requests for
+            non-standard branches should not automatically result in additional
+            requests for matching modules.
+        :param name: A string representing which section of the config should be
+            used.  Typically the value of `self.name`.
+        :param config: A dict containing the configuration, loaded from file.
+            Typically the value of `self.config`.
+        :return: None
+        """
+
         if all_releases:
             if branch:
                 raise rpkgError('You cannot specify a branch with the '
