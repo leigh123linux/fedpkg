@@ -15,6 +15,7 @@ from pyrpkg.errors import rpkgError
 from fedpkg import _get_bodhi_version
 from utils import CommandTestCase
 from mock import call, patch, Mock, PropertyMock, mock_open
+from six.moves import builtins
 
 
 class TestDetermineRuntimeEnv(CommandTestCase):
@@ -120,7 +121,7 @@ class TestLoadUser(CommandTestCase):
     def test_load_from_fedora_upn(self, exists, expanduser):
         exists.return_value = True
         expanduser.return_value = '/home/user/.fedora.upn'
-        with patch('__builtin__.open', mock_open(read_data='user')) as m:
+        with patch.object(builtins, 'open', mock_open(read_data='user')) as m:
             self.cmd.load_user()
         m.assert_has_calls([
             call(expanduser.return_value, 'r')
