@@ -193,6 +193,7 @@ _fedpkg()
         request-branch)
             options="--no-git-branch --all-releases"
             options_string="--sl"
+            ;;
         request-repo)
             options="--exception"
             options_string="--description --monitor --upstreamurl --summary"
