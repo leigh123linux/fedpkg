@@ -75,7 +75,7 @@ class TestUpdate(CliTestCase):
 
     def create_bodhi_update(self, cli):
         mocked_open = mock_open(read_data=self.fake_clog)
-        with patch('__builtin__.open', mocked_open):
+        with patch('six.moves.builtins.open', mocked_open):
             with patch('os.unlink') as unlink:
                 cli.update()
 

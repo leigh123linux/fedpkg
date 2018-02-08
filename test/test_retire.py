@@ -4,10 +4,10 @@ import os
 import shutil
 import unittest
 import mock
-import ConfigParser
 import tempfile
 import subprocess
 
+from six.moves import configparser
 from fedpkg.cli import fedpkgClient
 
 
@@ -47,12 +47,13 @@ class RetireTestCase(unittest.TestCase):
 
     def _get_latest_commit(self):
         proc = subprocess.Popen(['git', 'log', '-n', '1', '--pretty=%s'],
-                                cwd=self.tmpdir, stdout=subprocess.PIPE)
+                                cwd=self.tmpdir, stdout=subprocess.PIPE,
+                                universal_newlines=True)
         out, err = proc.communicate()
         return out.strip()
 
     def _fake_client(self, args):
-        config = ConfigParser.SafeConfigParser()
+        config = configparser.SafeConfigParser()
         config.read(TEST_CONFIG)
         with mock.patch('sys.argv', new=args):
             client = fedpkgClient(config)
