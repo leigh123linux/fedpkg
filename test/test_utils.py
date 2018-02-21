@@ -115,29 +115,29 @@ class TestUtils(CliTestCase):
                 assert str(e) == ('The SL "{0}" must expire on June 1st or '
                                   'December 1st'.format(eol))
 
-    @patch('fedpkg.utils.Bodhi2Client')
-    def test_get_release_branches(self, mock_bodhi):
+    @patch('requests.get')
+    def test_get_release_branches(self, mock_request_get):
         """Test that get_release_branches returns all the active Fedora release
         branches.
         """
-        mock_bodhi_client = Mock()
-        mock_bodhi_client.send_request.return_value = {
-            u'page': 1,
-            u'pages': 1,
-            u'releases': [
-                {'state': 'current', 'branch': 'el6'},
-                {'state': 'archived', 'branch': 'f24'},
-                {'state': 'current', 'branch': 'epel7'},
-                {'state': 'current', 'branch': 'f25'},
-                {'state': 'archived', 'branch': 'el5'},
-                {'state': 'archived', 'branch': 'f23'},
-                {'state': 'current', 'branch': 'f26'},
-                {'state': 'pending', 'branch': 'f27m'},
-                {'state': 'current', 'branch': 'f27'}
-            ],
-            u'rows_per_page': 20,
-            u'total': 11}
-        mock_bodhi.return_value = mock_bodhi_client
-        expected = set(['el6', 'epel7', 'f25', 'f26', 'f27'])
-        actual = utils.get_release_branches('http://bodhi.local')
+        mock_rv = Mock()
+        mock_rv.ok = True
+        # This abbreviated data returned from the product-versions PDC API
+        mock_rv.json.return_value = {
+            'count': 7,
+            'next': None,
+            'previous': None,
+            'results': [
+                {'short': 'epel', 'version': '6'},
+                {'short': 'epel', 'version': '7'},
+                {'short': 'fedora', 'version': '25'},
+                {'short': 'fedora', 'version': '26'},
+                {'short': 'fedora', 'version': '27'},
+                {'short': 'fedora', 'version': '28'},
+                {'short': 'fedora', 'version': 'rawhide'}
+            ]
+        }
+        mock_request_get.return_value = mock_rv
+        expected = set(['el6', 'epel7', 'f25', 'f26', 'f27', 'f28'])
+        actual = utils.get_release_branches('http://pdc.local')
         self.assertEqual(expected, actual)

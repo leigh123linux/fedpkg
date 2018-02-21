@@ -462,7 +462,7 @@ suggest_reboot=False
                 raise rpkgError('You must specify a branch if you are not in '
                                 'a git repository')
 
-        bodhi_url = config.get('{0}.bodhi'.format(name), 'url')
+        pdc_url = config.get('{0}.pdc'.format(name), 'url')
         if branch:
             if is_epel(branch):
                 assert_valid_epel_package(module_name, branch)
@@ -474,7 +474,7 @@ suggest_reboot=False
                         'Only characters, numbers, periods, dashes, '
                         'underscores, and pluses are allowed in module branch '
                         'names')
-            release_branches = get_release_branches(bodhi_url)
+            release_branches = get_release_branches(pdc_url)
             if branch in release_branches:
                 if service_levels:
                     raise rpkgError(
@@ -489,14 +489,13 @@ suggest_reboot=False
 
         # If service levels were provided, verify them
         if service_levels:
-            pdc_url = config.get('{0}.pdc'.format(name), 'url')
             sl_dict = sl_list_to_dict(service_levels)
             verify_sls(pdc_url, sl_dict)
 
         pagure_url = config.get('{0}.pagure'.format(name), 'url')
         pagure_token = get_pagure_token(config, name)
         if all_releases:
-            release_branches = get_release_branches(bodhi_url)
+            release_branches = get_release_branches(pdc_url)
             branches = [b for b in release_branches
                         if re.match(r'^(f\d+)$', b)]
         else:

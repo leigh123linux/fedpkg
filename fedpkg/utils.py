@@ -18,7 +18,6 @@ from six.moves.urllib.parse import urlencode
 from six.moves.configparser import NoSectionError, NoOptionError
 import requests
 from requests.exceptions import ConnectionError
-from fedora.client.bodhi import Bodhi2Client
 from pyrpkg import rpkgError
 
 
@@ -97,26 +96,55 @@ def new_pagure_issue(url, token, title, body):
         url.rstrip('/'), rv.json()['issue']['id'])
 
 
-def get_release_branches(bodhi_url):
+def get_release_branches(url):
     """
-    Get the active Fedora release branches from Bodhi
-    :param bodhi_url: a string of the URL to Bodhi
+    Get the active Fedora release branches from PDC
+    :param url: a string of the URL to PDC
     :return: a set containing the active Fedora release branches
     """
-    bodhi = Bodhi2Client(bodhi_url)
     branches = set()
-    page = 1
+    api_url = '{0}/rest_api/v1/product-versions/'.format(url.rstrip('/'))
+    query_args = {
+        'fields': ['short', 'version'],
+        'active': True
+    }
     while True:
-        rv = bodhi.send_request('releases', auth=False, params={'page': page})
-        for release in rv['releases']:
-            if release['state'] == 'current':
-                branches.add(release['branch'])
-        if page < rv['pages']:
-            page += 1
-        else:
-            break
+        try:
+            rv = requests.get(api_url, params=query_args, timeout=60)
+        except ConnectionError as error:
+            error_msg = ('The connection to PDC failed while trying to get '
+                         'the active release branches. The error was: {0}'
+                         .format(str(error)))
+            raise rpkgError(error_msg)
 
-    return branches
+        if not rv.ok:
+            base_error_msg = ('The following error occurred while trying to '
+                              'get the active release branches in PDC: {0}')
+            raise rpkgError(base_error_msg.format(rv.text))
+
+        rv_json = rv.json()
+        for product_version in rv_json['results']:
+            # If the version is not a digit we can ignore it (e.g. rawhide)
+            if not product_version['version'].isdigit():
+                continue
+
+            if product_version['short'] == 'epel':
+                prefix = 'epel'
+                if product_version['version'] == '6':
+                    prefix = 'el'
+                branches.add('{0}{1}'.format(
+                    prefix, product_version['version']))
+            elif product_version['short'] == 'fedora':
+                branches.add('f{0}'.format(product_version['version']))
+
+        if rv_json['next']:
+            # Clear the query_args because they are baked into the "next" URL
+            query_args = {}
+            api_url = rv_json['next']
+        else:
+            # We've gone through every page, so we can return the found
+            # branches
+            return branches
 
 
 def sl_list_to_dict(sls):
