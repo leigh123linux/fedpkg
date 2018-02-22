@@ -27,7 +27,8 @@ from pyrpkg import rpkgError
 from fedpkg.bugzilla import BugzillaClient
 from fedpkg.utils import (
     get_release_branches, sl_list_to_dict, verify_sls, new_pagure_issue,
-    get_pagure_token, is_epel, assert_valid_epel_package)
+    get_pagure_token, is_epel, assert_valid_epel_package,
+    assert_new_tests_repo, get_dist_git_url)
 
 RELEASE_BRANCH_REGEX = r'^(f\d+|el\d+|epel\d+)$'
 
@@ -56,6 +57,7 @@ class fedpkgClient(cliClient):
         self.register_retire()
         self.register_update()
         self.register_request_repo()
+        self.register_request_tests_repo()
         self.register_request_branch()
 
     # Target registry goes here
@@ -127,6 +129,42 @@ the package foo:
             help='The package is an exception to the regular package review '
                  'process (specifically, it does not require a Bugzilla bug)')
         request_repo_parser.set_defaults(command=self.request_repo)
+
+    def register_request_tests_repo(self):
+        help_msg = 'Request a new tests dist-git repository'
+        pagure_url = urlparse(self.config.get(
+            '{0}.pagure'.format(self.name), 'url')).netloc
+        anongiturl = self.config.get(self.name, 'anongiturl', vars={'module': 'any'})
+        description = '''Request a new dist-git repository in tests shared namespace
+
+    {2}/projects/tests/*
+
+For more information about tests shared namespace see
+
+    https://fedoraproject.org/wiki/CI/Share_Test_Code
+
+Please refer to the request-repo command to see what has to be done before
+requesting a repository in the tests namespace.
+
+Below is a basic example of the command to request a dist-git repository for
+the space tests/foo:
+
+    fedpkg --module-name foo request-tests-repo "Description of the repository"
+
+Note that the space name needs to reflect the intent of the tests and will
+undergo a manual review.
+
+'''.format(self.name, pagure_url, get_dist_git_url(anongiturl))
+
+        request_tests_repo_parser = self.subparsers.add_parser(
+            'request-tests-repo',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            help=help_msg,
+            description=description)
+        request_tests_repo_parser.add_argument(
+            'description',
+            help='Description of the tests repository')
+        request_tests_repo_parser.set_defaults(command=self.request_tests_repo)
 
     def register_request_branch(self):
         help_msg = 'Request a new dist-git branch'
@@ -319,9 +357,20 @@ suggest_reboot=False
             config=self.config,
         )
 
+    def request_tests_repo(self):
+        self._request_repo(
+            module_name=self.cmd.module_name,
+            ns='tests',
+            description=self.args.description,
+            name=self.name,
+            config=self.config,
+            anongiturl=self.cmd.anongiturl
+        )
+
     @staticmethod
-    def _request_repo(module_name, ns, branch, summary, description,
-                      upstreamurl, monitor, bug, exception, name, config):
+    def _request_repo(module_name, ns, description, name, config, branch=None,
+                      summary=None, upstreamurl=None, monitor=None, bug=None,
+                      exception=None, anongiturl=None):
         """ Implementation of `request_repo`.
 
         Submits a request for a new dist-git repo.
@@ -330,12 +379,16 @@ suggest_reboot=False
             value of `self.cmd.module_name`.
         :param ns: The repository namespace string, i.e. 'rpms' or 'modules'.
             Typically takes the value of `self.cmd.ns`.
+        :param description: A string, the description of the new repo.
+            Typically takes the value of `self.args.description`.
+        :param name: A string representing which section of the config should be
+            used.  Typically the value of `self.name`.
+        :param config: A dict containing the configuration, loaded from file.
+            Typically the value of `self.config`.
         :param branch: The git branch string when requesting a repo.
             Typically 'master'.
         :param summary: A string, the summary of the new repo.  Typically
             takes the value of `self.args.summary`.
-        :param description: A string, the description of the new repo.
-            Typically takes the value of `self.args.description`.
         :param upstreamurl: A string, the upstreamurl of the new repo.
             Typically takes the value of `self.args.upstreamurl`.
         :param monitor: A string, the monitoring flag of the new repo, i.e.
@@ -349,16 +402,14 @@ suggest_reboot=False
             granted the right to waive their package review at the discretion of
             Release Engineering.  Typically takes the value of
             `self.args.exception`.
-        :param name: A string representing which section of the config should be
-            used.  Typically the value of `self.name`.
-        :param config: A dict containing the configuration, loaded from file.
-            Typically the value of `self.config`.
+        :param anongiturl: A string with the name of the anonymous git url.
+            Typically the value of `self.cmd.anongiturl`.
         :return: None
         """
 
         # bug is not a required parameter in the event the packager has an
         # exception, in which case, they may use the --exception flag
-        if not bug and not exception:
+        if not bug and not exception and ns != 'tests':
             raise rpkgError(
                 'A Bugzilla bug is required on new repository requests')
         repo_regex = r'^[a-zA-Z0-9_][a-zA-Z0-9-_.+]*$'
@@ -371,24 +422,35 @@ suggest_reboot=False
                 .format(module_name))
 
         summary_from_bug = ''
-        if bug:
+        if bug and ns != 'tests':
             bz_url = config.get('{0}.bugzilla'.format(name), 'url')
             bz_client = BugzillaClient(bz_url)
             bug_obj = bz_client.get_review_bug(bug, ns, module_name)
             summary_from_bug = bug_obj.summary.split(' - ', 1)[1].strip()
 
-        ticket_body = {
-            'action': 'new_repo',
-            'branch': branch,
-            'bug_id': bug or '',
-            'description': description or '',
-            'exception': exception,
-            'monitor': monitor,
-            'namespace': ns,
-            'repo': module_name,
-            'summary': summary or summary_from_bug,
-            'upstreamurl': upstreamurl or ''
-        }
+        if ns == 'tests':
+            # check if tests repository does not exist already
+            assert_new_tests_repo(module_name, get_dist_git_url(anongiturl))
+
+            ticket_body = {
+                'action': 'new_repo',
+                'namespace': 'tests',
+                'repo': module_name,
+                'description': description,
+            }
+        else:
+            ticket_body = {
+                'action': 'new_repo',
+                'branch': branch,
+                'bug_id': bug or '',
+                'description': description or '',
+                'exception': exception,
+                'monitor': monitor,
+                'namespace': ns,
+                'repo': module_name,
+                'summary': summary or summary_from_bug,
+                'upstreamurl': upstreamurl or ''
+            }
 
         ticket_body = json.dumps(ticket_body, indent=True)
         ticket_body = '```\n{0}\n```'.format(ticket_body)

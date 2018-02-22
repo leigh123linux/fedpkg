@@ -1032,3 +1032,82 @@ https://pagure.stg.example.com/releng/fedora-scm-requests/issue/3"""
             'Engineering team.')
         with six.assertRaisesRegex(self, rpkgError, expected_error):
             cli.request_branch()
+
+
+class TestRequestTestsRepo(CliTestCase):
+    """Test the request-tests-repo command"""
+
+    def setUp(self):
+        super(TestRequestTestsRepo, self).setUp()
+
+    def tearDown(self):
+        super(TestRequestTestsRepo, self).tearDown()
+
+    def get_cli(self, cli_cmd, name='fedpkg-stage', cfg='fedpkg-stage.conf',
+                user_cfg='fedpkg-user-stage.conf'):
+        with patch('sys.argv', new=cli_cmd):
+            return self.new_cli(name=name, cfg=cfg, user_cfg=user_cfg)
+
+    @patch('requests.post')
+    @patch('requests.get')
+    @patch('sys.stdout', new=StringIO())
+    def test_request_tests_repo(self, mock_request_get, mock_request_post):
+        """Tests request-tests-repo"""
+
+        # mock the request.get from assert_new_tests_repo
+        mock_get_rv = Mock()
+        mock_get_rv.ok = False
+        mock_request_get.return_value = mock_get_rv
+
+        # mock the request.post to Pagure
+        mock_post_rv = Mock()
+        mock_post_rv.ok = True
+        mock_post_rv.json.return_value = {'issue': {'id': 1}}
+        mock_request_post.return_value = mock_post_rv
+
+        cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
+                   '--module-name', 'foo', 'request-tests-repo',
+                   'Some description']
+        cli = self.get_cli(cli_cmd)
+        cli.request_tests_repo()
+
+        expected_issue_content = {
+            'action': 'new_repo',
+            'repo': 'foo',
+            'namespace': 'tests',
+            'description': 'Some description'
+        }
+
+        # Get the data that was submitted to Pagure
+        post_data = mock_request_post.call_args_list[0][1]['data']
+        actual_issue_content = json.loads(json.loads(
+            post_data)['issue_content'].strip('```'))
+        self.assertEqual(expected_issue_content, actual_issue_content)
+
+        output = sys.stdout.getvalue().strip()
+        expected_output = ('https://pagure.stg.example.com/releng/'
+                           'fedora-scm-requests/issue/1')
+        self.assertEqual(output, expected_output)
+
+    @patch('requests.get')
+    def test_request_tests_repo_exists(self, mock_request_get):
+        """Tests request-tests-repo exception if repo already exists"""
+
+        # mock the request.get from assert_new_tests_repo
+        mock_get_rv = Mock()
+        mock_get_rv.ok = True
+        mock_request_get.return_value = mock_get_rv
+
+        cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
+                   '--module-name', 'foo', 'request-tests-repo',
+                   'Some description']
+        cli = self.get_cli(cli_cmd)
+
+        expected_error = (
+            'Repository git://pkgs.stg.example.com/tests/foo already exists')
+
+        try:
+            cli.request_tests_repo()
+            assert False, 'rpkgError not raised'
+        except rpkgError as error:
+            self.assertEqual(str(error), expected_error)
