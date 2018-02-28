@@ -14,7 +14,7 @@ import re
 import json
 from datetime import datetime
 
-from six.moves.urllib.parse import urlencode
+from six.moves.urllib.parse import urlencode, urlparse
 from six.moves.configparser import NoSectionError, NoOptionError
 import requests
 from requests.exceptions import ConnectionError
@@ -271,3 +271,38 @@ def assert_valid_epel_package(name, branch):
             pkg_arches = set(pkg_info['arch'])
             if pkg_arches == set(['noarch']) or not (all_arches - pkg_arches):
                 raise rpkgError(error_msg_two)
+
+
+def assert_new_tests_repo(name, dist_git_url):
+    """
+    Asserts that the tests repository name is new. Note that the repository name
+    can be any arbitrary string, so just check if the repository already exists.
+
+    :param name: a string with the package name
+    :return: None or rpkgError
+    """
+
+    url = '{0}/tests/{1}'.format(dist_git_url, name)
+    error_msg = (
+        'The connection to dist-git failed'
+        'trying to determine if this is a valid new tests '
+        ' repository name.')
+    try:
+        rv = requests.get(url, timeout=60)
+    except ConnectionError as error:
+        error_msg += ' The error was: {0}'.format(str(error))
+        raise rpkgError(error_msg)
+
+    if rv.ok:
+        raise rpkgError("Repository {0} already exists".format(url))
+
+
+def get_dist_git_url(anongiturl):
+    """
+    Extracts dist-git url from the anongiturl configuration option.
+    :param anongiturl: The `anongiturl` configuration option value. Typically
+        takes the argument of `self.cmd.anongiturl`
+    :return: dist-git url string or rpkgError
+    """
+    parsed_url = urlparse(anongiturl)
+    return '{0}://{1}'.format(parsed_url.scheme, parsed_url.netloc)
