@@ -1,6 +1,21 @@
 ChangeLog
 =========
 
+1.32 (2018-03-01)
+-----------------
+
+- Add requests-tests-repo command (mvadkert)
+- Use PDC instead of Bodhi to get the active release branches - #187 (mprahl)
+- fix broken syntax in bash completion (tmz)
+- Fix Python 3 incompatible code in tests (cqi)
+- Better mocking.  Return different values for each new request. (rbean)
+- Typofix. (rbean)
+- Add docstrings. (rbean)
+- Automatically request module for non-standard branches. (rbean)
+- Refactor: parameterize the request_repo and request_branch functionality.
+  (rbean)
+- Some additions to the gitignore file. (rbean)
+
 1.31 (2018-01-22)
 -----------------
 
