@@ -116,7 +116,7 @@ the package foo:
         monitoring_choices = [
             'no-monitoring', 'monitoring', 'monitoring-with-scratch']
         request_repo_parser.add_argument(
-            '--monitor', '-m', help='The Koshei monitoring type for the repo',
+            '--monitor', '-m', help='The Anitya monitoring type for the repo',
             choices=monitoring_choices, default=monitoring_choices[1])
         request_repo_parser.add_argument(
             '--upstreamurl', '-u',

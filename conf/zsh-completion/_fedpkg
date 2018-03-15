@@ -317,7 +317,7 @@ _fedpkg-request-repo () {
   _arguments -C \
     '(-h --help)'{-h,--help}'[show help message and exit]' \
     '(-d --description)'{-d,--description}'[The description in dist-git]' \
-    '(-m --monitor)'{-m,--monitor}'[The Koshei monitoring type for the repo]' \
+    '(-m --monitor)'{-m,--monitor}'[The Anitya monitoring type for the repo]' \
     '(-u --upstreamurl)'{-u,--upstreamurl}'[The upstream URL of the project]' \
     '(-s --summary)'{-s,--summary}'[Override the package summary from the Bugzilla bug]' \
     '--exception[The package is an exception to the regular package review process]:optional' \
