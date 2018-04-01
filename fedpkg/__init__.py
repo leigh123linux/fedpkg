@@ -166,7 +166,7 @@ class Commands(pyrpkg.Commands):
             try:
                 rawhidetarget = self.anon_kojisession.getBuildTarget(
                     'rawhide')
-            except:
+            except Exception:
                 # We couldn't hit koji, bail.
                 raise pyrpkg.rpkgError('Unable to query koji to find rawhide \
                                        target')
@@ -178,7 +178,7 @@ class Commands(pyrpkg.Commands):
         """
         try:
             runtime_os, runtime_version, _ = platform.linux_distribution()
-        except:
+        except Exception:
             return None
 
         if runtime_os in ['redhat', 'centos']:
