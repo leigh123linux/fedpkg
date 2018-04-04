@@ -111,7 +111,8 @@ the package foo:
             description=description)
         request_repo_parser.add_argument(
             'bug', nargs='?', type=int,
-            help='Bugzilla bug ID of the package review request')
+            help='Bugzilla bug ID of the package review request. '
+                 'Not required for requesting a module repository')
         request_repo_parser.add_argument(
             '--description', '-d', help='The repo\'s description in dist-git')
         monitoring_choices = [
@@ -407,7 +408,8 @@ suggest_reboot=False
 
         # bug is not a required parameter in the event the packager has an
         # exception, in which case, they may use the --exception flag
-        if not bug and not exception and ns != 'tests':
+        # neither in case of modules, which don't require a formal review
+        if not bug and not exception and ns not in ['tests', 'modules']:
             raise rpkgError(
                 'A Bugzilla bug is required on new repository requests')
         repo_regex = r'^[a-zA-Z0-9_][a-zA-Z0-9-_.+]*$'
@@ -420,7 +422,7 @@ suggest_reboot=False
                 .format(module_name))
 
         summary_from_bug = ''
-        if bug and ns != 'tests':
+        if bug and ns not in ['tests', 'modules']:
             bz_url = config.get('{0}.bugzilla'.format(name), 'url')
             bz_client = BugzillaClient(bz_url)
             bug_obj = bz_client.get_review_bug(bug, ns, module_name)

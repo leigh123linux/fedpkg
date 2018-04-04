@@ -326,22 +326,20 @@ class TestRequestRepo(CliTestCase):
         mock_request_post.return_value = mock_rv
 
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--module-name', 'modules/nethack', 'request-repo',
-                   '1441813']
+                   '--module-name', 'modules/nethack', 'request-repo']
         cli = self.get_cli(cli_cmd)
         cli.request_repo()
 
         expected_issue_content = {
             'action': 'new_repo',
             'branch': 'master',
-            'bug_id': 1441813,
+            'bug_id': '',
             'description': '',
             'exception': False,
             'monitor': 'monitoring',
             'namespace': 'modules',
             'repo': 'nethack',
-            'summary': ('A rogue-like single player dungeon exploration '
-                        'game'),
+            'summary': (''),
             'upstreamurl': ''
         }
         # Get the data that was submitted to Pagure
