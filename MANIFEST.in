@@ -4,3 +4,5 @@ include doc/release-guide.markdown
 include test/utils.py
 include test *.conf
 recursive-include conf *
+include tox.ini
+include requirements.txt tests-requirements.txt

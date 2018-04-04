@@ -60,7 +60,7 @@ def main():
     if not client.args.path:
         try:
             client.args.path = pyrpkg.utils.getcwd()
-        except:
+        except Exception:
             print('Could not get current path, have you deleted it?')
             sys.exit(1)
 

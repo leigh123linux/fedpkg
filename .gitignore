@@ -11,3 +11,5 @@ dist/
 .coverage
 .cache
 .eggs
+.env/
+.tox/
