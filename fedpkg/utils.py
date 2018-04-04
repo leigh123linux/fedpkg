@@ -210,9 +210,9 @@ def get_pagure_token(config, cli_name):
     try:
         return config.get(conf_section, 'token')
     except (NoSectionError, NoOptionError):
-        raise rpkgError('The "token" value must be set under the "{0}" '
-                        'section in your "{1}" user configuration'
-                        .format(conf_section, cli_name))
+        raise rpkgError(
+            'Missing a Pagure token. Refer to "{0} request-repo -h" to set a'
+            'token in your user configuration.'.format(cli_name))
 
 
 def is_epel(branch):
