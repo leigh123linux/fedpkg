@@ -14,6 +14,7 @@ from __future__ import print_function
 from pyrpkg.cli import cliClient
 import argparse
 import hashlib
+import io
 import os
 import re
 import json
@@ -286,14 +287,17 @@ close_bugs=True
 suggest_reboot=False
 """
 
-        bodhi_args = {'nvr': self.cmd.nvr,
-                      'bugs': '',
-                      'descr': 'Here is where you give an explanation'
-                               ' of your update.'}
+        bodhi_args = {
+            'nvr': self.cmd.nvr,
+            'bugs': six.u(''),
+            'descr': six.u(
+                'Here is where you give an explanation of your update.')
+        }
 
         # Extract bug numbers from the latest changelog entry
         self.cmd.clog()
-        with open('clog', 'r') as f:
+        clog_file = os.path.join(self.cmd.path, 'clog')
+        with io.open(clog_file, encoding='utf-8') as f:
             clog = f.read()
         bugs = re.findall(r'#([0-9]*)', clog)
         if bugs:
@@ -303,12 +307,6 @@ suggest_reboot=False
         bodhi_args['descr'], bodhi_args['changelog'] = \
             self._format_update_clog(clog)
 
-        if six.PY2:
-            # log may contain unicode characters, convert log to unicode string
-            # to ensure text can be wrapped correctly in follow step.
-            bodhi_args['descr'] = bodhi_args['descr'].decode('utf-8')
-            bodhi_args['changelog'] = bodhi_args['changelog'].decode('utf-8')
-
         template = textwrap.dedent(template) % bodhi_args
 
         # Calculate the hash of the unaltered template
@@ -317,8 +315,8 @@ suggest_reboot=False
         orig_hash = orig_hash.hexdigest()
 
         # Write out the template
-        with open('bodhi.template', 'w') as f:
-            f.write(template.encode('utf-8'))
+        with io.open('bodhi.template', 'w', encoding='utf-8') as f:
+            f.write(template)
 
         # Open the template in a text editor
         editor = os.getenv('EDITOR', 'vi')

@@ -10,6 +10,8 @@
 # option) any later version.  See http://www.gnu.org/copyleft/gpl.html for
 # the full text of the license.
 
+import io
+import os
 import sys
 import json
 from datetime import datetime, timedelta
@@ -25,7 +27,7 @@ from pyrpkg.errors import rpkgError
 from utils import CliTestCase
 from fedpkg.bugzilla import BugzillaClient
 
-from mock import call, patch, mock_open, PropertyMock, Mock
+from mock import call, patch, PropertyMock, Mock
 
 
 class TestUpdate(CliTestCase):
@@ -36,7 +38,7 @@ class TestUpdate(CliTestCase):
 
         self.nvr_patcher = patch('fedpkg.Commands.nvr',
                                  new_callable=PropertyMock,
-                                 return_value='fedpkg-1.29-9')
+                                 return_value='fedpkg-1.29-9.fc27')
         self.mock_nvr = self.nvr_patcher.start()
 
         self.run_command_patcher = patch('fedpkg.Commands._run_command')
@@ -55,13 +57,20 @@ class TestUpdate(CliTestCase):
         self.os_environ_patcher = patch.dict('os.environ', {'EDITOR': 'vi'})
         self.os_environ_patcher.start()
 
-        self.fake_clog = '\n'.join([
+        self.fake_clog = list(six.moves.map(six.u, [
             'Add tests for command update',
             'New command update - #1000',
-            'Fix tests - #2000'
-        ])
+            'Fix tests - #2000',
+            '处理一些Unicode字符číář',
+        ]))
+        clog_file = os.path.join(self.cloned_repo_path, 'clog')
+        with io.open(clog_file, 'w', encoding='utf-8') as f:
+            f.write(os.linesep.join(self.fake_clog))
 
     def tearDown(self):
+        if os.path.exists('bodhi.template'):
+            os.unlink('bodhi.template')
+        os.unlink(os.path.join(self.cloned_repo_path, 'clog'))
         self.os_environ_patcher.stop()
         self.clog_patcher.stop()
         self.get_bodhi_version_patcher.stop()
@@ -73,17 +82,24 @@ class TestUpdate(CliTestCase):
         with patch('sys.argv', new=cli_cmd):
             return self.new_cli(name=name, cfg=cfg)
 
-    def create_bodhi_update(self, cli):
-        mocked_open = mock_open(read_data=self.fake_clog)
-        with patch('six.moves.builtins.open', mocked_open):
-            with patch('os.unlink') as unlink:
-                cli.update()
+    def assert_bodhi_update(self, cli):
+        with patch('os.unlink') as unlink:
+            cli.update()
 
-                # Ensure these files are removed in the end
-                unlink.assert_has_calls([
-                    call('bodhi.template'),
-                    call('clog')
-                ])
+            unlink.assert_has_calls([
+                call('bodhi.template'),
+                call('clog')
+            ])
+
+        with io.open('bodhi.template', encoding='utf-8') as f:
+            bodhi_template = f.read()
+        self.assertTrue(self.mock_nvr.return_value in bodhi_template)
+        self.assertTrue('1000,2000' in bodhi_template)
+        self.assertTrue(self.fake_clog[0] in bodhi_template)
+        rest_clog = os.linesep.join([
+            six.u('# {0}').format(line) for line in self.fake_clog[1:]
+        ])
+        self.assertTrue(rest_clog in bodhi_template)
 
     def test_fail_if_missing_config_options(self):
         cli_cmd = ['fedpkg', '--path', self.cloned_repo_path, 'update']
@@ -106,7 +122,7 @@ class TestUpdate(CliTestCase):
         cli = self.get_cli(cli_cmd)
         six.assertRaisesRegex(
             self, rpkgError, 'No bodhi update details saved',
-            self.create_bodhi_update, cli)
+            self.assert_bodhi_update, cli)
 
         self.mock_run_command.assert_called_once_with(
             ['vi', 'bodhi.template'], shell=True)
@@ -123,7 +139,7 @@ class TestUpdate(CliTestCase):
         cli_cmd = ['fedpkg', '--path', self.cloned_repo_path, 'update']
 
         cli = self.get_cli(cli_cmd)
-        self.create_bodhi_update(cli)
+        self.assert_bodhi_update(cli)
 
         self.mock_run_command.assert_has_calls([
             call(['vi', 'bodhi.template'], shell=True),
@@ -146,7 +162,7 @@ class TestUpdate(CliTestCase):
         cli = self.get_cli(cli_cmd)
         six.assertRaisesRegex(
             self, rpkgError, 'Could not generate update request',
-            self.create_bodhi_update, cli)
+            self.assert_bodhi_update, cli)
 
     @patch('os.path.isfile', return_value=True)
     @patch('hashlib.new')
@@ -163,7 +179,7 @@ class TestUpdate(CliTestCase):
         cli = self.get_cli(cli_cmd)
         six.assertRaisesRegex(
             self, rpkgError, 'This system has bodhi v4, which is unsupported',
-            self.create_bodhi_update, cli)
+            self.assert_bodhi_update, cli)
 
     @patch('os.path.isfile', return_value=True)
     @patch('hashlib.new')
@@ -180,7 +196,7 @@ class TestUpdate(CliTestCase):
         cli = self.get_cli(cli_cmd,
                            name='fedpkg-stage',
                            cfg='fedpkg-stage.conf')
-        self.create_bodhi_update(cli)
+        self.assert_bodhi_update(cli)
 
         self.mock_run_command.assert_has_calls([
             call(['vi', 'bodhi.template'], shell=True),
