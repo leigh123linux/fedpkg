@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if python -c "import pycurl" &>/dev/null; then
+	exit 0
+fi
+
+# We need to build pycurl with openssl in Fedora 27, otherwise nss should be
+# used.
+# See also: https://fedoraproject.org/wiki/Changes/libcurlBackToOpenSSL
+
+dist=$(rpm --eval "%{dist}")
+dist=${dist:3}
+
+if [ $dist -ge 27 ]; then
+    install_option="--with-openssl"
+else
+    install_option="--with-nss"
+fi
+pip install -v -I --install-option="${install_option}" "pycurl>=7.19"
