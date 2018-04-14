@@ -231,7 +231,7 @@ class Commands(pyrpkg.Commands):
 
         # build up the bodhi arguments, based on which version of bodhi is
         # installed
-        bodhi_major_version = _get_bodhi_version()[0]
+        bodhi_major_version = _get_bodhi_major_version()
         if bodhi_major_version < 2:
             cmd = ['bodhi', '--bodhi-url', bodhi_config['url'],
                    '--new', '--release', self.branch_merge,
@@ -252,16 +252,17 @@ class Commands(pyrpkg.Commands):
         self._run_command(cmd, shell=True)
 
 
-def _get_bodhi_version():
+def _get_bodhi_major_version():
     """
     Use bodhi --version to determine the version of the Bodhi CLI that's
     installed on the system, then return a list of the version components.
     For example, if bodhi --version returns "2.1.9", this function will return
-    [2, 1, 9].
+    2.
     """
     bodhi = subprocess.Popen(['bodhi', '--version'], stdout=subprocess.PIPE)
     version = bodhi.communicate()[0].strip()
-    return [int(component) for component in version.split('.')]
+    major, _ = version.split('.', 1)
+    return int(major)
 
 
 if __name__ == "__main__":

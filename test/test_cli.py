@@ -45,9 +45,10 @@ class TestUpdate(CliTestCase):
         self.mock_run_command = self.run_command_patcher.start()
 
         # Let's always use the bodhi 2 command line to test here
-        self.get_bodhi_version_patcher = patch('fedpkg._get_bodhi_version',
-                                               return_value=[2, 11, 0])
-        self.mock_get_bodhi_version = self.get_bodhi_version_patcher.start()
+        self.get_bodhi_major_version_patcher = patch(
+            'fedpkg._get_bodhi_major_version', return_value=2)
+        self.mock_get_bodhi_major_version = \
+            self.get_bodhi_major_version_patcher.start()
 
         # Not write clog actually. Instead, file object will be mocked and
         # return fake clog content for tests.
@@ -73,7 +74,7 @@ class TestUpdate(CliTestCase):
         os.unlink(os.path.join(self.cloned_repo_path, 'clog'))
         self.os_environ_patcher.stop()
         self.clog_patcher.stop()
-        self.get_bodhi_version_patcher.stop()
+        self.get_bodhi_major_version_patcher.stop()
         self.run_command_patcher.stop()
         self.nvr_patcher.stop()
         super(TestUpdate, self).tearDown()
@@ -170,7 +171,7 @@ class TestUpdate(CliTestCase):
     def test_fail_if_bodhi_version_is_not_supported(
             self, hash_file, hashlib_new, isfile):
         # As of writing this test, only supports version v3, v2, and <v2.
-        self.mock_get_bodhi_version.return_value = [4, 1, 2]
+        self.mock_get_bodhi_major_version.return_value = 4
         hashlib_new.return_value.hexdigest.return_value = 'origin hash'
         hash_file.return_value = 'different hash'
 
@@ -188,7 +189,7 @@ class TestUpdate(CliTestCase):
     def test_create_update_in_stage_bodhi(
             self, user, hash_file, hashlib_new, isfile):
         user.return_value = 'someone'
-        self.mock_get_bodhi_version.return_value = [2, 8, 1]
+        self.mock_get_bodhi_major_version.return_value = 2
         hashlib_new.return_value.hexdigest.return_value = 'origin hash'
         hash_file.return_value = 'different hash'
 

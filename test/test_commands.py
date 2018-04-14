@@ -12,7 +12,7 @@
 import unittest
 
 from pyrpkg.errors import rpkgError
-from fedpkg import _get_bodhi_version
+from fedpkg import _get_bodhi_major_version
 from utils import CommandTestCase
 from mock import call, patch, Mock, PropertyMock, mock_open
 from six.moves import builtins
@@ -142,14 +142,14 @@ class TestLoadUser(CommandTestCase):
 
 
 class GetBodhiVersion(unittest.TestCase):
-    """Test fedpkg._get_bodhi_version"""
+    """Test fedpkg._get_bodhi_major_version"""
 
     @patch('subprocess.Popen')
     def test_get_bodhi_version(self, Popen):
-        Popen.return_value.communicate.return_value = ('1.2.3\n', '')
+        Popen.return_value.communicate.return_value = ('1.2.b0\n', '')
 
-        version = _get_bodhi_version()
-        self.assertEqual([1, 2, 3], version)
+        version = _get_bodhi_major_version()
+        self.assertEqual(1, version)
 
 
 class TestLookaside(CommandTestCase):
