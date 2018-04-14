@@ -108,7 +108,7 @@ class TestUtils(CliTestCase):
         """
         for eol in ['2030-01-01', '2030-12-25']:
             try:
-                sls = {'security_fixes': eol, 'bug_fixes': '2030-12-01'}
+                sls = {'security_fixes': eol, 'bug_fixes': eol}
                 utils.verify_sls('http://pdc.example.com/', sls)
                 assert False, 'An rpkgError exception was not raised'
             except rpkgError as e:
