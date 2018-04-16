@@ -259,7 +259,9 @@ def _get_bodhi_version():
     For example, if bodhi --version returns "2.1.9", this function will return
     [2, 1, 9].
     """
-    bodhi = subprocess.Popen(['bodhi', '--version'], stdout=subprocess.PIPE)
+    bodhi = subprocess.Popen(['bodhi', '--version'],
+                             stdout=subprocess.PIPE,
+                             universal_newlines=True)
     version = bodhi.communicate()[0].strip()
     return [int(component) for component in version.split('.')]
 
