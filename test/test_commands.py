@@ -130,15 +130,12 @@ class TestLoadUser(CommandTestCase):
 
     @patch('os.path.expanduser')
     @patch('os.path.exists')
-    @patch('os.getuid')
-    @patch('pwd.getpwuid')
-    def test_fall_back_to_super_load_user(
-            self, getpwuid, getuid, exists, expanduser):
+    @patch('getpass.getuser')
+    def test_fall_back_to_super_load_user(self, getuser, exists, expanduser):
         exists.return_value = False
-        getpwuid.return_value = ('someone', None)
 
         self.cmd.load_user()
-        self.assertEqual('someone', self.cmd._user)
+        self.assertEqual(getuser.return_value, self.cmd._user)
 
 
 class GetBodhiVersion(unittest.TestCase):
