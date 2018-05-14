@@ -1,6 +1,24 @@
 ChangeLog
 =========
 
+1.33 (2018-05-14)
+-----------------
+
+- Allow running tests against specified rpkg (cqi)
+- Fix test due to rpkg uses getpass.getuser (cqi)
+- Getting bodhi version works with Python 3 - #213 (cqi)
+- Detect Bodhi client by major version - #204 (cqi)
+- Allow requesting modular repositories without bug ID - #197 (rdossant)
+- Fix test test_verify_sls_invalid_date - #209 (cqi)
+- Copy pip-pycurl to ensure pycurl is installed correctly (cqi)
+- Fix unicode issue for update command in Python 3 - #206 (cqi)
+- Fix a few E722 code styles errors (cqi)
+- Fix fake PDC URL in test (cqi)
+- Use tox to run tests with multiple Python versions (cqi)
+- Reword error message for missing pagure token - #194 (cqi)
+- Tell which token ACL is required for request-repo - #195 (cqi)
+- Rename incorrect references of Koshei to be Anitya (mprahl)
+
 1.32 (2018-03-01)
 -----------------
 

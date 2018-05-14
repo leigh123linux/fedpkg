@@ -36,7 +36,7 @@ if ver[0] <= 2 and ver[1] < 7:
 
 setup(
     name="fedpkg",
-    version="1.32",
+    version="1.33",
     author="Dennis Gilmore",
     author_email="dgilmore@fedoraproject.org",
     description=("Fedora plugin to rpkg to manage "
