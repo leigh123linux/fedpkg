@@ -18,6 +18,7 @@ import io
 import os
 import re
 import json
+import pkg_resources
 import six
 import textwrap
 
@@ -32,6 +33,17 @@ from fedpkg.utils import (
     assert_new_tests_repo, get_dist_git_url)
 
 RELEASE_BRANCH_REGEX = r'^(f\d+|el\d+|epel\d+)$'
+
+
+def check_bodhi_version():
+    try:
+        dist = pkg_resources.get_distribution('bodhi_client')
+    except pkg_resources.DistributionNotFound:
+        raise rpkgError('bodhi-client < 2.0 is not supported.')
+    major = int(dist.version.split('.', 1))
+    if major >= 4:
+        raise rpkgError(
+            'This system has bodhi v{0}, which is unsupported.'.format(major))
 
 
 class fedpkgClient(cliClient):
@@ -243,6 +255,8 @@ and created:
         return lines[0], "\n".join(log)
 
     def update(self):
+        check_bodhi_version()
+
         try:
             section = '%s.bodhi' % self.name
             bodhi_config = {

@@ -9,12 +9,7 @@
 # option) any later version.  See http://www.gnu.org/copyleft/gpl.html for
 # the full text of the license.
 
-import pkg_resources
-import six
-import unittest
-
 from pyrpkg.errors import rpkgError
-from fedpkg import check_bodhi_version
 from utils import CommandTestCase
 from mock import call, patch, Mock, PropertyMock, mock_open
 from six.moves import builtins
@@ -329,15 +324,3 @@ class TestOverrideBuildURL(CommandTestCase):
         self.assertEqual(
             'git+{0}'.format(super_construct_build_url.return_value),
             overrided_url)
-
-
-class TestCheckBodhiVersion(unittest.TestCase):
-    """Test check_bodhi_version"""
-
-    @patch('pkg_resources.get_distribution')
-    def test_no_2_x_version_installed(self, get_distribution):
-        get_distribution.side_effect = pkg_resources.DistributionNotFound
-
-        six.assertRaisesRegex(
-            self, rpkgError, r'bodhi-client < 2\.0 is not supported\.',
-            check_bodhi_version)

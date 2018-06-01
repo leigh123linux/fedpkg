@@ -14,6 +14,9 @@ import io
 import os
 import sys
 import json
+import pkg_resources
+import unittest
+
 from datetime import datetime, timedelta
 from tempfile import mkdtemp
 from os import rmdir
@@ -26,6 +29,7 @@ from six.moves import StringIO
 from pyrpkg.errors import rpkgError
 from utils import CliTestCase
 from fedpkg.bugzilla import BugzillaClient
+from fedpkg.cli import check_bodhi_version
 
 from mock import call, patch, PropertyMock, Mock
 
@@ -45,7 +49,7 @@ class TestUpdate(CliTestCase):
         self.mock_run_command = self.run_command_patcher.start()
 
         # Let's always use the bodhi 2 command line to test here
-        self.check_bodhi_version_patcher = patch('fedpkg.check_bodhi_version')
+        self.check_bodhi_version_patcher = patch('fedpkg.cli.check_bodhi_version')
         self.mock_check_bodhi_version = self.check_bodhi_version_patcher.start()
 
         # Not write clog actually. Instead, file object will be mocked and
@@ -1106,3 +1110,15 @@ class TestRequestTestsRepo(CliTestCase):
             assert False, 'rpkgError not raised'
         except rpkgError as error:
             self.assertEqual(str(error), expected_error)
+
+
+class TestCheckBodhiVersion(unittest.TestCase):
+    """Test check_bodhi_version"""
+
+    @patch('pkg_resources.get_distribution')
+    def test_no_2_x_version_installed(self, get_distribution):
+        get_distribution.side_effect = pkg_resources.DistributionNotFound
+
+        six.assertRaisesRegex(
+            self, rpkgError, r'bodhi-client < 2\.0 is not supported\.',
+            check_bodhi_version)

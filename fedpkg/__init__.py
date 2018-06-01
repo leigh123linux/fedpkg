@@ -14,7 +14,6 @@ import os
 import git
 import re
 import platform
-import pkg_resources
 
 from . import cli  # noqa
 from .lookaside import FedoraLookasideCache
@@ -228,24 +227,12 @@ class Commands(pyrpkg.Commands):
 
     def update(self, bodhi_config, template='bodhi.template', bugs=[]):
         """Submit an update to bodhi using the provided template."""
-        check_bodhi_version()
         cmd = ['bodhi', 'updates', 'new', '--file', 'bodhi.template',
                '--user', self.user]
         if bodhi_config['staging']:
             cmd.append('--staging')
         cmd.append(self.nvr)
         self._run_command(cmd, shell=True)
-
-
-def check_bodhi_version():
-    try:
-        dist = pkg_resources.get_distribution('bodhi_client')
-    except pkg_resources.DistributionNotFound:
-        raise pyrpkg.rpkgError('bodhi-client < 2.0 is not supported.')
-    major = int(dist.version.split('.', 1))
-    if major >= 4:
-        raise pyrpkg.rpkgError(
-            'This system has bodhi v{0}, which is unsupported.'.format(major))
 
 
 if __name__ == "__main__":
