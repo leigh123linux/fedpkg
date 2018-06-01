@@ -9,10 +9,12 @@
 # option) any later version.  See http://www.gnu.org/copyleft/gpl.html for
 # the full text of the license.
 
+import pkg_resources
+import six
 import unittest
 
 from pyrpkg.errors import rpkgError
-from fedpkg import _get_bodhi_major_version
+from fedpkg import check_bodhi_version
 from utils import CommandTestCase
 from mock import call, patch, Mock, PropertyMock, mock_open
 from six.moves import builtins
@@ -136,17 +138,6 @@ class TestLoadUser(CommandTestCase):
 
         self.cmd.load_user()
         self.assertEqual(getuser.return_value, self.cmd._user)
-
-
-class GetBodhiVersion(unittest.TestCase):
-    """Test fedpkg._get_bodhi_major_version"""
-
-    @patch('subprocess.Popen')
-    def test_get_bodhi_version(self, Popen):
-        Popen.return_value.communicate.return_value = ('1.2.b0\n', '')
-
-        version = _get_bodhi_major_version()
-        self.assertEqual(1, version)
 
 
 class TestLookaside(CommandTestCase):
@@ -338,3 +329,15 @@ class TestOverrideBuildURL(CommandTestCase):
         self.assertEqual(
             'git+{0}'.format(super_construct_build_url.return_value),
             overrided_url)
+
+
+class TestCheckBodhiVersion(unittest.TestCase):
+    """Test check_bodhi_version"""
+
+    @patch('pkg_resources.get_distribution')
+    def test_no_2_x_version_installed(self, get_distribution):
+        get_distribution.side_effect = pkg_resources.DistributionNotFound
+
+        six.assertRaisesRegex(
+            self, rpkgError, r'bodhi-client < 2\.0 is not supported\.',
+            check_bodhi_version)

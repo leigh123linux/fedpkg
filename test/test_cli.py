@@ -45,10 +45,8 @@ class TestUpdate(CliTestCase):
         self.mock_run_command = self.run_command_patcher.start()
 
         # Let's always use the bodhi 2 command line to test here
-        self.get_bodhi_major_version_patcher = patch(
-            'fedpkg._get_bodhi_major_version', return_value=2)
-        self.mock_get_bodhi_major_version = \
-            self.get_bodhi_major_version_patcher.start()
+        self.check_bodhi_version_patcher = patch('fedpkg.check_bodhi_version')
+        self.mock_check_bodhi_version = self.check_bodhi_version_patcher.start()
 
         # Not write clog actually. Instead, file object will be mocked and
         # return fake clog content for tests.
@@ -74,7 +72,7 @@ class TestUpdate(CliTestCase):
         os.unlink(os.path.join(self.cloned_repo_path, 'clog'))
         self.os_environ_patcher.stop()
         self.clog_patcher.stop()
-        self.get_bodhi_major_version_patcher.stop()
+        self.check_bodhi_version_patcher.stop()
         self.run_command_patcher.stop()
         self.nvr_patcher.stop()
         super(TestUpdate, self).tearDown()
@@ -168,28 +166,10 @@ class TestUpdate(CliTestCase):
     @patch('os.path.isfile', return_value=True)
     @patch('hashlib.new')
     @patch('fedpkg.lookaside.FedoraLookasideCache.hash_file')
-    def test_fail_if_bodhi_version_is_not_supported(
-            self, hash_file, hashlib_new, isfile):
-        # As of writing this test, only supports version v3, v2, and <v2.
-        self.mock_get_bodhi_major_version.return_value = 4
-        hashlib_new.return_value.hexdigest.return_value = 'origin hash'
-        hash_file.return_value = 'different hash'
-
-        cli_cmd = ['fedpkg', '--path', self.cloned_repo_path, 'update']
-
-        cli = self.get_cli(cli_cmd)
-        six.assertRaisesRegex(
-            self, rpkgError, 'This system has bodhi v4, which is unsupported',
-            self.assert_bodhi_update, cli)
-
-    @patch('os.path.isfile', return_value=True)
-    @patch('hashlib.new')
-    @patch('fedpkg.lookaside.FedoraLookasideCache.hash_file')
     @patch('fedpkg.Commands.user', new_callable=PropertyMock)
     def test_create_update_in_stage_bodhi(
             self, user, hash_file, hashlib_new, isfile):
         user.return_value = 'someone'
-        self.mock_get_bodhi_major_version.return_value = 2
         hashlib_new.return_value.hexdigest.return_value = 'origin hash'
         hash_file.return_value = 'different hash'
 
