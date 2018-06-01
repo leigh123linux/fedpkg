@@ -260,7 +260,6 @@ and created:
         try:
             section = '%s.bodhi' % self.name
             bodhi_config = {
-                'url': self.config.get(section, 'url'),
                 'staging': self.config.getboolean(section, 'staging'),
                 }
         except (ValueError, NoOptionError, NoSectionError) as e:
