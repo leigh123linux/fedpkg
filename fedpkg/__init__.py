@@ -15,6 +15,8 @@ import git
 import re
 import platform
 
+from datetime import datetime
+
 from . import cli  # noqa
 from .lookaside import FedoraLookasideCache
 from pyrpkg.utils import cached_property
@@ -233,6 +235,41 @@ class Commands(pyrpkg.Commands):
             cmd.append('--staging')
         cmd.append(self.nvr)
         self._run_command(cmd, shell=True)
+
+    def create_buildroot_override(self, bodhi_config, build, duration,
+                                  notes=''):
+        from bodhi.client.bindings import BodhiClient
+
+        bodhi = BodhiClient(staging=bodhi_config['staging'])
+        result = bodhi.list_overrides(builds=build)
+        if result['total'] == 0:
+            try:
+                self.log.debug(
+                    'Create override in %s: nvr=%s, duration=%s, notes="%s"',
+                    'staging Bodhi' if bodhi_config['staging'] else 'Bodhi',
+                    build, duration, notes)
+                override = bodhi.save_override(
+                    nvr=build, duration=duration, notes=notes)
+            except Exception as e:
+                self.log.error(str(e))
+                raise pyrpkg.rpkgError('Cannot create override.')
+            else:
+                self.log.info('Override is created.')
+                self.log.info('Expiration date: %s',
+                              override['expiration_date'])
+                self.log.info('Notes: %s', override['notes'])
+        else:
+            override = result['overrides'][0]
+            expiration_date = datetime.strptime(override['expiration_date'],
+                                                '%Y-%m-%d %H:%M:%S')
+            if expiration_date < datetime.now():
+                self.log.info(
+                    'Buildroot override for %s exists and is expired. Consider'
+                    ' using command `override extend` to extend duration.',
+                    build)
+            else:
+                self.log.info('Buildroot override for %s already exists and '
+                              'not expired.', build)
 
 
 if __name__ == "__main__":

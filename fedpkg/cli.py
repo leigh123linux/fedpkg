@@ -40,7 +40,7 @@ def check_bodhi_version():
         dist = pkg_resources.get_distribution('bodhi_client')
     except pkg_resources.DistributionNotFound:
         raise rpkgError('bodhi-client < 2.0 is not supported.')
-    major = int(dist.version.split('.', 1))
+    major = int(dist.version.split('.', 1)[0])
     if major >= 4:
         raise rpkgError(
             'This system has bodhi v{0}, which is unsupported.'.format(major))
@@ -72,6 +72,7 @@ class fedpkgClient(cliClient):
         self.register_request_repo()
         self.register_request_tests_repo()
         self.register_request_branch()
+        self.register_override()
 
     # Target registry goes here
     def register_retire(self):
@@ -229,6 +230,62 @@ and created:
         )
         request_branch_parser.set_defaults(command=self.request_branch)
 
+    def register_override(self):
+        """Register command line parser for subcommand override"""
+
+        def validate_duration(value):
+            try:
+                duration = int(value)
+            except ValueError:
+                raise argparse.ArgumentTypeError('duration must be an integer.')
+            if duration > 0:
+                return duration
+            raise argparse.ArgumentTypeError(
+                'override should have 1 day to exist at least.')
+
+        override_parser = self.subparsers.add_parser(
+            'override',
+            help='Manage buildroot overrides')
+        override_subparser = override_parser.add_subparsers(
+            description='Commands on override')
+
+        create_parser = override_subparser.add_parser(
+            'create',
+            help='Create buildroot override from build',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description='''\
+Create a buildroot override from build guessed from current release branch or
+specified explicitly.
+
+Examples:
+
+Create a buildroot override from build guessed from release branch. Note that,
+command must run inside a package repository.
+
+    fedpkg switch-branch f28
+    fedpkg override create --duration 5
+
+Create for a specified build:
+
+    fedpkg override create --duration 5 package-1.0-1.fc28
+''')
+        create_parser.add_argument(
+            '--duration',
+            type=validate_duration,
+            default=7,
+            help='Number of days the override should exist. If omitted, '
+                 'default to 7 days.')
+        create_parser.add_argument(
+            '--notes',
+            default='No explanation given...',
+            help='Optional notes on why this override is in place.')
+        create_parser.add_argument(
+            'NVR',
+            nargs='?',
+            help='Create override from this build. If omitted, build will be'
+                 ' guessed from current release branch.')
+        create_parser.set_defaults(command=self.create_buildroot_override)
+
     # Target functions go here
     def retire(self):
         # Skip if package is already retired...
@@ -254,20 +311,21 @@ and created:
         log.append('#')
         return lines[0], "\n".join(log)
 
-    def update(self):
-        check_bodhi_version()
-
+    def _get_bodhi_config(self):
         try:
             section = '%s.bodhi' % self.name
-            bodhi_config = {
+            return {
                 'staging': self.config.getboolean(section, 'staging'),
-                }
+            }
         except (ValueError, NoOptionError, NoSectionError) as e:
             self.log.error(str(e))
             raise rpkgError('Could not get bodhi options. It seems configuration is changed. '
                             'Please try to reinstall %s or consult developers to see what '
                             'is wrong with it.' % self.name)
 
+    def update(self):
+        check_bodhi_version()
+        bodhi_config = self._get_bodhi_config()
         template = """\
 [ %(nvr)s ]
 
@@ -630,3 +688,13 @@ suggest_reboot=False
                     name=name,
                     config=config,
                 )
+
+    def create_buildroot_override(self):
+        """Create a buildroot override in Bodhi"""
+        check_bodhi_version()
+        bodhi_config = self._get_bodhi_config()
+        self.cmd.create_buildroot_override(
+            bodhi_config,
+            build=self.args.NVR or self.cmd.nvr,
+            duration=self.args.duration,
+            notes=self.args.notes)

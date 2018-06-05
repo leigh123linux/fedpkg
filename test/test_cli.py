@@ -15,7 +15,16 @@ import os
 import sys
 import json
 import pkg_resources
-import unittest
+
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
+
+try:
+    import bodhi
+except ImportError:
+    bodhi = None
 
 from datetime import datetime, timedelta
 from tempfile import mkdtemp
@@ -1122,3 +1131,126 @@ class TestCheckBodhiVersion(unittest.TestCase):
         six.assertRaisesRegex(
             self, rpkgError, r'bodhi-client < 2\.0 is not supported\.',
             check_bodhi_version)
+
+
+@unittest.skipUnless(bodhi, 'Skip if no supported bodhi-client is available')
+class TestBodhiOverride(CliTestCase):
+    """Test command override"""
+
+    @patch('fedpkg.cli.check_bodhi_version')
+    @patch('bodhi.client.bindings.BodhiClient')
+    def test_create_for_given_build(self, BodhiClient, check_bodhi_version):
+        bodhi_client = BodhiClient.return_value
+        bodhi_client.list_overrides.return_value = {'total': 0}
+        expiration_date = datetime.now() + timedelta(days=7)
+        new_override = {
+            'expiration_date': expiration_date.strftime('%Y-%m-%d %H:%M:%S'),
+            'notes': 'build for fedpkg'
+        }
+        bodhi_client.save_override.return_value = new_override
+
+        cli_cmd = [
+            'fedpkg', '--path', self.cloned_repo_path,
+            'override', 'create',
+            '--duration', '7', '--notes', 'build for fedpkg',
+            'rpkg-1.54-1.fc28'
+        ]
+
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+            with patch.object(cli.cmd, 'log') as log:
+                cli.create_buildroot_override()
+
+                log.info.assert_any_call('Expiration date: %s',
+                                         new_override['expiration_date'])
+                log.info.assert_any_call('Notes: %s', new_override['notes'])
+
+        bodhi_client.save_override.assert_called_once_with(
+            nvr='rpkg-1.54-1.fc28',
+            duration=7,
+            notes='build for fedpkg')
+
+    @patch('fedpkg.cli.check_bodhi_version')
+    @patch('bodhi.client.bindings.BodhiClient')
+    @patch('fedpkg.Commands.nvr', new_callable=PropertyMock)
+    def test_create_from_current_branch(
+            self, nvr, BodhiClient, check_bodhi_version):
+        nvr.return_value = 'rpkg-1.54-2.fc28'
+        bodhi_client = BodhiClient.return_value
+        bodhi_client.list_overrides.return_value = {'total': 0}
+
+        cli_cmd = [
+            'fedpkg', '--path', self.cloned_repo_path,
+            'override', 'create',
+            '--duration', '7', '--notes', 'build for fedpkg',
+        ]
+
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+            cli.create_buildroot_override()
+
+        bodhi_client.save_override.assert_called_once_with(
+            nvr='rpkg-1.54-2.fc28',
+            duration=7,
+            notes='build for fedpkg')
+
+    @patch('fedpkg.cli.check_bodhi_version')
+    @patch('bodhi.client.bindings.BodhiClient')
+    @patch('fedpkg.Commands.nvr', new_callable=PropertyMock)
+    def test_override_already_exists_but_expired(
+            self, nvr, BodhiClient, check_bodhi_version):
+        nvr.return_value = 'rpkg-1.54-2.fc28'
+        today = datetime.today()
+        fake_expiration_date = today - timedelta(days=10)
+        BodhiClient.return_value.list_overrides.return_value = {
+            'total': 1,
+            'overrides': [{
+                'expiration_date': fake_expiration_date.strftime(
+                    '%Y-%m-%d %H:%M:%S')
+            }]
+        }
+
+        cli_cmd = [
+            'fedpkg', '--path', self.cloned_repo_path,
+            'override', 'create',
+            '--duration', '7', '--notes', 'build for fedpkg',
+        ]
+
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+            with patch.object(cli.cmd, 'log') as log:
+                cli.create_buildroot_override()
+                log.info.assert_any_call(
+                    'Buildroot override for %s exists and is expired. Consider'
+                    ' using command `override extend` to extend duration.',
+                    'rpkg-1.54-2.fc28')
+
+    @patch('fedpkg.cli.check_bodhi_version')
+    @patch('bodhi.client.bindings.BodhiClient')
+    @patch('fedpkg.Commands.nvr', new_callable=PropertyMock)
+    def test_override_already_exists_but_not_expired(
+            self, nvr, BodhiClient, check_bodhi_version):
+        nvr.return_value = 'rpkg-1.54-2.fc28'
+        today = datetime.today()
+        fake_expiration_date = today + timedelta(days=10)
+        BodhiClient.return_value.list_overrides.return_value = {
+            'total': 1,
+            'overrides': [{
+                'expiration_date': fake_expiration_date.strftime(
+                    '%Y-%m-%d %H:%M:%S')
+            }]
+        }
+
+        cli_cmd = [
+            'fedpkg', '--path', self.cloned_repo_path,
+            'override', 'create',
+            '--duration', '7', '--notes', 'build for fedpkg',
+        ]
+
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+            with patch.object(cli.cmd, 'log') as log:
+                cli.create_buildroot_override()
+                log.info.assert_any_call(
+                    'Buildroot override for %s already exists and not '
+                    'expired.', 'rpkg-1.54-2.fc28')
