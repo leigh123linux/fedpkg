@@ -22,6 +22,8 @@ import pkg_resources
 import six
 import textwrap
 
+from datetime import datetime
+
 from six.moves.configparser import NoSectionError
 from six.moves.configparser import NoOptionError
 from six.moves.urllib_parse import urlparse
@@ -243,6 +245,16 @@ and created:
             raise argparse.ArgumentTypeError(
                 'override should have 1 day to exist at least.')
 
+        def validate_extend_duration(value):
+            if value.isdigit():
+                return validate_duration(value)
+            match = re.match(r'(\d{4})-(\d{1,2})-(\d{1,2})', value)
+            if not match:
+                raise argparse.ArgumentTypeError(
+                    'Invalid expiration date. Valid format: yyyy-mm-dd.')
+            y, m, d = match.groups()
+            return datetime(year=int(y), month=int(m), day=int(d))
+
         override_parser = self.subparsers.add_parser(
             'override',
             help='Manage buildroot overrides')
@@ -285,6 +297,48 @@ Create for a specified build:
             help='Create override from this build. If omitted, build will be'
                  ' guessed from current release branch.')
         create_parser.set_defaults(command=self.create_buildroot_override)
+
+        extend_parser = override_subparser.add_parser(
+            'extend',
+            help='Extend buildroot override expiration',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description='''\
+Extend buildroot override expiration.
+
+An override expiration date could be extended by number of days or a specific
+date. If override is expired, expiration date will be extended from the date
+of today, otherwise from the expiration date.
+
+Command extend accepts an optional build NVR to find out its override in
+advance. If there is no such an override created previously, please use
+`override create` to create one. If build NVR is omitted, command extend must
+run inside a package repository and build will be guessed from current release
+branch.
+
+Examples:
+
+1. To give 2 days to override for build somepkg-0.2-1.fc28
+
+    {0} override extend 2 somepkg-0.2-1.fc28
+
+2. To extend expiration date to 2018-7-1
+
+    cd /path/to/somepkg
+    {0} switch-branch f28
+    {0} override extend 2018-7-1
+'''.format(self.name))
+        extend_parser.add_argument(
+            'duration',
+            type=validate_extend_duration,
+            help='Number of days to extend the expiration date, or set the '
+                 'expiration date directly. Valid date format: yyyy-mm-dd.')
+        extend_parser.add_argument(
+            'NVR',
+            nargs='?',
+            help='Buildroot override expiration for this build will be '
+                 'extended. If omitted, build will be guessed from current '
+                 'release branch.')
+        extend_parser.set_defaults(command=self.extend_buildroot_override)
 
     # Target functions go here
     def retire(self):
@@ -698,3 +752,15 @@ suggest_reboot=False
             build=self.args.NVR or self.cmd.nvr,
             duration=self.args.duration,
             notes=self.args.notes)
+
+    def extend_buildroot_override(self):
+        check_bodhi_version()
+        if self.args.NVR:
+            if not self.cmd.anon_kojisession.getBuild(self.args.NVR):
+                raise rpkgError(
+                    'Build {0} does not exist.'.format(self.args.NVR))
+        bodhi_config = self._get_bodhi_config()
+        self.cmd.extend_buildroot_override(
+            bodhi_config,
+            build=self.args.NVR or self.cmd.nvr,
+            duration=self.args.duration)

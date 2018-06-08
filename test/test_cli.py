@@ -29,6 +29,7 @@ except ImportError:
 from datetime import datetime, timedelta
 from tempfile import mkdtemp
 from os import rmdir
+from freezegun import freeze_time
 
 import six
 from six.moves.configparser import NoOptionError
@@ -1138,7 +1139,7 @@ class TestBodhiOverride(CliTestCase):
     """Test command override"""
 
     @patch('fedpkg.cli.check_bodhi_version')
-    @patch('bodhi.client.bindings.BodhiClient')
+    @patch('fedpkg.BodhiClient')
     def test_create_for_given_build(self, BodhiClient, check_bodhi_version):
         bodhi_client = BodhiClient.return_value
         bodhi_client.list_overrides.return_value = {'total': 0}
@@ -1171,7 +1172,7 @@ class TestBodhiOverride(CliTestCase):
             notes='build for fedpkg')
 
     @patch('fedpkg.cli.check_bodhi_version')
-    @patch('bodhi.client.bindings.BodhiClient')
+    @patch('fedpkg.BodhiClient')
     @patch('fedpkg.Commands.nvr', new_callable=PropertyMock)
     def test_create_from_current_branch(
             self, nvr, BodhiClient, check_bodhi_version):
@@ -1195,7 +1196,7 @@ class TestBodhiOverride(CliTestCase):
             notes='build for fedpkg')
 
     @patch('fedpkg.cli.check_bodhi_version')
-    @patch('bodhi.client.bindings.BodhiClient')
+    @patch('fedpkg.BodhiClient')
     @patch('fedpkg.Commands.nvr', new_callable=PropertyMock)
     def test_override_already_exists_but_expired(
             self, nvr, BodhiClient, check_bodhi_version):
@@ -1226,7 +1227,7 @@ class TestBodhiOverride(CliTestCase):
                     'rpkg-1.54-2.fc28')
 
     @patch('fedpkg.cli.check_bodhi_version')
-    @patch('bodhi.client.bindings.BodhiClient')
+    @patch('fedpkg.BodhiClient')
     @patch('fedpkg.Commands.nvr', new_callable=PropertyMock)
     def test_override_already_exists_but_not_expired(
             self, nvr, BodhiClient, check_bodhi_version):
@@ -1254,3 +1255,264 @@ class TestBodhiOverride(CliTestCase):
                 log.info.assert_any_call(
                     'Buildroot override for %s already exists and not '
                     'expired.', 'rpkg-1.54-2.fc28')
+
+
+@unittest.skipUnless(bodhi, 'Skip if no supported bodhi-client is available')
+class TestBodhiOverrideExtend(CliTestCase):
+    """Test command `override extend`"""
+
+    def setUp(self):
+        super(TestBodhiOverrideExtend, self).setUp()
+
+        # No need to check bodhi version for tests
+        self.cbv_p = patch('fedpkg.cli.check_bodhi_version')
+        self.cbv_p.start()
+
+        self.anon_kojisession_p = patch('fedpkg.Commands.anon_kojisession',
+                                        new_callable=PropertyMock)
+        self.anon_kojisession_m = self.anon_kojisession_p.start()
+        self.kojisession = self.anon_kojisession_m.return_value
+
+        # Fake build returned from Koji for the specified build NVR in tests
+        self.kojisession.getBuild.return_value = {'build_id': 1}
+
+    def tearDown(self):
+        self.anon_kojisession_p.stop()
+        self.cbv_p.stop()
+        super(TestBodhiOverrideExtend, self).tearDown()
+
+    def test_specified_build_not_exist(self):
+        self.kojisession.getBuild.return_value = None
+
+        cli_cmd = [
+            'fedpkg', '--path', self.cloned_repo_path,
+            'override', 'extend', '7', 'somepkg-1.54-2.fc28'
+        ]
+
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+            six.assertRaisesRegex(
+                self, rpkgError, 'Build somepkg-1.54-2.fc28 does not exist.',
+                cli.extend_buildroot_override)
+
+    @patch('fedpkg.BodhiClient.list_overrides')
+    def test_no_override_for_build(self, list_overrides):
+        list_overrides.return_value = {'total': 0}
+
+        cli_cmd = [
+            'fedpkg', '--path', self.cloned_repo_path,
+            'override', 'extend', '7', 'somepkg-1.54-2.fc28'
+        ]
+
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+            with patch.object(cli.cmd, 'log') as log:
+                cli.extend_buildroot_override()
+                log.info.assert_any_call('No buildroot override for build %s',
+                                         'somepkg-1.54-2.fc28')
+
+    @patch('fedpkg.BodhiClient.list_overrides')
+    @patch('fedpkg.BodhiClient.csrf')
+    @patch('fedpkg.BodhiClient.send_request')
+    def test_extend_override_by_days(
+            self, send_request, csrf, list_overrides):
+        utcnow = datetime.utcnow()
+        override_expiration_date = utcnow + timedelta(days=7)
+        build_nvr = 'somepkg-1.54-2.fc28'
+        build_override = {
+            'expiration_date':
+                override_expiration_date.strftime('%Y-%m-%d %H:%M:%S'),
+            'nvr': build_nvr,
+            'notes': 'build for other package',
+            'build': {'nvr': build_nvr},
+            'submitter': {'name': 'someone'},
+            'expired_date': utcnow - timedelta(days=20)
+        }
+
+        list_overrides.return_value = {
+            'total': 1,
+            'overrides': [build_override]
+        }
+        edited_override = build_override.copy()
+        expected_expiration_date = override_expiration_date + timedelta(days=2)
+        edited_override['expiration_date'] = \
+            expected_expiration_date.strftime('%Y-%m-%d %H:%M:%S')
+        send_request.return_value = edited_override
+
+        cli_cmd = [
+            'fedpkg', '--path', self.cloned_repo_path,
+            'override', 'extend', '2', build_nvr
+        ]
+
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+            cli.extend_buildroot_override()
+
+        # Ensure no microsecond is included in the expected expiration data
+        new_date = override_expiration_date + timedelta(days=2)
+        expected_expiration_date = datetime(year=new_date.year,
+                                            month=new_date.month,
+                                            day=new_date.day,
+                                            hour=new_date.hour,
+                                            minute=new_date.minute,
+                                            second=new_date.second)
+        request_data = {
+            'expiration_date': expected_expiration_date,
+            'nvr': build_nvr,
+            'notes': build_override['notes'],
+            'edited': build_nvr,
+            'csrf_token': csrf.return_value,
+        }
+        send_request.assert_called_once_with(
+            'overrides/', verb='POST', auth=True, data=request_data)
+
+    @patch('fedpkg.BodhiClient.list_overrides')
+    @patch('fedpkg.BodhiClient.csrf')
+    @patch('fedpkg.BodhiClient.send_request')
+    def test_extend_override_by_specific_date(
+            self, send_request, csrf, list_overrides):
+        utcnow = datetime.utcnow()
+        override_expiration_date = utcnow + timedelta(days=7)
+        build_nvr = 'somepkg-1.54-2.fc28'
+        build_override = {
+            'expiration_date':
+                override_expiration_date.strftime('%Y-%m-%d %H:%M:%S'),
+            'nvr': build_nvr,
+            'notes': 'build for other package',
+            'build': {'nvr': build_nvr},
+            'submitter': {'name': 'someone'},
+            'expired_date': utcnow - timedelta(days=20)
+        }
+
+        list_overrides.return_value = {
+            'total': 1,
+            'overrides': [build_override]
+        }
+
+        new_expiration_date = override_expiration_date + timedelta(days=4)
+        # Ensure no microsecond is included in the expected expiration data
+        expected_expiration_date = datetime(
+            year=new_expiration_date.year,
+            month=new_expiration_date.month,
+            day=new_expiration_date.day,
+            hour=override_expiration_date.hour,
+            minute=override_expiration_date.minute,
+            second=override_expiration_date.second)
+
+        edited_override = build_override.copy()
+        edited_override['expiration_date'] = \
+            expected_expiration_date.strftime('%Y-%m-%d %H:%M:%S')
+        send_request.return_value = edited_override
+
+        cli_cmd = [
+            'fedpkg', '--path', self.cloned_repo_path,
+            'override', 'extend', new_expiration_date.strftime('%Y-%m-%d'),
+            build_nvr
+        ]
+
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+            cli.extend_buildroot_override()
+
+        request_data = {
+            'expiration_date': expected_expiration_date,
+            'nvr': build_nvr,
+            'notes': build_override['notes'],
+            'edited': build_nvr,
+            'csrf_token': csrf.return_value,
+        }
+        send_request.assert_called_once_with(
+            'overrides/', verb='POST', auth=True, data=request_data)
+
+    @patch('fedpkg.BodhiClient.list_overrides')
+    @patch('fedpkg.BodhiClient.csrf')
+    @patch('fedpkg.BodhiClient.send_request')
+    @freeze_time('2018-06-08 16:17:30')
+    def test_extend_for_expired_override(
+            self, send_request, csrf, list_overrides):
+        utcnow = datetime.utcnow()
+        # Make override expired
+        override_expiration_date = utcnow - timedelta(days=7)
+        build_nvr = 'somepkg-1.54-2.fc28'
+        build_override = {
+            'expiration_date':
+                override_expiration_date.strftime('%Y-%m-%d %H:%M:%S'),
+            'nvr': build_nvr,
+            'notes': 'build for other package',
+            'build': {'nvr': build_nvr},
+            'submitter': {'name': 'someone'},
+            'expired_date': utcnow - timedelta(days=20)
+        }
+
+        list_overrides.return_value = {
+            'total': 1,
+            'overrides': [build_override]
+        }
+
+        # Ensure no microsecond is included in the expected expiration data
+        new_date = utcnow + timedelta(days=2)
+        expected_expiration_date = datetime(
+            year=new_date.year,
+            month=new_date.month,
+            day=new_date.day,
+            hour=new_date.hour,
+            minute=new_date.minute,
+            second=new_date.second)
+
+        edited_override = build_override.copy()
+        edited_override['expiration_date'] = \
+            expected_expiration_date.strftime('%Y-%m-%d %H:%M:%S')
+        send_request.return_value = edited_override
+
+        cli_cmd = [
+            'fedpkg', '--path', self.cloned_repo_path,
+            'override', 'extend', '2', build_nvr
+        ]
+
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+            cli.extend_buildroot_override()
+
+        request_data = {
+            'expiration_date': expected_expiration_date,
+            'nvr': build_nvr,
+            'notes': build_override['notes'],
+            'edited': build_nvr,
+            'csrf_token': csrf.return_value,
+        }
+        send_request.assert_called_once_with(
+            'overrides/', verb='POST', auth=True, data=request_data)
+
+    @patch('fedpkg.BodhiClient.list_overrides')
+    @patch('fedpkg.BodhiClient.csrf')
+    @patch('fedpkg.BodhiClient.extend_override')
+    def test_error_handled_properly_when_fail_to_request(
+            self, extend_override, csrf, list_overrides):
+        extend_override.side_effect = Exception
+
+        utcnow = datetime.utcnow()
+        override_expiration_date = utcnow + timedelta(days=7)
+        build_nvr = 'somepkg-1.54-2.fc28'
+
+        list_overrides.return_value = {
+            'total': 1,
+            'overrides': [{
+                'expiration_date':
+                    override_expiration_date.strftime('%Y-%m-%d %H:%M:%S'),
+                'nvr': build_nvr,
+                'notes': 'build for other package',
+                'build': {'nvr': build_nvr},
+                'submitter': {'name': 'someone'},
+                'expired_date': utcnow - timedelta(days=20)
+            }]
+        }
+
+        cli_cmd = [
+            'fedpkg', '--path', self.cloned_repo_path,
+            'override', 'extend', '2', build_nvr
+        ]
+
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+            six.assertRaisesRegex(self, rpkgError, '',
+                                  cli.extend_buildroot_override)

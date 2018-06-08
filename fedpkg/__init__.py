@@ -15,11 +15,30 @@ import git
 import re
 import platform
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from . import cli  # noqa
 from .lookaside import FedoraLookasideCache
 from pyrpkg.utils import cached_property
+
+try:
+    from bodhi.client.bindings import BodhiClient as _BodhiClient
+except ImportError:
+    _BodhiClient = None
+
+
+if _BodhiClient is not None:
+    class BodhiClient(_BodhiClient):
+        def extend_override(self, override, expiration_date):
+            data = dict(
+                nvr=override['nvr'],
+                notes=override['notes'],
+                expiration_date=expiration_date,
+                edited=override['nvr'],
+                csrf_token=self.csrf(),
+            )
+            return self.send_request(
+                'overrides/', verb='POST', auth=True, data=data)
 
 
 class Commands(pyrpkg.Commands):
@@ -238,8 +257,6 @@ class Commands(pyrpkg.Commands):
 
     def create_buildroot_override(self, bodhi_config, build, duration,
                                   notes=''):
-        from bodhi.client.bindings import BodhiClient
-
         bodhi = BodhiClient(staging=bodhi_config['staging'])
         result = bodhi.list_overrides(builds=build)
         if result['total'] == 0:
@@ -270,6 +287,64 @@ class Commands(pyrpkg.Commands):
             else:
                 self.log.info('Buildroot override for %s already exists and '
                               'not expired.', build)
+
+    def extend_buildroot_override(self, bodhi_config, build, duration):
+        bodhi = BodhiClient(username=self.user,
+                            staging=bodhi_config['staging'])
+        result = bodhi.list_overrides(builds=build)
+
+        if result['total'] == 0:
+            self.log.info('No buildroot override for build %s', build)
+            return
+
+        override = result['overrides'][0]
+        expiration_date = datetime.strptime(override['expiration_date'],
+                                            '%Y-%m-%d %H:%M:%S')
+        utcnow = datetime.utcnow()
+
+        # bodhi-client binding API save_override calculates expiration
+        # date by adding duration to datetime.utcnow
+        # This comparison should use utcnow as well.
+        if expiration_date < utcnow:
+            self.log.debug('Buildroot override is expired on %s',
+                           override['expiration_date'])
+            self.log.debug('Extend expiration date from today in UTC.')
+            base_date = utcnow
+        else:
+            self.log.debug(
+                'Extend expiration date from future expiration date.')
+            base_date = expiration_date
+
+        if isinstance(duration, datetime):
+            if duration < utcnow:
+                raise pyrpkg.rpkgError(
+                    'At least, specified expiration date {0} should be '
+                    'future date.'.format(duration.strftime('%Y-%m-%d')))
+            if duration < base_date:
+                self.log.warning(
+                    'Expiration date %s to be set is before override current'
+                    ' expiration date %s',
+                    duration, base_date)
+            # Keep time unchanged
+            new_expiration_date = datetime(
+                year=duration.year,
+                month=duration.month,
+                day=duration.day,
+                hour=base_date.hour,
+                minute=base_date.minute,
+                second=base_date.second)
+        else:
+            new_expiration_date = base_date + timedelta(days=duration)
+
+        try:
+            self.log.debug('Extend override expiration date to %s',
+                           new_expiration_date)
+            override = bodhi.extend_override(override, new_expiration_date)
+        except Exception as e:
+            self.log.error('Cannot extend override expiration.')
+            raise pyrpkg.rpkgError(str(e))
+        else:
+            self.log.info(bodhi.override_str(override, minimal=False))
 
 
 if __name__ == "__main__":
