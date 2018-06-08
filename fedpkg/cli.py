@@ -274,13 +274,13 @@ Examples:
 Create a buildroot override from build guessed from release branch. Note that,
 command must run inside a package repository.
 
-    fedpkg switch-branch f28
-    fedpkg override create --duration 5
+    {0} switch-branch f28
+    {0} override create --duration 5
 
 Create for a specified build:
 
-    fedpkg override create --duration 5 package-1.0-1.fc28
-''')
+    {0} override create --duration 5 package-1.0-1.fc28
+'''.format(self.name))
         create_parser.add_argument(
             '--duration',
             type=validate_duration,
@@ -746,6 +746,10 @@ suggest_reboot=False
     def create_buildroot_override(self):
         """Create a buildroot override in Bodhi"""
         check_bodhi_version()
+        if self.args.NVR:
+            if not self.cmd.anon_kojisession.getBuild(self.args.NVR):
+                raise rpkgError(
+                    'Build {0} does not exist.'.format(self.args.NVR))
         bodhi_config = self._get_bodhi_config()
         self.cmd.create_buildroot_override(
             bodhi_config,

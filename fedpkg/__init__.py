@@ -257,7 +257,8 @@ class Commands(pyrpkg.Commands):
 
     def create_buildroot_override(self, bodhi_config, build, duration,
                                   notes=''):
-        bodhi = BodhiClient(staging=bodhi_config['staging'])
+        bodhi = BodhiClient(username=self.user,
+                            staging=bodhi_config['staging'])
         result = bodhi.list_overrides(builds=build)
         if result['total'] == 0:
             try:
@@ -271,15 +272,12 @@ class Commands(pyrpkg.Commands):
                 self.log.error(str(e))
                 raise pyrpkg.rpkgError('Cannot create override.')
             else:
-                self.log.info('Override is created.')
-                self.log.info('Expiration date: %s',
-                              override['expiration_date'])
-                self.log.info('Notes: %s', override['notes'])
+                self.log.info(bodhi.override_str(override, minimal=False))
         else:
             override = result['overrides'][0]
             expiration_date = datetime.strptime(override['expiration_date'],
                                                 '%Y-%m-%d %H:%M:%S')
-            if expiration_date < datetime.now():
+            if expiration_date < datetime.utcnow():
                 self.log.info(
                     'Buildroot override for %s exists and is expired. Consider'
                     ' using command `override extend` to extend duration.',
