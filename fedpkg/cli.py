@@ -102,9 +102,9 @@ class fedpkgClient(cliClient):
         description = '''Request a new dist-git repository
 
 Before requesting a new dist-git repository for a new package, you need to
-generate a pagure.io API token at https://{1}/settings/token/new, select ACL
-"Create a new project" and save it into your local user configuration located
-at ~/.config/rpkg/{0}.conf. For example:
+generate a pagure.io API token at https://{1}/settings/token/new, select both
+"Create a new project" and "Create a new ticket" ACLs and save it in your local
+user configuration located at ~/.config/rpkg/{0}.conf. For example:
 
     [{0}.pagure]
     token = <api_key_here>
