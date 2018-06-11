@@ -28,7 +28,17 @@ except ImportError:
 
 
 if _BodhiClient is not None:
+    from fedora.client import AuthError
+
     class BodhiClient(_BodhiClient):
+        def save_override(self, *args, **kwargs):
+            try:
+                super(BodhiClient, self).save_override(*args, **kwargs)
+            except AuthError:
+                self._session.clear()
+                self.csrf_token = None
+                super(BodhiClient, self).save_override(*args, **kwargs)
+
         def extend_override(self, override, expiration_date):
             data = dict(
                 nvr=override['nvr'],
@@ -37,8 +47,14 @@ if _BodhiClient is not None:
                 edited=override['nvr'],
                 csrf_token=self.csrf(),
             )
-            return self.send_request(
-                'overrides/', verb='POST', auth=True, data=data)
+            try:
+                return self.send_request(
+                    'overrides/', verb='POST', auth=True, data=data)
+            except AuthError:
+                self._session.clear()
+                self.csrf_token = None
+                return self.send_request(
+                    'overrides/', verb='POST', auth=True, data=data)
 
 
 class Commands(pyrpkg.Commands):
