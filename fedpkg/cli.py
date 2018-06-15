@@ -114,8 +114,11 @@ user configuration located at ~/.config/rpkg/{0}.conf. For example:
 Below is a basic example of the command to request a dist-git repository for
 the package foo:
 
-    fedpkg --module-name foo request-repo 1234
+    fedpkg --name foo request-repo 1234
 
+Request a module with namespace explicitly:
+
+    fedpkg --name foo --namespace modules request-repo
 '''.format(self.name, urlparse(self.config.get(
             '{0}.pagure'.format(self.name), 'url')).netloc)
 
@@ -151,7 +154,7 @@ the package foo:
         help_msg = 'Request a new tests dist-git repository'
         pagure_url = urlparse(self.config.get(
             '{0}.pagure'.format(self.name), 'url')).netloc
-        anongiturl = self.config.get(self.name, 'anongiturl', vars={'module': 'any'})
+        anongiturl = self.config.get(self.name, 'anongiturl', vars={'repo': 'any'})
         description = '''Request a new dist-git repository in tests shared namespace
 
     {2}/projects/tests/*
@@ -166,7 +169,7 @@ requesting a repository in the tests namespace.
 Below is a basic example of the command to request a dist-git repository for
 the space tests/foo:
 
-    fedpkg --module-name foo request-tests-repo "Description of the repository"
+    fedpkg --name foo request-tests-repo "Description of the repository"
 
 Note that the space name needs to reflect the intent of the tests and will
 undergo a manual review.
@@ -199,7 +202,7 @@ Request a branch inside a cloned package repository:
 Request a branch without waiting for the requested repository to be approved
 and created:
 
-    fedpkg --module-name foo request-branch f27
+    fedpkg --name foo request-branch f27
 
 '''
         request_branch_parser = self.subparsers.add_parser(
@@ -468,7 +471,7 @@ suggest_reboot=False
 
     def request_repo(self):
         self._request_repo(
-            module_name=self.cmd.module_name,
+            repo_name=self.cmd.repo_name,
             ns=self.cmd.ns,
             branch='master',
             summary=self.args.summary,
@@ -483,7 +486,7 @@ suggest_reboot=False
 
     def request_tests_repo(self):
         self._request_repo(
-            module_name=self.cmd.module_name,
+            repo_name=self.cmd.repo_name,
             ns='tests',
             description=self.args.description,
             name=self.name,
@@ -492,15 +495,15 @@ suggest_reboot=False
         )
 
     @staticmethod
-    def _request_repo(module_name, ns, description, name, config, branch=None,
+    def _request_repo(repo_name, ns, description, name, config, branch=None,
                       summary=None, upstreamurl=None, monitor=None, bug=None,
                       exception=None, anongiturl=None):
         """ Implementation of `request_repo`.
 
         Submits a request for a new dist-git repo.
 
-        :param module_name: The repository name string.  Typically the
-            value of `self.cmd.module_name`.
+        :param repo_name: The repository name string.  Typically the
+            value of `self.cmd.repo_name`.
         :param ns: The repository namespace string, i.e. 'rpms' or 'modules'.
             Typically takes the value of `self.cmd.ns`.
         :param description: A string, the description of the new repo.
@@ -538,29 +541,29 @@ suggest_reboot=False
             raise rpkgError(
                 'A Bugzilla bug is required on new repository requests')
         repo_regex = r'^[a-zA-Z0-9_][a-zA-Z0-9-_.+]*$'
-        if not bool(re.match(repo_regex, module_name)):
+        if not bool(re.match(repo_regex, repo_name)):
             raise rpkgError(
                 'The repository name "{0}" is invalid. It must be at least '
                 'two characters long with only letters, numbers, hyphens, '
                 'underscores, plus signs, and/or periods. Please note that '
                 'the project cannot start with a period or a plus sign.'
-                .format(module_name))
+                .format(repo_name))
 
         summary_from_bug = ''
         if bug and ns not in ['tests', 'modules']:
             bz_url = config.get('{0}.bugzilla'.format(name), 'url')
             bz_client = BugzillaClient(bz_url)
-            bug_obj = bz_client.get_review_bug(bug, ns, module_name)
+            bug_obj = bz_client.get_review_bug(bug, ns, repo_name)
             summary_from_bug = bug_obj.summary.split(' - ', 1)[1].strip()
 
         if ns == 'tests':
             # check if tests repository does not exist already
-            assert_new_tests_repo(module_name, get_dist_git_url(anongiturl))
+            assert_new_tests_repo(repo_name, get_dist_git_url(anongiturl))
 
             ticket_body = {
                 'action': 'new_repo',
                 'namespace': 'tests',
-                'repo': module_name,
+                'repo': repo_name,
                 'description': description,
             }
         else:
@@ -572,14 +575,14 @@ suggest_reboot=False
                 'exception': exception,
                 'monitor': monitor,
                 'namespace': ns,
-                'repo': module_name,
+                'repo': repo_name,
                 'summary': summary or summary_from_bug,
                 'upstreamurl': upstreamurl or ''
             }
 
         ticket_body = json.dumps(ticket_body, indent=True)
         ticket_body = '```\n{0}\n```'.format(ticket_body)
-        ticket_title = 'New Repo for "{0}/{1}"'.format(ns, module_name)
+        ticket_title = 'New Repo for "{0}/{1}"'.format(ns, repo_name)
 
         pagure_url = config.get('{0}.pagure'.format(name), 'url')
         pagure_token = get_pagure_token(config, name)
@@ -596,7 +599,7 @@ suggest_reboot=False
             all_releases=self.args.all_releases,
             branch=self.args.branch,
             active_branch=active_branch,
-            module_name=self.cmd.module_name,
+            repo_name=self.cmd.repo_name,
             ns=self.cmd.ns,
             no_git_branch=self.args.no_git_branch,
             no_auto_module=self.args.no_auto_module,
@@ -606,7 +609,7 @@ suggest_reboot=False
 
     @staticmethod
     def _request_branch(service_levels, all_releases, branch, active_branch,
-                        module_name, ns, no_git_branch, no_auto_module,
+                        repo_name, ns, no_git_branch, no_auto_module,
                         name, config):
         """ Implementation of `request_branch`.
 
@@ -619,8 +622,8 @@ suggest_reboot=False
         :param branch: A string specifying the specific branch to be requested.
         :param active_branch: A string (or None) specifying the active branch in
             the current git repo (the branch that is currently checked out).
-        :param module_name: The repository name string.  Typically the
-            value of `self.cmd.module_name`.
+        :param repo_name: The repository name string.  Typically the
+            value of `self.cmd.repo_name`.
         :param ns: The repository namespace string, i.e. 'rpms' or 'modules'.
             Typically takes the value of `self.cmd.ns`.
         :param no_git_branch: A boolean flag.  If True, the SCM admins should
@@ -652,7 +655,7 @@ suggest_reboot=False
         pdc_url = config.get('{0}.pdc'.format(name), 'url')
         if branch:
             if is_epel(branch):
-                assert_valid_epel_package(module_name, branch)
+                assert_valid_epel_package(repo_name, branch)
 
             if ns in ['modules', 'test-modules']:
                 branch_valid = bool(re.match(r'^[a-zA-Z0-9.\-_+]+$', branch))
@@ -693,7 +696,7 @@ suggest_reboot=False
                 'action': 'new_branch',
                 'branch': b,
                 'namespace': ns,
-                'repo': module_name,
+                'repo': repo_name,
                 'create_git_branch': not no_git_branch
             }
             if service_levels:
@@ -702,7 +705,7 @@ suggest_reboot=False
             ticket_body = json.dumps(ticket_body, indent=True)
             ticket_body = '```\n{0}\n```'.format(ticket_body)
             ticket_title = 'New Branch "{0}" for "{1}/{2}"'.format(
-                b, ns, module_name)
+                b, ns, repo_name)
 
             print(new_pagure_issue(
                 pagure_url, pagure_token, ticket_title, ticket_body))
@@ -716,9 +719,9 @@ suggest_reboot=False
             )
             if auto_module:
                 summary = ('Automatically requested module for '
-                           'rpms/%s:%s.' % (module_name, b))
+                           'rpms/%s:%s.' % (repo_name, b))
                 fedpkgClient._request_repo(
-                    module_name=module_name,
+                    repo_name=repo_name,
                     ns='modules',
                     branch='master',
                     summary=summary,
@@ -735,7 +738,7 @@ suggest_reboot=False
                     all_releases=all_releases,
                     branch=b,
                     active_branch=active_branch,
-                    module_name=module_name,
+                    repo_name=repo_name,
                     ns='modules',
                     no_git_branch=no_git_branch,
                     no_auto_module=True,  # Avoid infinite recursion.
