@@ -193,7 +193,7 @@ _fedpkg()
             options_string="--sl --repo"
             ;;
         request-repo)
-            options="--exception"
+            options="--exception --no-initial-commit"
             options_string="--description --monitor --upstreamurl --summary"
             options_namespace="--namespace"
             ;;

@@ -815,6 +815,23 @@ class TestRequestRepo(CliTestCase):
         except rpkgError as error:
             self.assertEqual(str(error), expected_error)
 
+    @patch('requests.post')
+    def test_request_repo_without_initial_commit(
+            self, mock_request_post, mock_bz):
+        """Tests a request-repo call with --no-initial-commit"""
+
+        cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
+                   'request-repo', '--no-initial-commit', '--exception']
+        cli = self.get_cli(cli_cmd)
+        cli.request_repo()
+
+        # Get the data that was submitted to Pagure
+        post_data = mock_request_post.call_args_list[0][1]['data']
+        actual_issue_content = json.loads(json.loads(
+            post_data)['issue_content'].strip('```'))
+        self.assertIn('initial_commit', actual_issue_content)
+        self.assertFalse(actual_issue_content['initial_commit'])
+
 
 class TestRequestBranch(CliTestCase):
     """Test the request-branch command"""

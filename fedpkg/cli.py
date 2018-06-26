@@ -300,6 +300,10 @@ Another example to request a module foo:
             '--exception', action='store_true',
             help='The package is an exception to the regular package review '
                  'process (specifically, it does not require a Bugzilla bug)')
+        request_repo_parser.add_argument(
+            '--no-initial-commit',
+            action='store_true',
+            help='Do not include an initial commit in the repository.')
         request_repo_parser.set_defaults(command=self.request_repo)
 
     def register_request_tests_repo(self):
@@ -692,6 +696,7 @@ targets to build the package for a particular stream.
             exception=self.args.exception,
             name=self.name,
             config=self.config,
+            initial_commit=not self.args.no_initial_commit,
         )
 
     def request_tests_repo(self):
@@ -707,7 +712,7 @@ targets to build the package for a particular stream.
     @staticmethod
     def _request_repo(repo_name, ns, description, name, config, branch=None,
                       summary=None, upstreamurl=None, monitor=None, bug=None,
-                      exception=None, anongiturl=None):
+                      exception=None, anongiturl=None, initial_commit=True):
         """ Implementation of `request_repo`.
 
         Submits a request for a new dist-git repo.
@@ -789,6 +794,8 @@ targets to build the package for a particular stream.
                 'summary': summary or summary_from_bug,
                 'upstreamurl': upstreamurl or ''
             }
+            if not initial_commit:
+                ticket_body['initial_commit'] = False
 
         ticket_body = json.dumps(ticket_body, indent=True)
         ticket_body = '```\n{0}\n```'.format(ticket_body)
