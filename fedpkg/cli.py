@@ -114,13 +114,21 @@ user configuration located at ~/.config/rpkg/{0}.conf. For example:
 Below is a basic example of the command to request a dist-git repository for
 the package foo:
 
-    fedpkg --name foo request-repo 1234
+    fedpkg request-repo name 1234
 
 Request a module with namespace explicitly:
 
-    fedpkg --name foo --namespace modules request-repo
+    fedpkg --namespace modules request-repo foo
 '''.format(self.name, urlparse(self.config.get(
             '{0}.pagure'.format(self.name), 'url')).netloc)
+
+        dg_namespaced = self._get_bool_opt('distgit_namespaced')
+        if dg_namespaced and self.config.has_option(
+                self.name, 'distgit_namespaces'):
+            ns_choices = self.config.get(
+                self.name, 'distgit_namespaces').split()
+        else:
+            ns_choices = None
 
         request_repo_parser = self.subparsers.add_parser(
             'request-repo',
@@ -128,9 +136,19 @@ Request a module with namespace explicitly:
             help=help_msg,
             description=description)
         request_repo_parser.add_argument(
+            'name',
+            help='Repository name to request.')
+        request_repo_parser.add_argument(
             'bug', nargs='?', type=int,
             help='Bugzilla bug ID of the package review request. '
                  'Not required for requesting a module repository')
+        request_repo_parser.add_argument(
+            '--namespace',
+            required=False,
+            default='rpms',
+            choices=ns_choices,
+            dest='new_repo_namespace',
+            help='Namespace of repository. If omitted, default to rpms.')
         request_repo_parser.add_argument(
             '--description', '-d', help='The repo\'s description in dist-git')
         monitoring_choices = [
@@ -169,7 +187,7 @@ requesting a repository in the tests namespace.
 Below is a basic example of the command to request a dist-git repository for
 the space tests/foo:
 
-    fedpkg --name foo request-tests-repo "Description of the repository"
+    fedpkg request-tests-repo name "Description of the repository"
 
 Note that the space name needs to reflect the intent of the tests and will
 undergo a manual review.
@@ -181,6 +199,9 @@ undergo a manual review.
             formatter_class=argparse.RawDescriptionHelpFormatter,
             help=help_msg,
             description=description)
+        request_tests_repo_parser.add_argument(
+            'name',
+            help='Repository name to request.')
         request_tests_repo_parser.add_argument(
             'description',
             help='Description of the tests repository')
@@ -478,8 +499,8 @@ suggest_reboot=False
 
     def request_repo(self):
         self._request_repo(
-            repo_name=self.cmd.repo_name,
-            ns=self.cmd.ns,
+            repo_name=self.args.name,
+            ns=self.args.new_repo_namespace,
             branch='master',
             summary=self.args.summary,
             description=self.args.description,
@@ -493,7 +514,7 @@ suggest_reboot=False
 
     def request_tests_repo(self):
         self._request_repo(
-            repo_name=self.cmd.repo_name,
+            repo_name=self.args.name,
             ns='tests',
             description=self.args.description,
             name=self.name,

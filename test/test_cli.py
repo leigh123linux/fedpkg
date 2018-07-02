@@ -244,7 +244,7 @@ class TestRequestRepo(CliTestCase):
         mock_request_post.return_value = mock_rv
 
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   'request-repo', '1441813']
+                   'request-repo', 'testpkg', '1441813']
         cli = self.get_cli(cli_cmd)
         cli.request_repo()
 
@@ -281,7 +281,7 @@ class TestRequestRepo(CliTestCase):
         mock_request_post.return_value = mock_rv
 
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', 'request-repo', '1441813']
+                   'request-repo', 'nethack', '1441813']
         cli = self.get_cli(cli_cmd)
         cli.request_repo()
 
@@ -321,8 +321,7 @@ class TestRequestRepo(CliTestCase):
         mock_request_post.return_value = mock_rv
 
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', '--namespace', 'modules',
-                   'request-repo']
+                   'request-repo', '--namespace', 'modules', 'nethack']
         cli = self.get_cli(cli_cmd)
         cli.request_repo()
 
@@ -360,9 +359,10 @@ class TestRequestRepo(CliTestCase):
         mock_rv.json.return_value = {'issue': {'id': 2}}
         mock_request_post.return_value = mock_rv
 
-        cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', '--namespace', 'container',
-                   'request-repo', '1441813']
+        cli_cmd = [
+            'fedpkg-stage', '--path', self.cloned_repo_path,
+            'request-repo', '--namespace', 'container', 'nethack', '1441813'
+        ]
         cli = self.get_cli(cli_cmd)
         cli.request_repo()
 
@@ -401,7 +401,7 @@ class TestRequestRepo(CliTestCase):
         mock_request_post.return_value = mock_rv
 
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', 'request-repo', '1441813', '-d',
+                   'request-repo', 'nethack', '1441813', '-d',
                    'a description', '-s', 'a summary', '-m', 'no-monitoring',
                    '-u', 'http://test.local']
         cli = self.get_cli(cli_cmd)
@@ -439,7 +439,7 @@ class TestRequestRepo(CliTestCase):
         mock_request_post.return_value = mock_rv
 
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', 'request-repo', '--exception']
+                   'request-repo', '--exception', 'nethack']
         cli = self.get_cli(cli_cmd)
         cli.request_repo()
 
@@ -471,7 +471,7 @@ class TestRequestRepo(CliTestCase):
         """Tests request-repo errors when the package is wrong"""
         mock_bz.getbug.return_value = self.mock_bug
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'not-nethack', 'request-repo', '1441813']
+                   'request-repo', 'not-nethack', '1441813']
         cli = self.get_cli(cli_cmd)
         expected_error = ('The package in the Bugzilla bug "nethack" doesn\'t '
                           'match the one provided "not-nethack"')
@@ -486,7 +486,7 @@ class TestRequestRepo(CliTestCase):
         self.mock_bug.product = 'Red Hat'
         mock_bz.getbug.return_value = self.mock_bug
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', 'request-repo', '1441813']
+                   'request-repo', 'nethack', '1441813']
         cli = self.get_cli(cli_cmd)
         expected_error = \
             'The Bugzilla bug provided is not for "Fedora" or "Fedora EPEL"'
@@ -501,7 +501,7 @@ class TestRequestRepo(CliTestCase):
         self.mock_bug.summary = 'I am so wrong'
         mock_bz.getbug.return_value = self.mock_bug
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', 'request-repo', '1441813']
+                   'request-repo', 'nethack', '1441813']
         cli = self.get_cli(cli_cmd)
         expected_error = \
             'Invalid title for this Bugzilla bug (no ":" present)'
@@ -516,7 +516,7 @@ class TestRequestRepo(CliTestCase):
         self.mock_bug.summary = 'So:Wrong'
         mock_bz.getbug.return_value = self.mock_bug
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', 'request-repo', '1441813']
+                   'request-repo', 'nethack', '1441813']
         cli = self.get_cli(cli_cmd)
         expected_error = \
             'Invalid title for this Bugzilla bug (no "-" present)'
@@ -531,7 +531,7 @@ class TestRequestRepo(CliTestCase):
         self.mock_bug.summary = ('Review Request: fedpkg - lorum ipsum')
         mock_bz.getbug.return_value = self.mock_bug
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', 'request-repo', '1441813']
+                   'request-repo', 'nethack', '1441813']
         cli = self.get_cli(cli_cmd)
         expected_error = ('The package in the Bugzilla bug "fedpkg" doesn\'t '
                           'match the one provided "nethack"')
@@ -549,7 +549,7 @@ class TestRequestRepo(CliTestCase):
                 '%Y%m%dT%H:%M:%S')
         mock_bz.getbug.return_value = self.mock_bug
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', 'request-repo', '1441813']
+                   'request-repo', 'nethack', '1441813']
         cli = self.get_cli(cli_cmd)
         expected_error = \
             'The Bugzilla bug\'s review was approved over 60 days ago'
@@ -564,7 +564,7 @@ class TestRequestRepo(CliTestCase):
         self.mock_bug.flags[0]['name'] = 'something else'
         mock_bz.getbug.return_value = self.mock_bug
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', 'request-repo', '1441813']
+                   'request-repo', 'nethack', '1441813']
         cli = self.get_cli(cli_cmd)
         expected_error = 'The Bugzilla bug is not approved yet'
         try:
@@ -578,7 +578,7 @@ class TestRequestRepo(CliTestCase):
         self.mock_bug.assigned_to = None
         mock_bz.getbug.return_value = self.mock_bug
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', 'request-repo', '1441813']
+                   'request-repo', 'nethack', '1441813']
         cli = self.get_cli(cli_cmd)
         expected_error = 'The Bugzilla bug provided is not assigned to anyone'
         try:
@@ -592,7 +592,7 @@ class TestRequestRepo(CliTestCase):
         self.mock_bug.product = 'Red Hat'
         mock_bz.getbug.return_value = self.mock_bug
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', '$nethack', 'request-repo', '1441813']
+                   'request-repo', '$nethack', '1441813']
         cli = self.get_cli(cli_cmd)
         expected_error = (
             'The repository name "$nethack" is invalid. It must be at least '
@@ -610,7 +610,7 @@ class TestRequestRepo(CliTestCase):
         """Tests a standard request-repo call when the Pagure API call fails"""
         mock_bz.getbug.return_value = self.mock_bug
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', 'request-repo', '1441813']
+                   'request-repo', 'nethack', '1441813']
         cli = self.get_cli(cli_cmd)
         mock_rv = Mock()
         mock_rv.ok = False
@@ -629,7 +629,7 @@ class TestRequestRepo(CliTestCase):
         self.mock_bug.product = 'Red Hat'
         mock_bz.getbug.return_value = self.mock_bug
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', 'request-repo']
+                   'request-repo', 'nethack']
         cli = self.get_cli(cli_cmd)
         expected_error = \
             'A Bugzilla bug is required on new repository requests'
@@ -1110,8 +1110,7 @@ class TestRequestTestsRepo(CliTestCase):
         mock_request_post.return_value = mock_post_rv
 
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'foo', 'request-tests-repo',
-                   'Some description']
+                   'request-tests-repo', 'foo', 'Some description']
         cli = self.get_cli(cli_cmd)
         cli.request_tests_repo()
 
@@ -1143,8 +1142,7 @@ class TestRequestTestsRepo(CliTestCase):
         mock_request_get.return_value = mock_get_rv
 
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'foo', 'request-tests-repo',
-                   'Some description']
+                   'request-tests-repo', 'foo', 'Some description']
         cli = self.get_cli(cli_cmd)
 
         expected_error = (
