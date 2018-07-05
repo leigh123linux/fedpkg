@@ -199,11 +199,11 @@ Request a branch inside a cloned package repository:
 
     fedpkg request-branch f27
 
-Request a branch without waiting for the requested repository to be approved
-and created:
+Request a branch outside package repository, which could apply to cases of
+requested repository has not been approved and created, or just not change
+directory to package repository:
 
-    fedpkg --name foo request-branch f27
-
+    fedpkg request-branch --repo foo f27
 '''
         request_branch_parser = self.subparsers.add_parser(
             'request-branch',
@@ -212,6 +212,13 @@ and created:
             description=description)
         request_branch_parser.add_argument(
             'branch', nargs='?', help='The branch to request')
+        request_branch_parser.add_argument(
+            '--repo',
+            required=False,
+            dest='repo_name_for_branch',
+            metavar='NAME',
+            help='Repository name the new branch is requested for.'
+        )
         request_branch_parser.add_argument(
             '--sl', nargs='*',
             help=('The service levels (SLs) tied to the branch. This must be '
@@ -599,7 +606,7 @@ suggest_reboot=False
             all_releases=self.args.all_releases,
             branch=self.args.branch,
             active_branch=active_branch,
-            repo_name=self.cmd.repo_name,
+            repo_name=self.args.repo_name_for_branch or self.cmd.repo_name,
             ns=self.cmd.ns,
             no_git_branch=self.args.no_git_branch,
             no_auto_module=self.args.no_auto_module,

@@ -1044,6 +1044,39 @@ https://pagure.stg.example.com/releng/fedora-scm-requests/issue/3"""
         with six.assertRaisesRegex(self, rpkgError, expected_error):
             cli.request_branch()
 
+    @patch('requests.post')
+    @patch('fedpkg.cli.get_release_branches')
+    @patch('sys.stdout', new=StringIO())
+    def test_request_with_repo_option(self, mock_grb, mock_request_post):
+        """Test request branch with option --repo"""
+        mock_grb.return_value = set(['el6', 'epel7', 'f25', 'f26', 'f27'])
+        mock_rv = Mock()
+        mock_rv.ok = True
+        mock_rv.json.return_value = {'issue': {'id': 2}}
+        mock_request_post.return_value = mock_rv
+
+        cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
+                   'request-branch', '--repo', 'foo', 'f27']
+        cli = self.get_cli(cli_cmd)
+        cli.request_branch()
+
+        expected_issue_content = {
+            'action': 'new_branch',
+            'repo': 'foo',
+            'namespace': 'rpms',
+            'branch': 'f27',
+            'create_git_branch': True
+        }
+        # Get the data that was submitted to Pagure
+        post_data = mock_request_post.call_args_list[0][1]['data']
+        actual_issue_content = json.loads(json.loads(
+            post_data)['issue_content'].strip('```'))
+        self.assertEqual(expected_issue_content, actual_issue_content)
+        output = sys.stdout.getvalue().strip()
+        expected_output = ('https://pagure.stg.example.com/releng/'
+                           'fedora-scm-requests/issue/2')
+        self.assertEqual(output, expected_output)
+
 
 class TestRequestTestsRepo(CliTestCase):
     """Test the request-tests-repo command"""
