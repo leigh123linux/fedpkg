@@ -159,6 +159,8 @@ rm -rf $$RPM_BUILD_ROOT
             ['git', 'branch', 'rhel-7'],
             ['git', 'branch', 'f26'],
             ['git', 'branch', 'f27'],
+            # Representing a stream branch
+            ['git', 'branch', '8'],
             ]
         for cmd in git_cmds:
             self.run_cmd(cmd, cwd=self.repo_path)
@@ -173,6 +175,7 @@ rm -rf $$RPM_BUILD_ROOT
             ['git', 'branch', '--track', 'rhel-7', 'origin/rhel-7'],
             ['git', 'branch', '--track', 'f26', 'origin/f26'],
             ['git', 'branch', '--track', 'f27', 'origin/f27'],
+            ['git', 'branch', '--track', '8', 'origin/8'],
             ]
         for cmd in git_cmds:
             self.run_cmd(cmd, cwd=self.cloned_repo_path)

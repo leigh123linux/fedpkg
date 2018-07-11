@@ -10,6 +10,7 @@
 # option) any later version.  See http://www.gnu.org/copyleft/gpl.html for
 # the full text of the license.
 
+import git
 import io
 import json
 import os
@@ -27,6 +28,8 @@ try:
 except ImportError:
     bodhi = None
 
+import fedpkg.cli
+
 from datetime import datetime, timedelta
 from fedpkg.bugzilla import BugzillaClient
 from fedpkg.cli import check_bodhi_version
@@ -34,9 +37,9 @@ from freezegun import freeze_time
 from mock import call, patch, PropertyMock, Mock
 from os import rmdir
 from pyrpkg.errors import rpkgError
-from six.moves import StringIO
 from six.moves.configparser import NoOptionError
 from six.moves.configparser import NoSectionError
+from six.moves import StringIO
 from tempfile import mkdtemp
 from utils import CliTestCase
 
@@ -656,7 +659,8 @@ class TestRequestBranch(CliTestCase):
     @patch('sys.stdout', new=StringIO())
     def test_request_branch(self, mock_grb, mock_request_post):
         """Tests request-branch"""
-        mock_grb.return_value = set(['el6', 'epel7', 'f25', 'f26', 'f27'])
+        mock_grb.return_value = {'fedora': ['f25', 'f26', 'f27'],
+                                 'epel': ['el6', 'epel7']}
         mock_rv = Mock()
         mock_rv.ok = True
         mock_rv.json.return_value = {'issue': {'id': 2}}
@@ -691,7 +695,8 @@ class TestRequestBranch(CliTestCase):
     @patch('sys.stdout', new=StringIO())
     def test_request_branch_override(self, mock_grb, mock_request_post):
         """Tests request-branch with an overriden package and branch name"""
-        mock_grb.return_value = set(['el6', 'epel7', 'f25', 'f26', 'f27'])
+        mock_grb.return_value = {'fedora': ['f25', 'f26', 'f27'],
+                                 'epel': ['el6', 'epel7']}
         mock_rv = Mock()
         mock_rv.ok = True
         mock_rv.json.return_value = {'issue': {'id': 2}}
@@ -724,7 +729,8 @@ class TestRequestBranch(CliTestCase):
     @patch('sys.stdout', new=StringIO())
     def test_request_branch_module(self, mock_grb, mock_request_post):
         """Tests request-branch for a new module branch"""
-        mock_grb.return_value = set(['el6', 'epel7', 'f25', 'f26', 'f27'])
+        mock_grb.return_value = {'fedora': ['f25', 'f26', 'f27'],
+                                 'epel': ['el6', 'epel7']}
         mock_rv = Mock()
         mock_rv.ok = True
         mock_rv.json.return_value = {'issue': {'id': 2}}
@@ -757,7 +763,8 @@ class TestRequestBranch(CliTestCase):
     @patch('fedpkg.cli.get_release_branches')
     def assert_request_branch_container(self, cli_cmd, mock_grb, mock_request_post):
         """Tests request-branch for a new container branch"""
-        mock_grb.return_value = set(['el6', 'epel7', 'f25', 'f26', 'f27'])
+        mock_grb.return_value = {'fedora': ['f25', 'f26', 'f27'],
+                                 'epel': ['el6', 'epel7']}
         mock_rv = Mock()
         mock_rv.ok = True
         mock_rv.json.return_value = {'issue': {'id': 2}}
@@ -804,7 +811,8 @@ class TestRequestBranch(CliTestCase):
     def test_request_branch_sls(self, mock_verify_sls, mock_grb,
                                 mock_request_post):
         """Tests request-branch with service levels"""
-        mock_grb.return_value = set(['el6', 'epel7', 'f25', 'f26', 'f27'])
+        mock_grb.return_value = {'fedora': ['f25', 'f26', 'f27'],
+                                 'epel': ['el6', 'epel7']}
         responses = []
         for idx in range(2, 5):
             mock_rv_post = Mock()
@@ -891,7 +899,8 @@ class TestRequestBranch(CliTestCase):
     @patch('sys.stdout', new=StringIO())
     def test_request_branch_all_releases(self, mock_grb, mock_request_post):
         """Tests request-branch with the '--all-releases' option """
-        mock_grb.return_value = set(['el6', 'epel7', 'f25', 'f26', 'f27'])
+        mock_grb.return_value = {'fedora': ['f25', 'f26', 'f27'],
+                                 'epel': ['el6', 'epel7']}
         post_side_effect = []
         for i in range(1, 4):
             mock_rv = Mock()
@@ -959,7 +968,8 @@ https://pagure.stg.example.com/releng/fedora-scm-requests/issue/3"""
     @patch('fedpkg.cli.get_release_branches')
     def test_request_branch_invalid_sls(self, mock_grb):
         """Tests request-branch with invalid service levels"""
-        mock_grb.return_value = set(['el6', 'epel7', 'f25', 'f26', 'f27'])
+        mock_grb.return_value = {'fedora': ['f25', 'f26', 'f27'],
+                                 'epel': ['el6', 'epel7']}
 
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
                    '--name', 'nethack', 'request-branch', '9', '--sl',
@@ -976,7 +986,8 @@ https://pagure.stg.example.com/releng/fedora-scm-requests/issue/3"""
     @patch('fedpkg.cli.get_release_branches')
     def test_request_branch_sls_on_release_branch_error(self, mock_grb):
         """Tests request-branch with a release branch and service levels"""
-        mock_grb.return_value = set(['el6', 'epel7', 'f25', 'f26', 'f27'])
+        mock_grb.return_value = {'fedora': ['f25', 'f26', 'f27'],
+                                 'epel': ['el6', 'epel7']}
 
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
                    '--name', 'nethack', 'request-branch', 'f27', '--sl',
@@ -1056,7 +1067,8 @@ https://pagure.stg.example.com/releng/fedora-scm-requests/issue/3"""
     @patch('sys.stdout', new=StringIO())
     def test_request_with_repo_option(self, mock_grb, mock_request_post):
         """Test request branch with option --repo"""
-        mock_grb.return_value = set(['el6', 'epel7', 'f25', 'f26', 'f27'])
+        mock_grb.return_value = {'fedora': ['f25', 'f26', 'f27'],
+                                 'epel': ['el6', 'epel7']}
         mock_rv = Mock()
         mock_rv.ok = True
         mock_rv.json.return_value = {'issue': {'id': 2}}
@@ -1767,3 +1779,186 @@ class TestBodhiOverrideExtend(CliTestCase):
                     self.new_cli()
                 output = sys.stderr.getvalue()
                 self.assertIn('Invalid expiration date', output)
+
+
+class TestReadReleasesFromLocalConfig(CliTestCase):
+    """Test read releases from local config file"""
+
+    def setUp(self):
+        super(TestReadReleasesFromLocalConfig, self).setUp()
+        self.active_releases = {
+            'fedora': ['f28', 'f27'],
+            'epel': ['el6', 'epel7'],
+        }
+        self.fake_cmd = ['fedpkg', '--path', self.cloned_repo_path, 'build']
+
+        self.package_cfg = os.path.join(self.cloned_repo_path,
+                                        fedpkg.cli.LOCAL_PACKAGE_CONFIG)
+        self.write_file(self.package_cfg,
+                        content='[koji]\ntargets=master f28 fedora epel')
+
+    @patch('os.path.exists', return_value=False)
+    def test_no_config_file_is_create(self, exists):
+        with patch('sys.argv', new=self.fake_cmd):
+            cli = self.new_cli()
+
+        rels = cli.read_releases_from_local_config(self.active_releases)
+        self.assertIsNone(rels)
+
+    def test_no_build_target_is_configured(self):
+        with patch('sys.argv', new=self.fake_cmd):
+            cli = self.new_cli()
+
+        self.write_file(self.package_cfg, content='[koji]')
+
+        rels = cli.read_releases_from_local_config(self.active_releases)
+        self.assertIsNone(rels)
+
+    def test_config_file_is_not_accessible(self):
+        with patch('sys.argv', new=self.fake_cmd):
+            cli = self.new_cli()
+
+        with patch('fedpkg.cli.configparser.ConfigParser.read') as read:
+            read.return_value = []
+
+            six.assertRaisesRegex(
+                self, rpkgError, '.+ not accessible',
+                cli.read_releases_from_local_config, self.active_releases)
+
+    def test_get_expanded_releases(self):
+        with patch('sys.argv', new=self.fake_cmd):
+            cli = self.new_cli()
+
+        rels = cli.read_releases_from_local_config(self.active_releases)
+        rels = sorted(rels)
+        self.assertEqual(['el6', 'epel7', 'f27', 'f28', 'master'], rels)
+
+
+class TestIsStreamBranch(CliTestCase):
+    """Test fedpkgClient.is_stream_branch"""
+
+    def setUp(self):
+        super(TestIsStreamBranch, self).setUp()
+        self.fake_cmd = ['fedpkg', '--path', self.cloned_repo_path, 'build']
+
+    def test_not_a_stream_branch(self):
+        with patch('sys.argv', new=self.fake_cmd):
+            cli = self.new_cli()
+
+        result = cli.is_stream_branch(
+            [{'name': '8', 'active': True}, {'name': '10', 'active': True}],
+            'f28')
+        self.assertFalse(result)
+
+    def test_stream_branch_is_inactive(self):
+        with patch('sys.argv', new=self.fake_cmd):
+            cli = self.new_cli()
+
+        six.assertRaisesRegex(
+            self, rpkgError, 'Cannot build from stream branch',
+            cli.is_stream_branch, [{'name': '10', 'active': False}], '10')
+
+    def test_branch_is_stream_branch(self):
+        with patch('sys.argv', new=self.fake_cmd):
+            cli = self.new_cli()
+
+        result = cli.is_stream_branch(
+            [{'name': '8', 'active': True}, {'name': '10', 'active': True}],
+            '8')
+        self.assertTrue(result)
+
+
+class TestBuildFromStreamBranch(CliTestCase):
+    """Test build command to build from stream branch"""
+
+    @patch('pyrpkg.cli.cliClient._build')
+    @patch('fedpkg.cli.get_stream_branches')
+    def test_build_as_normal_if_branch_is_not_stream_branch(
+            self, get_stream_branches, _build):
+        get_stream_branches.return_value = [{'name': '8', 'active': True}]
+
+        self.checkout_branch(git.Repo(self.cloned_repo_path), 'f27')
+
+        cli_cmd = ['fedpkg', '--path', self.cloned_repo_path, 'build']
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+            cli._build()
+
+        _build.assert_called_once_with(None)
+
+    @patch('pyrpkg.cli.cliClient._build')
+    @patch('fedpkg.cli.get_stream_branches')
+    @patch('fedpkg.cli.get_release_branches')
+    def test_build_as_normal_if_no_config_file_is_create(
+            self, get_release_branches, get_stream_branches, _build):
+        get_release_branches.return_value = {
+            'fedora': ['f28', 'f27'],
+            'epel': ['el6', 'epel7'],
+        }
+        get_stream_branches.return_value = [{'name': '8', 'active': True}]
+        self.checkout_branch(git.Repo(self.cloned_repo_path), '8')
+
+        # There is no config file created originally. So, nothing to do here
+        # to run this test.
+
+        cli_cmd = ['fedpkg', '--path', self.cloned_repo_path, 'build']
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+            cli._build()
+
+        _build.assert_called_once_with(None)
+
+    @patch('pyrpkg.cli.cliClient._build')
+    @patch('fedpkg.cli.get_stream_branches')
+    @patch('fedpkg.cli.get_release_branches')
+    def test_build_as_normal_if_no_build_target_is_configured(
+            self, get_release_branches, get_stream_branches, _build):
+        get_release_branches.return_value = {
+            'fedora': ['f28', 'f27'],
+            'epel': ['el6', 'epel7'],
+        }
+        get_stream_branches.return_value = [{'name': '8', 'active': True}]
+        self.checkout_branch(git.Repo(self.cloned_repo_path), '8')
+
+        # Create local config file without option targets for this test
+        self.write_file(
+            os.path.join(self.cloned_repo_path,
+                         fedpkg.cli.LOCAL_PACKAGE_CONFIG),
+            content='[koji]')
+
+        cli_cmd = ['fedpkg', '--path', self.cloned_repo_path, 'build']
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+            cli._build()
+
+        _build.assert_called_once_with(None)
+
+    @patch('pyrpkg.cli.cliClient._build')
+    @patch('fedpkg.Commands.build_target')
+    @patch('fedpkg.cli.get_stream_branches')
+    @patch('fedpkg.cli.get_release_branches')
+    def test_submit_builds(
+            self, get_release_branches, get_stream_branches, build_target,
+            _build):
+        get_release_branches.return_value = {
+            'fedora': ['f28', 'f27'],
+            'epel': ['el6', 'epel7'],
+        }
+        get_stream_branches.return_value = [{'name': '8', 'active': True}]
+        _build.side_effect = [1, 2]
+        self.checkout_branch(git.Repo(self.cloned_repo_path), '8')
+
+        # Create local config file without option targets for this test
+        self.write_file(
+            os.path.join(self.cloned_repo_path,
+                         fedpkg.cli.LOCAL_PACKAGE_CONFIG),
+            content='[koji]\ntargets = fedora')
+
+        cli_cmd = ['fedpkg', '--path', self.cloned_repo_path, 'build']
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+            task_ids = cli._build()
+
+        build_target.assert_has_calls([call('f27'), call('f28')])
+        _build.assert_has_calls([call(None), call(None)])
+        self.assertEqual([1, 2], task_ids)

@@ -21,9 +21,11 @@ import json
 import pkg_resources
 import six
 import textwrap
+import itertools
 
 from datetime import datetime
 
+from six.moves import configparser
 from six.moves.configparser import NoSectionError
 from six.moves.configparser import NoOptionError
 from six.moves.urllib_parse import urlparse
@@ -32,9 +34,11 @@ from fedpkg.bugzilla import BugzillaClient
 from fedpkg.utils import (
     get_release_branches, sl_list_to_dict, verify_sls, new_pagure_issue,
     get_pagure_token, is_epel, assert_valid_epel_package,
-    assert_new_tests_repo, get_dist_git_url)
+    assert_new_tests_repo, get_dist_git_url, get_stream_branches,
+    expand_release)
 
 RELEASE_BRANCH_REGEX = r'^(f\d+|el\d+|epel\d+)$'
+LOCAL_PACKAGE_CONFIG = 'package.cfg'
 
 
 def check_bodhi_version():
@@ -383,6 +387,32 @@ Examples:
                  'release branch.')
         extend_parser.set_defaults(command=self.extend_buildroot_override)
 
+    def register_build(self):
+        super(fedpkgClient, self).register_build()
+
+        build_parser = self.subparsers.choices['build']
+        build_parser.formatter_class = argparse.RawDescriptionHelpFormatter
+        build_parser.description = '''{0}
+
+fedpkg is also able to submit multiple builds to Koji at once from stream
+branch based on a local config, which is inside the repository. The config file
+is named package.cfg in INI format. For example,
+
+    [koji]
+    targets = master fedora epel7
+
+You only need to put Fedora releases and EPEL in option targets and fedpkg will
+convert it to proper Koji build target for submitting builds. Beside regular
+release names, option targets accepts two shortcut names as well, fedora and
+epel, as you can see in the above example. Name fedora stands for current
+active Fedora releases, and epel stands for the active EPEL releases, which are
+el6 and epel7 currently.
+
+Note that the config file is a branch specific file. That means you could
+create package.cfg for each stream branch separately to indicate on which
+targets to build the package for a particular stream.
+'''.format('\n'.join(textwrap.wrap(build_parser.description)))
+
     # Target functions go here
     def retire(self):
         # Skip if package is already retired...
@@ -708,7 +738,8 @@ suggest_reboot=False
                         'Only characters, numbers, periods, dashes, '
                         'underscores, and pluses are allowed in module branch '
                         'names')
-            release_branches = get_release_branches(pdc_url)
+            release_branches = list(itertools.chain(
+                *list(get_release_branches(pdc_url).values())))
             if branch in release_branches:
                 if service_levels:
                     raise rpkgError(
@@ -729,7 +760,8 @@ suggest_reboot=False
         pagure_url = config.get('{0}.pagure'.format(name), 'url')
         pagure_token = get_pagure_token(config, name)
         if all_releases:
-            release_branches = get_release_branches(pdc_url)
+            release_branches = list(itertools.chain(
+                *list(get_release_branches(pdc_url).values())))
             branches = [b for b in release_branches
                         if re.match(r'^(f\d+)$', b)]
         else:
@@ -815,3 +847,87 @@ suggest_reboot=False
             bodhi_config,
             build=self.args.NVR or self.cmd.nvr,
             duration=self.args.duration)
+
+    def read_releases_from_local_config(self, active_releases):
+        """Read configured releases from build config from repo"""
+        config_file = os.path.join(self.cmd.path, LOCAL_PACKAGE_CONFIG)
+        if not os.path.exists(config_file):
+            self.log.warning('No local config file exists.')
+            self.log.warning(
+                'Create %s to specify build targets to build.',
+                LOCAL_PACKAGE_CONFIG)
+            return None
+        config = configparser.ConfigParser()
+        if not config.read([config_file]):
+            raise rpkgError('Package config {0} is not accessible.'.format(
+                LOCAL_PACKAGE_CONFIG))
+        if not config.has_option('koji', 'targets'):
+            self.log.warning(
+                'Build target is not configured. Continue to build as normal.')
+            return None
+        target_releases = config.get('koji', 'targets', raw=True).split()
+        expanded_releases = []
+        for rel in target_releases:
+            expanded = expand_release(rel, active_releases)
+            if expanded:
+                expanded_releases += expanded
+            else:
+                self.log.error('Target %s is unknown. Skip.', rel)
+        return sorted(set(expanded_releases))
+
+    @staticmethod
+    def is_stream_branch(stream_branches, name):
+        """Determine if a branch is stream branch
+
+        :param stream_branches: list of stream branches of a package. Each of
+            them is a mapping containing name and active status, which are
+            minimum set of properties to be included. For example, ``[{'name':
+            '8', 'active': true}, {'name': '10', 'active': true}]``.
+        :type stream_branches: list[dict]
+        :param str name: branch name to check if it is a stream branch.
+        :return: True if branch is a stream branch, False otherwise.
+        :raises rpkgError: if branch is a stream branch but it is inactive.
+        """
+        for branch_info in stream_branches:
+            if branch_info['name'] != name:
+                continue
+            if branch_info['active']:
+                return True
+            else:
+                raise rpkgError('Cannot build from stream branch {0} as it is '
+                                'inactive.'.format(name))
+        return False
+
+    def _build(self, sets=None):
+        if hasattr(self.args, 'chain') or self.args.scratch:
+            return super(fedpkgClient, self)._build(sets)
+
+        server_url = self.config.get('{0}.pdc'.format(self.name), 'url')
+
+        stream_branches = get_stream_branches(server_url, self.cmd.repo_name)
+        self.log.debug(
+            'Package %s has stream branches: %r',
+            self.cmd.repo_name, [item['name'] for item in stream_branches])
+
+        if not self.is_stream_branch(stream_branches, self.cmd.branch_merge):
+            return super(fedpkgClient, self)._build(sets)
+
+        self.log.debug('Current branch %s is a stream branch.',
+                       self.cmd.branch_merge)
+
+        releases = self.read_releases_from_local_config(
+            get_release_branches(server_url))
+
+        if not releases:
+            # If local config file is not created yet, or no build targets
+            # are not configured, let's build as normal.
+            return super(fedpkgClient, self)._build(sets)
+
+        self.log.debug('Build on release targets: %r', releases)
+        task_ids = []
+        for release in releases:
+            self.cmd.branch_merge = release
+            self.cmd.target = self.cmd.build_target(release)
+            task_id = super(fedpkgClient, self)._build(sets)
+            task_ids.append(task_id)
+        return task_ids

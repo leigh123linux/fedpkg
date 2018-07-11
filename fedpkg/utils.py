@@ -21,6 +21,38 @@ from requests.exceptions import ConnectionError
 from pyrpkg import rpkgError
 
 
+def query_pdc(server_url, endpoint, params, timeout=60):
+    api_url = '{0}/rest_api/v1/{1}/'.format(
+        server_url.rstrip('/'), endpoint.strip('/'))
+    query_args = params
+    while True:
+        try:
+            rv = requests.get(api_url, params=query_args, timeout=60)
+        except ConnectionError as error:
+            error_msg = ('The connection to PDC failed while trying to get '
+                         'the active release branches. The error was: {0}'
+                         .format(str(error)))
+            raise rpkgError(error_msg)
+
+        if not rv.ok:
+            base_error_msg = ('The following error occurred while trying to '
+                              'get the active release branches in PDC: {0}')
+            raise rpkgError(base_error_msg.format(rv.text))
+
+        rv_json = rv.json()
+        for item in rv_json['results']:
+            yield item
+
+        if rv_json['next']:
+            # Clear the query_args because they are baked into the "next" URL
+            query_args = {}
+            api_url = rv_json['next']
+        else:
+            # We've gone through every page, so we can return the found
+            # branches
+            break
+
+
 def get_sl_type(url, sl_name):
     """
     Gets the service level (SL) type from PDC
@@ -96,55 +128,38 @@ def new_pagure_issue(url, token, title, body):
         url.rstrip('/'), rv.json()['issue']['id'])
 
 
-def get_release_branches(url):
+def get_release_branches(server_url):
     """
     Get the active Fedora release branches from PDC
-    :param url: a string of the URL to PDC
-    :return: a set containing the active Fedora release branches
+
+    :param  str url: a string of the URL to PDC
+    :return: a mapping containing the active Fedora releases and EPEL branches.
+    :rtype: dict
     """
-    branches = set()
-    api_url = '{0}/rest_api/v1/product-versions/'.format(url.rstrip('/'))
     query_args = {
         'fields': ['short', 'version'],
         'active': True
     }
-    while True:
-        try:
-            rv = requests.get(api_url, params=query_args, timeout=60)
-        except ConnectionError as error:
-            error_msg = ('The connection to PDC failed while trying to get '
-                         'the active release branches. The error was: {0}'
-                         .format(str(error)))
-            raise rpkgError(error_msg)
+    releases = {}
 
-        if not rv.ok:
-            base_error_msg = ('The following error occurred while trying to '
-                              'get the active release branches in PDC: {0}')
-            raise rpkgError(base_error_msg.format(rv.text))
+    for product_version in query_pdc(
+            server_url, 'product-versions', params=query_args):
+        short_name = product_version['short']
+        version = product_version['version']
 
-        rv_json = rv.json()
-        for product_version in rv_json['results']:
-            # If the version is not a digit we can ignore it (e.g. rawhide)
-            if not product_version['version'].isdigit():
-                continue
+        # If the version is not a digit we can ignore it (e.g. rawhide)
+        if not version.isdigit():
+            continue
 
-            if product_version['short'] == 'epel':
-                prefix = 'epel'
-                if product_version['version'] == '6':
-                    prefix = 'el'
-                branches.add('{0}{1}'.format(
-                    prefix, product_version['version']))
-            elif product_version['short'] == 'fedora':
-                branches.add('f{0}'.format(product_version['version']))
+        if short_name == 'epel':
+            prefix = 'el' if version == '6' else 'epel'
+        elif short_name == 'fedora':
+            prefix = 'f'
 
-        if rv_json['next']:
-            # Clear the query_args because they are baked into the "next" URL
-            query_args = {}
-            api_url = rv_json['next']
-        else:
-            # We've gone through every page, so we can return the found
-            # branches
-            return branches
+        release = '{0}{1}'.format(prefix, version)
+        releases.setdefault(short_name, []).append(release)
+
+    return releases
 
 
 def sl_list_to_dict(sls):
@@ -306,3 +321,57 @@ def get_dist_git_url(anongiturl):
     """
     parsed_url = urlparse(anongiturl)
     return '{0}://{1}'.format(parsed_url.scheme, parsed_url.netloc)
+
+
+def get_stream_branches(server_url, package_name):
+    """Get a package's stream branches
+
+    :param str server_url: PDC server URL.
+    :param str package_name: package name. Generally for RPM packages, this is
+        the repository name without namespace.
+    :return: a list of stream branches. Each element in the list is a dict
+        containing branch property name and active.
+    :rtype: list[dict]
+    """
+    query_args = {
+        'global_component': package_name,
+        'fields': ['name', 'active'],
+    }
+    branches = query_pdc(
+        server_url, 'component-branches', params=query_args)
+    # When write this method, endpoint component-branches contains not only
+    # stream branches, but also regular release branches, e.g. master, f28.
+    # Please remember to review the data regularly, there are only stream
+    # branches, or some new replacement of PDC fixes the issue as well, it
+    # should be ok to remove if from this list.
+    return [
+        item for item in branches
+        if not re.match(r'^(f|el|epel)\d+$', item['name']) and
+        item['name'] != 'master'
+    ]
+
+
+def expand_release(rel, active_releases):
+    """Expand special release to real release name
+
+    Special releases include fedora and epel. Each of them will be expanded to
+    real release name.
+
+    :param str rel: a release name to be expanded. It could be special names
+        fedora and epel, or concrete release names, e.g. f28, el6.
+    :param dict active_releases: a mapping from release category to concrete
+        release names. Fow now, it has two mappings, from name fedora to f\d\+,
+        and from epel to el6 and epel7. Value of this parameter should be
+        returned from `get_release_branches`.
+    :return: list of releases, for example ``[f28]``, or ``[el6, epel7]``.
+    """
+    if rel == 'master':
+        return ['master']
+    elif rel == 'fedora':
+        return active_releases['fedora']
+    elif rel == 'epel':
+        return active_releases['epel']
+    elif rel in active_releases['fedora'] or rel in active_releases['epel']:
+        return [rel]
+    else:
+        return None

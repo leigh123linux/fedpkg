@@ -162,13 +162,11 @@ class Commands(pyrpkg.Commands):
                 self._rpmdefines.append("--eval '%%undefine %s'" %
                                         self._runtime_disttag)
 
-    def load_target(self):
-        """This creates the target attribute based on branch merge"""
-
-        if self.branch_merge == 'master':
-            self._target = 'rawhide'
+    def build_target(self, release):
+        if release == 'master':
+            return 'rawhide'
         else:
-            self._target = '%s-candidate' % self.branch_merge
+            return '%s-candidate' % release
 
     def load_container_build_target(self):
         if self.branch_merge == 'master':

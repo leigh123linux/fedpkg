@@ -146,6 +146,10 @@ class TestUtils(unittest.TestCase):
         }
         mock_request_get.return_value = mock_rv
         expected = set(['el6', 'epel7', 'f25', 'f26', 'f27', 'f28'])
+        expected = {
+            'epel': ['el6', 'epel7'],
+            'fedora': ['f25', 'f26', 'f27', 'f28'],
+        }
         actual = utils.get_release_branches('http://pdc.local')
         self.assertEqual(expected, actual)
 
