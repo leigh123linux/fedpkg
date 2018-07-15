@@ -99,6 +99,14 @@ class fedpkgClient(cliClient):
         )
         update_parser.set_defaults(command=self.update)
 
+    def get_distgit_namespaces(self):
+        dg_namespaced = self._get_bool_opt('distgit_namespaced')
+        if dg_namespaced and self.config.has_option(
+                self.name, 'distgit_namespaces'):
+            return self.config.get(self.name, 'distgit_namespaces').split()
+        else:
+            return None
+
     def register_request_repo(self):
         help_msg = 'Request a new dist-git repository'
         description = '''Request a new dist-git repository
@@ -122,14 +130,6 @@ Request a module with namespace explicitly:
 '''.format(self.name, urlparse(self.config.get(
             '{0}.pagure'.format(self.name), 'url')).netloc)
 
-        dg_namespaced = self._get_bool_opt('distgit_namespaced')
-        if dg_namespaced and self.config.has_option(
-                self.name, 'distgit_namespaces'):
-            ns_choices = self.config.get(
-                self.name, 'distgit_namespaces').split()
-        else:
-            ns_choices = None
-
         request_repo_parser = self.subparsers.add_parser(
             'request-repo',
             formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -146,7 +146,7 @@ Request a module with namespace explicitly:
             '--namespace',
             required=False,
             default='rpms',
-            choices=ns_choices,
+            choices=self.get_distgit_namespaces(),
             dest='new_repo_namespace',
             help='Namespace of repository. If omitted, default to rpms.')
         request_repo_parser.add_argument(
@@ -238,6 +238,13 @@ directory to package repository:
             required=False,
             dest='repo_name_for_branch',
             metavar='NAME',
+            help='Repository name the new branch is requested for.'
+        )
+        request_branch_parser.add_argument(
+            '--namespace',
+            required=False,
+            dest='repo_ns_for_branch',
+            choices=self.get_distgit_namespaces(),
             help='Repository name the new branch is requested for.'
         )
         request_branch_parser.add_argument(
@@ -618,6 +625,10 @@ suggest_reboot=False
             pagure_url, pagure_token, ticket_title, ticket_body))
 
     def request_branch(self):
+        if self.args.repo_name_for_branch:
+            self.cmd.repo_name = self.args.repo_name_for_branch
+            self.cmd.ns = self.args.repo_ns_for_branch or 'rpms'
+
         try:
             active_branch = self.cmd.repo.active_branch.name
         except rpkgError:
@@ -627,7 +638,7 @@ suggest_reboot=False
             all_releases=self.args.all_releases,
             branch=self.args.branch,
             active_branch=active_branch,
-            repo_name=self.args.repo_name_for_branch or self.cmd.repo_name,
+            repo_name=self.cmd.repo_name,
             ns=self.cmd.ns,
             no_git_branch=self.args.no_git_branch,
             no_auto_module=self.args.no_auto_module,

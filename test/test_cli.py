@@ -701,7 +701,7 @@ class TestRequestBranch(CliTestCase):
         mock_request_post.return_value = mock_rv
 
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', 'request-branch', 'f27']
+                   'request-branch', '--repo', 'nethack', 'f27']
         cli = self.get_cli(cli_cmd)
         cli.request_branch()
 
@@ -734,8 +734,8 @@ class TestRequestBranch(CliTestCase):
         mock_request_post.return_value = mock_rv
 
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', '--namespace', 'modules',
-                   'request-branch', 'f27']
+                   'request-branch',
+                   '--repo', 'nethack', '--namespace', 'modules', 'f27']
         cli = self.get_cli(cli_cmd)
         cli.request_branch()
 
@@ -758,8 +758,7 @@ class TestRequestBranch(CliTestCase):
 
     @patch('requests.post')
     @patch('fedpkg.cli.get_release_branches')
-    @patch('sys.stdout', new=StringIO())
-    def test_request_branch_container(self, mock_grb, mock_request_post):
+    def assert_request_branch_container(self, cli_cmd, mock_grb, mock_request_post):
         """Tests request-branch for a new container branch"""
         mock_grb.return_value = set(['el6', 'epel7', 'f25', 'f26', 'f27'])
         mock_rv = Mock()
@@ -767,9 +766,6 @@ class TestRequestBranch(CliTestCase):
         mock_rv.json.return_value = {'issue': {'id': 2}}
         mock_request_post.return_value = mock_rv
 
-        cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   '--name', 'nethack', '--namespace', 'container',
-                   'request-branch', 'f27']
         cli = self.get_cli(cli_cmd)
         cli.request_branch()
 
@@ -789,6 +785,20 @@ class TestRequestBranch(CliTestCase):
         expected_output = ('https://pagure.stg.example.com/releng/'
                            'fedora-scm-requests/issue/2')
         self.assertEqual(output, expected_output)
+
+    @patch('sys.stdout', new=StringIO())
+    def test_request_branch_with_global_option_name_and_namespace(self):
+        cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
+                   '--name', 'nethack', '--namespace', 'container',
+                   'request-branch', 'f27']
+        self.assert_request_branch_container(cli_cmd)
+
+    @patch('sys.stdout', new=StringIO())
+    def test_request_branch_with_its_own_option_repo_and_namespace(self):
+        cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
+                   'request-branch',
+                   '--repo', 'nethack', '--namespace', 'container', 'f27']
+        self.assert_request_branch_container(cli_cmd)
 
     @patch('requests.post')
     @patch('fedpkg.cli.get_release_branches')
