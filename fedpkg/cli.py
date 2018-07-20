@@ -172,7 +172,9 @@ Request a module with namespace explicitly:
         help_msg = 'Request a new tests dist-git repository'
         pagure_url = urlparse(self.config.get(
             '{0}.pagure'.format(self.name), 'url')).netloc
-        anongiturl = self.config.get(self.name, 'anongiturl', vars={'repo': 'any'})
+        anongiturl = self.config.get(
+            self.name, 'anongiturl', vars={'repo': 'any', 'module': 'any'}
+        )
         description = '''Request a new dist-git repository in tests shared namespace
 
     {2}/projects/tests/*
