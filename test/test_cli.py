@@ -1313,6 +1313,44 @@ class TestBodhiOverride(CliTestCase):
                     'Buildroot override for %s already exists and not '
                     'expired.', 'rpkg-1.54-2.fc28')
 
+    @patch('bodhi.client.bindings.BodhiClient.list_overrides')
+    @patch('bodhi.client.bindings.BodhiClient.save_override')
+    @patch('fedpkg.Commands.nvr', new_callable=PropertyMock)
+    def test_retry_create(self, nvr, save_override, list_overrides):
+        nvr.return_value = 'rpkg-1.54-2.fc28'
+        list_overrides.return_value = {'total': 0}
+
+        # For save_override raises AuthError twice.
+        from fedora.client import AuthError
+        save_override.side_effect = AuthError
+
+        cli_cmd = [
+            'fedpkg', '--path', self.cloned_repo_path,
+            'override', 'create',
+            '--duration', '7', '--notes', 'build for fedpkg',
+        ]
+
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+
+            # This is raised when call save_override in the second time due to
+            # the AuthError is raised again. This is expected for running this
+            # test.
+            six.assertRaisesRegex(self, rpkgError, 'Cannot create override',
+                                  cli.create_buildroot_override)
+
+        # First call to save_override should raise AuthError, and it must be
+        # called twice.
+        self.assertEqual(2, save_override.call_count)
+        save_override.assert_has_calls([
+            call(nvr='rpkg-1.54-2.fc28',
+                 duration=7,
+                 notes='build for fedpkg'),
+            call(nvr='rpkg-1.54-2.fc28',
+                 duration=7,
+                 notes='build for fedpkg')
+        ])
+
 
 @unittest.skipUnless(bodhi, 'Skip if no supported bodhi-client is available')
 class TestBodhiOverrideExtend(CliTestCase):
@@ -1573,3 +1611,70 @@ class TestBodhiOverrideExtend(CliTestCase):
             cli = self.new_cli()
             six.assertRaisesRegex(self, rpkgError, '',
                                   cli.extend_buildroot_override)
+
+    @patch('fedpkg.BodhiClient.list_overrides')
+    @patch('fedpkg.BodhiClient.csrf')
+    @patch('fedpkg.BodhiClient.send_request')
+    def test_retry_to_extend_override_by_days(
+            self, send_request, csrf, list_overrides):
+        utcnow = datetime.utcnow()
+        override_expiration_date = utcnow + timedelta(days=7)
+
+        from fedora.client import AuthError
+        send_request.side_effect = AuthError
+
+        csrf.side_effect = ['123456', '678901']
+
+        build_nvr = 'somepkg-1.54-2.fc28'
+        build_override = {
+            'expiration_date':
+                override_expiration_date.strftime('%Y-%m-%d %H:%M:%S'),
+            'nvr': build_nvr,
+            'notes': 'build for other package',
+            'build': {'nvr': build_nvr},
+            'submitter': {'name': 'someone'},
+            'expired_date': utcnow - timedelta(days=20)
+        }
+
+        list_overrides.return_value = {
+            'total': 1,
+            'overrides': [build_override]
+        }
+        edited_override = build_override.copy()
+        expected_expiration_date = override_expiration_date + timedelta(days=2)
+        edited_override['expiration_date'] = \
+            expected_expiration_date.strftime('%Y-%m-%d %H:%M:%S')
+        send_request.return_value = edited_override
+
+        cli_cmd = [
+            'fedpkg', '--path', self.cloned_repo_path,
+            'override', 'extend', '2', build_nvr
+        ]
+
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+
+            # This error is expected due to the design for this test. See also
+            # above explanation to test of `override create`.
+            six.assertRaisesRegex(
+                self, rpkgError, '', cli.extend_buildroot_override)
+
+        # Ensure no microsecond is included in the expected expiration data
+        new_date = override_expiration_date + timedelta(days=2)
+        expected_expiration_date = datetime(year=new_date.year,
+                                            month=new_date.month,
+                                            day=new_date.day,
+                                            hour=new_date.hour,
+                                            minute=new_date.minute,
+                                            second=new_date.second)
+
+        send_request.assert_has_calls([
+            call('overrides/', verb='POST', auth=True, data={
+                'expiration_date': expected_expiration_date,
+                'nvr': build_nvr,
+                'notes': build_override['notes'],
+                'edited': build_nvr,
+                'csrf_token': token,
+            })
+            for token in csrf.side_effect
+        ])

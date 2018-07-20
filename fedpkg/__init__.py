@@ -30,15 +30,35 @@ except ImportError:
 if _BodhiClient is not None:
     from fedora.client import AuthError
 
-    class BodhiClient(_BodhiClient):
-        def save_override(self, *args, **kwargs):
-            try:
-                super(BodhiClient, self).save_override(*args, **kwargs)
-            except AuthError:
-                self._session.clear()
-                self.csrf_token = None
-                super(BodhiClient, self).save_override(*args, **kwargs)
+    def clear_csrf_and_retry(func):
+        """Clear csrf token and retry
 
+        fedpkg uses Bodhi Python binding API list_overrides first before other
+        save and extend APIs. That causes a readonly csrf token is received,
+        which will be got again when next time to construct request data to
+        modify updates. That is not expected and AuthError will be raised.
+
+        So, the solution is to capture the AuthError error, clear the token and
+        try to modify update again by requesting another token with user's
+        credential.
+        """
+        def _decorator(self, *args, **kwargs):
+            try:
+                return func(self, *args, **kwargs)
+            except AuthError:
+                self._session.cookies.clear()
+                self.csrf_token = None
+                return func(self, *args, **kwargs)
+        return _decorator
+
+    class BodhiClient(_BodhiClient):
+        """Customized BodhiClien for fedpkg"""
+
+        @clear_csrf_and_retry
+        def save_override(self, *args, **kwargs):
+            super(BodhiClient, self).save_override(*args, **kwargs)
+
+        @clear_csrf_and_retry
         def extend_override(self, override, expiration_date):
             data = dict(
                 nvr=override['nvr'],
@@ -47,14 +67,8 @@ if _BodhiClient is not None:
                 edited=override['nvr'],
                 csrf_token=self.csrf(),
             )
-            try:
-                return self.send_request(
-                    'overrides/', verb='POST', auth=True, data=data)
-            except AuthError:
-                self._session.clear()
-                self.csrf_token = None
-                return self.send_request(
-                    'overrides/', verb='POST', auth=True, data=data)
+            return self.send_request(
+                'overrides/', verb='POST', auth=True, data=data)
 
 
 class Commands(pyrpkg.Commands):
