@@ -1,0 +1,25 @@
+.. _release_1.31:
+
+fedpkg 1.31 Release Notes
+=========================
+
+Released on *January 22, 2018*
+
+Python compatibility
+--------------------
+
+fedpkg works with Python 2.6, 2.7 and 3.6.
+
+Change Logs
+-----------
+
+- Include missing conf file in test (cqi)
+- Add more document to request-repo and request-branch (cqi)
+- Stop allowing EPEL branches on official EL packages (mprahl)
+- Port fedrepo-req and fedrepo-req-branch to fedpkg (mprahl)
+- Fix test for unsupported Bodhi version (lsedlar)
+- Work with Bodhi 3 - `rhbz#1507410`_ (lsedlar)
+- Allow any parameters in construct_build_url (cqi)
+- Fix the anongiturl (patrick)
+
+.. _`rhbz#1507410`: https://bugzilla.redhat.com/show_bug.cgi?id=1507410

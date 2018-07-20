@@ -1,0 +1,18 @@
+.. _release_1.28:
+
+fedpkg 1.28 Release Notes
+=========================
+
+Released on *February 24, 2017*
+
+Python compatibility
+--------------------
+
+fedpkg works with Python 2.6, 2.7 and 3.6.
+
+Change Logs
+-----------
+
+- Restore anonymous clone link - `rhbz#1425913`_ (cqi)
+
+.. _`rhbz#1425913`: https://bugzilla.redhat.com/show_bug.cgi?id=1425913

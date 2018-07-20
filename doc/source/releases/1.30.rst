@@ -1,0 +1,39 @@
+.. _release_1.30:
+
+fedpkg 1.30 Release Notes
+=========================
+
+Released on *October 10, 2017*
+
+Python compatibility
+--------------------
+
+fedpkg works with Python 2.6, 2.7 and 3.6.
+
+Change Logs
+-----------
+
+- Add missing files to dist tarball (cqi)
+- Tests for update command (cqi)
+- Add support for module commands (mprahl)
+- Clean rest cert related code (cqi)
+- Remove fedora cert (cqi)
+- Override build URL for Koji (cqi)
+- changing anongiturl to use src.fp.o instead of pkgs.fp.o. - `#119`_ (tflink)
+- Add tests (cqi)
+- Enable lookaside_namespaced - `#130`_ (cqi)
+- Detect dist tag correctly for RHEL and CentOS - `#141`_ (cqi)
+- Remove deprecated call to platform.dist (cqi)
+- Do not prompt hint for SSL cert if fail to log into Koji (cqi)
+- Add more container-build options to bash completion (cqi)
+- Remove osbs from bash completion - `#138`_ (cqi)
+- Install executables via entry_points - `#134`_ (cqi)
+- Fix container build target (lsedlar)
+- Get correct build target for rawhide containers (lsedlar)
+- Update error message to reflect deprecation of --dist option (pgier)
+
+.. _`#119`: https://pagure.io/rpkg/issue/119
+.. _`#130`: https://pagure.io/rpkg/issue/130
+.. _`#134`: https://pagure.io/rpkg/issue/134
+.. _`#138`: https://pagure.io/rpkg/issue/138
+.. _`#141`: https://pagure.io/rpkg/issue/141

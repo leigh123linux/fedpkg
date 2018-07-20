@@ -124,9 +124,9 @@ the package foo:
 
     fedpkg request-repo name 1234
 
-Request a module with namespace explicitly:
+Another example to request a module foo:
 
-    fedpkg --namespace modules request-repo foo
+    fedpkg request-repo --namespace modules foo
 '''.format(self.name, urlparse(self.config.get(
             '{0}.pagure'.format(self.name), 'url')).netloc)
 
@@ -273,7 +273,10 @@ directory to package repository:
         request_branch_parser.set_defaults(command=self.request_branch)
 
     def register_override(self):
-        """Register command line parser for subcommand override"""
+        """Register command line parser for subcommand override
+
+        .. versionadded:: 1.34
+        """
 
         def validate_duration(value):
             try:

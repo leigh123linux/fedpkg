@@ -1,0 +1,37 @@
+.. _release_1.33:
+
+fedpkg 1.33 Release Notes
+=========================
+
+Released on *May 14, 2018*
+
+Python compatibility
+--------------------
+
+fedpkg works with Python 2.6, 2.7 and 3.6.
+
+Change Logs
+-----------
+
+- Allow running tests against specified rpkg (cqi)
+- Fix test due to rpkg uses getpass.getuser (cqi)
+- Getting bodhi version works with Python 3 - `#213`_ (cqi)
+- Detect Bodhi client by major version - `#204`_ (cqi)
+- Allow requesting modular repositories without bug ID - `#197`_ (rdossant)
+- Fix test test_verify_sls_invalid_date - `#209`_ (cqi)
+- Copy pip-pycurl to ensure pycurl is installed correctly (cqi)
+- Fix unicode issue for update command in Python 3 - `#206`_ (cqi)
+- Fix a few E722 code styles errors (cqi)
+- Fix fake PDC URL in test (cqi)
+- Use tox to run tests with multiple Python versions (cqi)
+- Reword error message for missing pagure token - `#194`_ (cqi)
+- Tell which token ACL is required for request-repo - `#195`_ (cqi)
+- Rename incorrect references of Koshei to be Anitya (mprahl)
+
+.. _`#194`: https://pagure.io/rpkg/issue/194
+.. _`#195`: https://pagure.io/rpkg/issue/195
+.. _`#197`: https://pagure.io/rpkg/issue/197
+.. _`#204`: https://pagure.io/rpkg/issue/204
+.. _`#206`: https://pagure.io/rpkg/issue/206
+.. _`#209`: https://pagure.io/rpkg/issue/209
+.. _`#213`: https://pagure.io/rpkg/issue/213

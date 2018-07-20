@@ -1,0 +1,139 @@
+.. _release_1.34:
+
+fedpkg 1.34 Release Notes
+=========================
+
+Released on *July 19, 2018*
+
+This release requires ``rpkg >= 1.55``.
+
+Python compatibility
+--------------------
+
+fedpkg works with Python 2.6, 2.7 and 3.6.
+
+What's new in fedpkg 1.34
+-------------------------
+
+OIDC authentication is enabled via HTTPS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+OIDC authentication is enabled to let you push local changes to dist-git via
+HTTPS. That means you don't have to request SSH permission to contribute to
+a package.
+
+Command ``override`` to operate Bodhi update
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This new command has two subcommands to create and extend expiration
+individually.
+
+An update could be created from a repository by generating build NVR from
+current active release branch, or outside a repository by providing the NVR
+explicitly.
+
+To create an update inside a repository, ensure switch to a release branch,
+e.g. f28::
+
+  fedpkg override create
+
+To create an update outside a repository::
+
+  fedpkg override create foo-0.1-1.fc28
+
+By default, update created from fedpkg has 7 days to be alive. ``--duration``
+could be used to change this default number of days.
+
+The expiration date of created update could be expanded by subcommand
+``extend``::
+
+  fedpkg override extend 5 foo-0.1-1.fc28
+
+This command extends update of build ``foo-0.1-1.fc28`` by 5 days.
+
+Please refer to man page for details.
+
+.. note::
+
+  fedpkg works with ``bodhi-client >= 2.0`` only.
+
+Pass repository name to ``request-repo`` explicitly
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Previously the new repository name, aka the package, module, or container name,
+to be requested is specified by a global option ``--module-name`` (which is
+deprecated already since rpkg-1.55). There were several issues reported for
+that because it would confuse packagers easily with the word "module". To Avoid
+the confusion, command ``request-repo`` has a new argument name to specify
+repository name for clarity and optional ``--namespace`` option to indicate
+namespace for the repository.
+
+Here is an example to request a RPM package ``foo`` with package review bug ID
+``123456``::
+
+  fedpkg request-repo foo 123456
+
+Another example to request a module ``bar``::
+
+  fedpkg request-repo --namespace modules bar
+
+.. warning::
+
+  Original form ``fedpkg --module-name foo request-repo`` is not supported.
+  Please switch to the new command form.
+
+Optional repository name and namespace to ``request-branch``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Command ``request-branch`` now has its own option ``--repo`` and
+``--namespace`` to make it easy to use and avoid any potential confusion.
+You can request a branch like this way::
+
+  fedpkg request-branch --repo foo f28
+
+If ``--namespace`` is not specified, it defaults to ``rpms``. In order to
+request a branch for non-RPM stuff, it accepts specific dist-git namespace like
+namespace option in other commands. Here is an example to request a branch for
+a module::
+
+  fedpkg request-branch --repo bar --namespace modules 10
+
+.. note::
+
+  Global option ``--name`` and ``--namespace`` are usable for
+  ``request-branch``. However, it is recommended to use new options instead for
+  clarity.
+
+Change Logs
+-----------
+
+* Get csrf token properly when retry bodhi API call (cqi)
+* Accept old config with module instead of repo (lsedlar)
+* Add option --namespace to command request-branch (cqi)
+* Add argument name and option --namespace to request-repo - `#193`_ `#200`_ (cqi)
+* Add explicit option --repo for request-branch - `#244`_ (cqi)
+* Do not use deprecated option module-name (cqi)
+* Remove compatible code with EL5 in bash completion (cqi)
+* Handle Bodhi login automatically (cqi)
+* Refine command override create (cqi)
+* request-repo: Fix API token help text - `#232`_ (tmz)
+* Use base_module in clone_config - `#230`_ (tmz)
+* Extend override by number of days or specific date - `#67`_ (cqi)
+* Use refactored man from pyrpkg (puiterwijk)
+* Add new command for creating override in Bodhi - `#92`_ (cqi)
+* Also remove bodhi url from config (cqi)
+* Check bodhi version earlier (cqi)
+* Drop support of bodhi-client 0.9 - `#223`_ (cqi)
+* Use custom ArgumentParser from pyrpkg.cli (jkucera)
+* Add OIDC config (puiterwijk)
+* Fix argparse error in Python 3 - `#221`_ (cqi)
+
+.. _`#67`: https://pagure.io/rpkg/issue/67
+.. _`#92`: https://pagure.io/rpkg/issue/92
+.. _`#193`: https://pagure.io/rpkg/issue/193
+.. _`#200`: https://pagure.io/rpkg/issue/200
+.. _`#221`: https://pagure.io/rpkg/issue/221
+.. _`#223`: https://pagure.io/rpkg/issue/223
+.. _`#230`: https://pagure.io/rpkg/issue/230
+.. _`#232`: https://pagure.io/rpkg/issue/232
+.. _`#244`: https://pagure.io/rpkg/issue/244

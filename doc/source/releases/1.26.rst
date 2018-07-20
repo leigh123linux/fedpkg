@@ -1,0 +1,54 @@
+.. _release_1.26:
+
+fedpkg 1.26 Release Notes
+=========================
+
+Released on *December 15, 2016*
+
+Python compatibility
+--------------------
+
+fedpkg works with Python 2.6, 2.7 and 3.6.
+
+Change Logs
+-----------
+
+- fedpkg clone -a uses https transport - `BZ#1188634`_ (cqi)
+- Fix handle unicode chars in git log - `BZ#1404724`_ (cqi)
+- Fix: make fedpkg workable with bodhi 2 CLI - `#87`_ (cqi)
+- Fix --dist/--release option for 'master' %dist detection (praiskup)
+- sha512 should be also used in fedpkg-stage (cqi)
+- conf: s/kerberos_realm/kerberos_realms/ (i.gnatenko.brain)
+- Update config with new lookaside url (puiterwijk)
+- Use system trust list for lookaside (puiterwijk)
+- Specific help of --release for fedpkg - `rhbz#1054440`_ (cqi)
+- Bash completion for --mock-config (cqi)
+- Remove unnecessary entry point (cqi)
+- Add missing import to man page script (lsedlar)
+- lookaside: We now use sha512 to upload the sources (bochecha)
+- Move to the new sources file format (bochecha)
+- Fix man page generator (lsedlar)
+- Accept the realms argument in Commands class - `#14`_ (lsedlar)
+- Add kerberos realm to config files (lsedlar)
+- Move release guide to doc directory (cqi)
+- Add --with-changelog to shell completion (cqi)
+- Avoid sys.exit - `#52`_ (cqi)
+- Add --release to bash completion (cqi)
+- remove the ppc and arm packages as they are now built in regular koji
+  (dennis)
+- Do not send a certificate if none exists (puiterwijk)
+- New source code layout (cqi)
+- Set push.default to simple (cqi)
+- Fix PEP8 errors (cqi)
+- Integration between setuptools and nosetests (cqi)
+- New fedpkg-stage for developers to use stage infra - `#41`_ (cqi)
+- enable target dest for rawhide to have trailing pieces (dennis)
+- python3: improve Python 3.x compatibility (pavlix)
+
+.. _`#14`: https://pagure.io/rpkg/issue/14
+.. _`#41`: https://pagure.io/rpkg/issue/41
+.. _`#52`: https://pagure.io/rpkg/issue/52
+.. _`#87`: https://pagure.io/rpkg/issue/87
+.. _`BZ#1188634`: https://bugzilla.redhat.com/show_bug.cgi?id=1188634
+.. _`BZ#1404724`: https://bugzilla.redhat.com/show_bug.cgi?id=1404724
+.. _`rhbz#1054440`: https://bugzilla.redhat.com/show_bug.cgi?id=1054440

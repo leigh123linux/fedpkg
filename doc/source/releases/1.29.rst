@@ -1,0 +1,39 @@
+.. _release_1.29:
+
+fedpkg 1.29 Release Notes
+=========================
+
+Released on *August 11, 2017*
+
+Python compatibility
+--------------------
+
+fedpkg works with Python 2.6, 2.7 and 3.6.
+
+Change Logs
+-----------
+
+- Remove unused variable in Commands.retire (cqi)
+- No more pkgdb. (rbean)
+- Add --arches to build completions (ville.skytta)
+- Add ppc64le to arch completions (ville.skytta)
+- Explain how to write a note in multiple lines in update template - `#123`_ (cqi)
+- Remove code that handles secondary arch (cqi)
+- Simplify passing arguments when creating Command object - `#14`_ (cqi)
+- Set koji profile for secondary arch immediately (cqi)
+- Use profile to load Koji configuration - `#97`_ (cqi)
+- Remove push.default from clone_default - `#109`_ (cqi)
+- remove special handling of s390 specific packages (dan)
+- Replace fedorahosted.org with pagure.io in manpage - `#113`_ (cqi)
+- Remove tracbaseurl from conf file - `#112`_ (cqi)
+- Set disttag properly (cqi)
+- koji stage config moved, update fedpkg defaults (maxamillion)
+- Specific help of --release for fedpkg - `rhbz#1054440`_ (cqi)
+
+.. _`#14`: https://pagure.io/rpkg/issue/14
+.. _`#97`: https://pagure.io/rpkg/issue/97
+.. _`#109`: https://pagure.io/rpkg/issue/109
+.. _`#112`: https://pagure.io/rpkg/issue/112
+.. _`#113`: https://pagure.io/rpkg/issue/113
+.. _`#123`: https://pagure.io/rpkg/issue/123
+.. _`rhbz#1054440`: https://bugzilla.redhat.com/show_bug.cgi?id=1054440

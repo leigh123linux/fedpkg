@@ -1,0 +1,28 @@
+.. _release_1.32:
+
+fedpkg 1.32 Release Notes
+=========================
+
+Released on *April 1, 2018*
+
+Python compatibility
+--------------------
+
+fedpkg works with Python 2.6, 2.7 and 3.6.
+
+Change Logs
+-----------
+
+- Add requests-tests-repo command (mvadkert)
+- Use PDC instead of Bodhi to get the active release branches - `#187`_ (mprahl)
+- fix broken syntax in bash completion (tmz)
+- Fix Python 3 incompatible code in tests (cqi)
+- Better mocking.  Return different values for each new request. (rbean)
+- Typofix. (rbean)
+- Add docstrings. (rbean)
+- Automatically request module for non-standard branches. (rbean)
+- Refactor: parameterize the request_repo and request_branch functionality.
+  (rbean)
+- Some additions to the gitignore file. (rbean)
+
+.. _`#187`: https://pagure.io/rpkg/issue/187

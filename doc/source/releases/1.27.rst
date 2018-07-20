@@ -1,0 +1,19 @@
+.. _release_1.27:
+
+fedpkg 1.27 Release Notes
+=========================
+
+Released on *February 22, 2017*
+
+Python compatibility
+--------------------
+
+fedpkg works with Python 2.6, 2.7 and 3.6.
+
+Change Logs
+-----------
+
+- Python 3.6 invalid escape sequence deprecation fixes (ville.skytta)
+- Disable tag inheritance check - `#98`_ (cqi)
+
+.. _`#98`: https://pagure.io/rpkg/issue/98
