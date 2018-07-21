@@ -13,11 +13,11 @@
 from mock import patch, Mock
 from pyrpkg.errors import rpkgError
 
-from utils import CliTestCase
+from utils import unittest
 from fedpkg import utils
 
 
-class TestUtils(CliTestCase):
+class TestUtils(unittest.TestCase):
     """Test functions in fedpkg.utils"""
 
     @patch('requests.get')
