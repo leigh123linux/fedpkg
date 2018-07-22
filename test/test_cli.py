@@ -11,10 +11,11 @@
 # the full text of the license.
 
 import io
-import os
-import sys
 import json
+import os
 import pkg_resources
+import six
+import sys
 
 try:
     import unittest2 as unittest
@@ -27,21 +28,17 @@ except ImportError:
     bodhi = None
 
 from datetime import datetime, timedelta
-from tempfile import mkdtemp
-from os import rmdir
-from freezegun import freeze_time
-
-import six
-from six.moves.configparser import NoOptionError
-from six.moves.configparser import NoSectionError
-from six.moves import StringIO
-
-from pyrpkg.errors import rpkgError
-from utils import CliTestCase
 from fedpkg.bugzilla import BugzillaClient
 from fedpkg.cli import check_bodhi_version
-
+from freezegun import freeze_time
 from mock import call, patch, PropertyMock, Mock
+from os import rmdir
+from pyrpkg.errors import rpkgError
+from six.moves import StringIO
+from six.moves.configparser import NoOptionError
+from six.moves.configparser import NoSectionError
+from tempfile import mkdtemp
+from utils import CliTestCase
 
 
 class TestUpdate(CliTestCase):
@@ -1200,6 +1197,25 @@ class TestBodhiOverride(CliTestCase):
         self.cbv_p.stop()
         super(TestBodhiOverride, self).tearDown()
 
+    def test_raise_error_if_build_not_exist(self):
+        self.kojisession.getBuild.return_value = None
+
+        build_nvr = 'rpkg-1.54-1.fc28'
+        cli_cmd = [
+            'fedpkg', '--path', self.cloned_repo_path,
+            'override', 'create',
+            '--duration', '7', '--notes', 'build for fedpkg',
+            build_nvr
+        ]
+
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+            six.assertRaisesRegex(
+                self, rpkgError, 'Build {0} does not exist'.format(build_nvr),
+                cli.create_buildroot_override)
+
+        self.kojisession.getBuild.assert_called_once_with(build_nvr)
+
     @patch('bodhi.client.bindings.BodhiClient.list_overrides')
     @patch('bodhi.client.bindings.BodhiClient.save_override')
     @patch('bodhi.client.bindings.BodhiClient.override_str')
@@ -1352,6 +1368,34 @@ class TestBodhiOverride(CliTestCase):
                  duration=7,
                  notes='build for fedpkg')
         ])
+
+    def test_invalid_duration_option(self):
+        cli_cmds = (
+            (
+                [
+                    'fedpkg', '--path', self.cloned_repo_path,
+                    'override', 'create',
+                    '--duration', 'abc', '--notes', 'build for fedpkg',
+                ],
+                'duration must be an integer'
+            ),
+            (
+                [
+                    'fedpkg', '--path', self.cloned_repo_path,
+                    'override', 'create',
+                    '--duration', '0', '--notes', 'build for fedpkg',
+                ],
+                'override should have 1 day to exist at least'
+            )
+        )
+
+        for cmd, expected_output in cli_cmds:
+            with patch('sys.argv', new=cmd):
+                with patch('sys.stderr', new=StringIO()):
+                    with self.assertRaises(SystemExit):
+                        self.new_cli()
+                    output = sys.stderr.getvalue()
+                    self.assertIn(expected_output, output)
 
 
 @unittest.skipUnless(bodhi, 'Skip if no supported bodhi-client is available')
@@ -1680,3 +1724,46 @@ class TestBodhiOverrideExtend(CliTestCase):
             })
             for token in csrf.side_effect
         ])
+
+    @freeze_time('2018-07-22')
+    @patch('fedpkg.BodhiClient.list_overrides')
+    def test_raise_error_if_duration_less_than_today(self, list_overrides):
+        build_nvr = 'somepkg-1.54-2.fc28'
+        build_override = {
+            'expiration_date': '2018-03-01 12:12:12',
+            'nvr': build_nvr,
+            'notes': 'build for other package',
+            'build': {'nvr': build_nvr},
+            'submitter': {'name': 'someone'},
+            'expired_date': '2018-03-01 12:12:12',
+        }
+
+        list_overrides.return_value = {
+            'total': 1,
+            'overrides': [build_override]
+        }
+
+        # This duration should cause the expected error.
+        duration = '2018-07-18'
+        cli_cmd = [
+            'fedpkg', '--path', self.cloned_repo_path,
+            'override', 'extend', duration, build_nvr
+        ]
+        with patch('sys.argv', new=cli_cmd):
+            cli = self.new_cli()
+            six.assertRaisesRegex(
+                self, rpkgError,
+                'specified expiration date .+ should be future date',
+                cli.extend_buildroot_override)
+
+    def test_invalid_duration_of_concrete_date_format(self):
+        cli_cmd = [
+            'fedpkg', '--path', self.cloned_repo_path,
+            'override', 'extend', '2019/01/10', 'rpkg-1.10-1.fc28'
+        ]
+        with patch('sys.argv', new=cli_cmd):
+            with patch('sys.stderr', new=StringIO()):
+                with self.assertRaises(SystemExit):
+                    cli = self.new_cli()
+                output = sys.stderr.getvalue()
+                self.assertIn('Invalid expiration date', output)

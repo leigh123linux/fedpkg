@@ -9,10 +9,12 @@
 # option) any later version.  See http://www.gnu.org/copyleft/gpl.html for
 # the full text of the license.
 
-from pyrpkg.errors import rpkgError
-from utils import CommandTestCase
+import six
+
 from mock import call, patch, Mock, PropertyMock, mock_open
+from pyrpkg.errors import rpkgError
 from six.moves import builtins
+from utils import CommandTestCase
 
 
 class TestDetermineRuntimeEnv(CommandTestCase):
@@ -30,7 +32,7 @@ class TestDetermineRuntimeEnv(CommandTestCase):
         self.assertEqual('fc25', result)
 
     @patch('platform.linux_distribution')
-    def test_return_None_if_cannot_os_is_unknown(self, linux_distribution):
+    def test_return_None_if_os_is_unknown(self, linux_distribution):
         linux_distribution.side_effect = ValueError
 
         self.assertEqual(None, self.cmd._determine_runtime_env())
@@ -44,10 +46,12 @@ class TestDetermineRuntimeEnv(CommandTestCase):
         result = self.cmd._determine_runtime_env()
         self.assertEqual('el6', result)
 
-    def test_return_for_centos(self):
+    def test_return_for_el(self):
         dists = [
             (('CentOS', '6.9', 'Final'), 'el6'),
             (('CentOS Linux', '7.3.1611', 'Core'), 'el7'),
+            (('redhat', '6', None), 'el6'),
+            (('centos', '6', None), 'el6'),
         ]
 
         for dist, expected_dist_tag in dists:
@@ -310,6 +314,20 @@ class TestFindMasterBranch(CommandTestCase):
 
         koji_session.getBuildTarget.assert_called_once_with('rawhide')
         self.assertEqual('28', result)
+
+    @patch('pyrpkg.Commands.anon_kojisession', new_callable=PropertyMock)
+    @patch('pyrpkg.Commands.repo', new_callable=PropertyMock)
+    def test_raise_error_if_koji_api_call_fails(self, repo, anon_kojisession):
+        # No f* branches in order to call Koji API to get dest_tag_name
+        repo.return_value.refs = ['rhel', 'private-branch']
+
+        koji_session = anon_kojisession.return_value
+        # As the code shows, any error will be caught
+        koji_session.getBuildTarget.side_effect = ValueError
+
+        six.assertRaisesRegex(
+            self, rpkgError, 'Unable to query koji to find rawhide target',
+            self.cmd._findmasterbranch)
 
 
 class TestOverrideBuildURL(CommandTestCase):

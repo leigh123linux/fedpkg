@@ -91,3 +91,16 @@ class RetireTestCase(unittest.TestCase):
 
         self.assertRetired('my reason')
         self.assertEqual(len(client.cmd.push.call_args_list), 1)
+
+    def test_package_is_retired_already(self):
+        self._setup_repo('ssh://git@pkgs.example.com/fedpkg')
+        with open(os.path.join(self.tmpdir, 'dead.package'), 'w') as f:
+            f.write('deak package')
+
+        args = ['fedpkg', '--release=master', 'retire', 'my reason']
+        client = self._fake_client(args)
+        client.log = mock.Mock()
+        client.retire()
+        args, kwargs = client.log.warn.call_args
+        self.assertIn('dead.package found, package probably already retired',
+                      args[0])
