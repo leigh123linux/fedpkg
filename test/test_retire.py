@@ -95,7 +95,7 @@ class RetireTestCase(unittest.TestCase):
     def test_package_is_retired_already(self):
         self._setup_repo('ssh://git@pkgs.example.com/fedpkg')
         with open(os.path.join(self.tmpdir, 'dead.package'), 'w') as f:
-            f.write('deak package')
+            f.write('dead package')
 
         args = ['fedpkg', '--release=master', 'retire', 'my reason']
         client = self._fake_client(args)

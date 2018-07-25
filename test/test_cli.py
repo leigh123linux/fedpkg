@@ -1764,6 +1764,6 @@ class TestBodhiOverrideExtend(CliTestCase):
         with patch('sys.argv', new=cli_cmd):
             with patch('sys.stderr', new=StringIO()):
                 with self.assertRaises(SystemExit):
-                    cli = self.new_cli()
+                    self.new_cli()
                 output = sys.stderr.getvalue()
                 self.assertIn('Invalid expiration date', output)
