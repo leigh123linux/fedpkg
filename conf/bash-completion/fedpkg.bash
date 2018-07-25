@@ -27,14 +27,14 @@ _fedpkg()
     # global options
 
     local options="--help -v -q"
-    local options_value="--dist --release --user --path --user-config"
+    local options_value="--dist --release --user --path --user-config --name --namespace"
     local commands="build chain-build ci clean clog clone co commit compile \
     container-build diff gimmespec giturl help gitbuildhash import install lint \
     local mockbuild mock-config module-build module-build-cancel \
     module-build-local module-build-info module-build-watch module-overview \
     new new-sources patch prep pull push retire request-branch request-repo \
     scratch-build sources srpm switch-branch tag unused-patches update upload \
-    verify-files verrel"
+    verify-files verrel override"
 
     # parse main options and get command
 
@@ -68,12 +68,13 @@ _fedpkg()
         fi
 
         case "$prev" in
-            --dist)
-                ;;
-            --user|-u)
+            --dist | --release | --user | -u | --config)
                 ;;
             --path)
                 _filedir_exclude_paths
+                ;;
+            --namespace)
+                COMPREPLY=( $(compgen -W "$(_fedpkg_namespaces)" -- "$cur") )
                 ;;
             *)
                 COMPREPLY=( $(compgen -W "$commands" -- "$cur") )
@@ -86,7 +87,7 @@ _fedpkg()
     # parse command specific options
 
     local options=
-    local options_target= options_arches= options_branch= options_string= options_file= options_dir= options_srpm= options_mroot= options_builder=
+    local options_target= options_arches= options_branch= options_string= options_file= options_dir= options_srpm= options_mroot= options_builder= options_namespace=
     local after= after_more=
 
     case $command in
@@ -148,6 +149,7 @@ _fedpkg()
         local)
             options="--md5"
             options_arch="--arch"
+            options_string="--with --without"
             options_dir="--builddir"
             ;;
         mock-config)
@@ -185,12 +187,13 @@ _fedpkg()
             after_more=true
             ;;
         request-branch)
-            options="--no-git-branch --all-releases"
-            options_string="--sl"
+            options="--no-git-branch --all-releases --no-auto-module"
+            options_string="--sl --repo"
             ;;
         request-repo)
             options="--exception"
             options_string="--description --monitor --upstreamurl --summary"
+            options_namespace="--namespace"
             ;;
         scratch-build)
             options="--nowait --background"
@@ -221,7 +224,7 @@ _fedpkg()
     esac
 
     local all_options="--help $options"
-    local all_options_value="$options_target $options_arches $options_branch $options_string $options_file $options_dir $options_srpm $options_mroot $options_builder"
+    local all_options_value="$options_target $options_arches $options_branch $options_string $options_file $options_dir $options_srpm $options_mroot $options_builder $options_namespace"
 
     # count non-option parameters
 
@@ -274,6 +277,9 @@ _fedpkg()
             _xfunc mock _mock_root
         fi
 
+    elif [[ -n $options_namespace ]] && in_array "$prev" "$options_namespace"; then
+        COMPREPLY=( $(compgen -W "$(_fedpkg_namespaces)" -- "$cur") )
+
     else
         local after_options=
 
@@ -321,6 +327,12 @@ _fedpkg_package()
 {
     repoquery -C --qf=%{sourcerpm} "$1*" 2>/dev/null | sort -u | sed -r 's/(-[^-]*){2}\.src\.rpm$//'
 }
+
+_fedpkg_namespaces()
+{
+    grep "^distgit_namespaces =" /etc/rpkg/fedpkg.conf | cut -d'=' -f2
+}
+
 
 # Local variables:
 # mode: shell-script
