@@ -10,14 +10,21 @@
 # option) any later version.  See http://www.gnu.org/copyleft/gpl.html for
 # the full text of the license.
 
+import json
+import six
+
+from freezegun import freeze_time
 from mock import patch, Mock
 from pyrpkg.errors import rpkgError
+from requests.exceptions import ConnectionError
+from six.moves.configparser import NoOptionError
+from six.moves.configparser import NoSectionError
 
-from utils import CliTestCase
 from fedpkg import utils
+from utils import unittest
 
 
-class TestUtils(CliTestCase):
+class TestUtils(unittest.TestCase):
     """Test functions in fedpkg.utils"""
 
     @patch('requests.get')
@@ -141,3 +148,254 @@ class TestUtils(CliTestCase):
         expected = set(['el6', 'epel7', 'f25', 'f26', 'f27', 'f28'])
         actual = utils.get_release_branches('http://pdc.local')
         self.assertEqual(expected, actual)
+
+
+@patch('requests.get')
+class TestAssertNewTestsRepo(unittest.TestCase):
+    """Test assert_new_tests_repo"""
+
+    def test_should_raise_error_if_connection_error_to_distgit(self, get):
+        get.side_effect = ConnectionError
+
+        six.assertRaisesRegex(
+            self, rpkgError, 'The error was',
+            utils.assert_new_tests_repo, 'testrepo', 'http://distgit/')
+
+    def test_test_repo_exists(self, get):
+        get.return_value = Mock(ok=True)
+
+        six.assertRaisesRegex(
+            self, rpkgError, 'Repository .+ already exists',
+            utils.assert_new_tests_repo, 'testrepo', 'http://distgit/')
+
+    def test_keep_quiet_if_repo_not_exist(self, get):
+        get.return_value = Mock(ok=False)
+        utils.assert_new_tests_repo('testrepo', 'http://distgit/')
+
+
+class TestGetPagureToken(unittest.TestCase):
+    """Test get_pagure_token"""
+
+    def test_return_token(self):
+        config = Mock()
+        config.get.return_value = '123456'
+
+        token = utils.get_pagure_token(config, 'fedpkg')
+
+        self.assertEqual('123456', token)
+        config.get.assert_called_once_with('fedpkg.pagure', 'token')
+
+    def test_config_does_not_have_token(self):
+        config = Mock()
+
+        config.get.side_effect = NoOptionError('token', 'fedpkg.pagure')
+        six.assertRaisesRegex(self, rpkgError, 'Missing a Pagure token',
+                              utils.get_pagure_token, config, 'fedpkg')
+
+        config.get.side_effect = NoSectionError('fedpkg.pagure')
+        six.assertRaisesRegex(self, rpkgError, 'Missing a Pagure token',
+                              utils.get_pagure_token, config, 'fedpkg')
+
+
+@patch('requests.get')
+class TestGetServiceLevelType(unittest.TestCase):
+    """Test get_sl_type"""
+
+    def test_raise_error_if_connection_error_to_pdc(self, get):
+        get.side_effect = ConnectionError
+
+        six.assertRaisesRegex(
+            self, rpkgError, 'The connection to PDC failed',
+            utils.get_sl_type, 'http://localhost/', 'bug_fixes:2020-12-01')
+
+    def test_sl_type_not_exist(self, get):
+        rv = Mock(ok=True)
+        rv.json.return_value = {'count': 0}
+        get.return_value = rv
+
+        sl_type = utils.get_sl_type('http://localhost/',
+                                    'bug_fixes:2020-12-01')
+        self.assertIsNone(sl_type)
+
+    def test_raise_error_if_response_not_ok(self, get):
+        get.return_value = Mock(ok=False)
+
+        six.assertRaisesRegex(
+            self, rpkgError, 'The following error occurred',
+            utils.get_sl_type, 'http://localhost/', 'bug_fixes:2020-12-01')
+
+
+class TestVerifySLS(unittest.TestCase):
+    """Test verify_sls"""
+
+    def test_sl_date_format_is_invalid(self):
+        six.assertRaisesRegex(
+            self, rpkgError, 'The EOL date .+ is in an invalid format',
+            utils.verify_sls, 'http://localhost/', {'bug_fixes': '2018/7/21'})
+
+    @freeze_time('2018-01-01')
+    @patch('requests.get')
+    def test_sl_not_exist(self, get):
+        rv = Mock(ok=True)
+        rv.json.return_value = {'count': 0}
+
+        six.assertRaisesRegex(
+            self, rpkgError, 'The SL .+ is not in PDC',
+            utils.verify_sls, 'http://localhost/', {'some_sl': '2018-06-01'})
+
+    @freeze_time('2018-01-01')
+    @patch('requests.get')
+    def test_keep_quiet_if_service_levels_are_ok(self, get):
+        rv = Mock(ok=True)
+        rv.json.side_effect = [
+            {
+                'count': 1,
+                'results': [{
+                    'id': 1,
+                    'name': 'bug_fixes',
+                    'description': 'Bug fixes'
+                }],
+            },
+            {
+                'count': 1,
+                'results': [{
+                    'id': 2,
+                    'name': 'security_fixes',
+                    'description': 'Security fixes'
+                }],
+            }
+        ]
+        get.return_value = rv
+
+        utils.verify_sls('http://localhost/',
+                         {
+                            'bug_fixes': '2018-06-01',
+                            'security_fixes': '2018-12-01'
+                         })
+
+
+@patch('requests.get')
+class TestAssertValidEPELPackage(unittest.TestCase):
+    """Test assert_valid_epel_package"""
+
+    def test_raise_error_if_connection_error(self, get):
+        get.side_effect = ConnectionError
+
+        six.assertRaisesRegex(
+            self, rpkgError, 'The error was:',
+            utils.assert_valid_epel_package, 'pkg', 'epel7')
+
+    def test_raise_error_if_GET_response_not_ok(self, get):
+        get.return_value = Mock(ok=False, status_code=404)
+
+        six.assertRaisesRegex(
+            self, rpkgError, 'The status code was: 404',
+            utils.assert_valid_epel_package, 'pkg', 'epel7')
+
+    def test_should_not_have_epel_branch_for_el6_pkg(self, get):
+        get.return_value.json.return_value = {
+            'arches': [
+                'i686', 'noarch', 'i386', 'ppc64', 'ppc', 'x86_64'
+            ],
+            'packages': {
+                'pkg1': {
+                    # For el6, these arches will cause error raised.
+                    'arch': ['i686', 'noarch', 'ppc64', 'x86_64']
+                }
+            }
+        }
+
+        six.assertRaisesRegex(
+            self, rpkgError, 'is built on all supported arches',
+            utils.assert_valid_epel_package, 'pkg1', 'el6')
+
+    def test_should_not_have_epel_branch_for_el7_pkg(self, get):
+        get.return_value.json.return_value = {
+            'arches': [
+                'i686', 'noarch', 'i386', 'ppc64', 'ppc', 'x86_64'
+            ],
+            'packages': {
+                'pkg1': {
+                    # For epel7, these arches will cause error raised.
+                    'arch': ['i386', 'noarch', 'ppc64', 'x86_64']
+                }
+            }
+        }
+
+        six.assertRaisesRegex(
+            self, rpkgError, 'is built on all supported arches',
+            utils.assert_valid_epel_package, 'pkg1', 'epel7')
+
+    def test_raise_error_if_package_has_noarch_only(self, get):
+        get.return_value.json.return_value = {
+            'arches': [
+                'i686', 'noarch', 'i386', 'ppc64', 'ppc', 'x86_64'
+            ],
+            'packages': {
+                'pkg1': {
+                    'arch': ['noarch']
+                }
+            }
+        }
+
+        six.assertRaisesRegex(
+            self, rpkgError, 'This package is already an EL package',
+            utils.assert_valid_epel_package, 'pkg1', 'epel7')
+
+
+@patch('requests.post')
+class TestNewPagureIssue(unittest.TestCase):
+    """Test new_pagure_issue"""
+
+    def test_raise_error_if_connection_error(self, post):
+        post.side_effect = ConnectionError
+
+        six.assertRaisesRegex(
+            self, rpkgError, 'The connection to Pagure failed',
+            utils.new_pagure_issue,
+            'http://distgit/', '123456', 'new package', {'repo': 'pkg1'})
+
+    def test_responses_not_ok_and_response_body_is_not_json(self, post):
+        rv = Mock(ok=False, text='error')
+        rv.json.side_effect = ValueError
+        post.return_value = rv
+
+        six.assertRaisesRegex(
+            self, rpkgError,
+            'The following error occurred while creating a new issue',
+            utils.new_pagure_issue,
+            'http://distgit/', '123456', 'new package', {'repo': 'pkg1'})
+
+    def test_create_pagure_issue(self, post):
+        rv = Mock(ok=True)
+        rv.json.return_value = {'issue': {'id': 1}}
+        post.return_value = rv
+
+        pagure_api_url = 'http://distgit'
+        issue_ticket_body = {'repo': 'pkg1'}
+
+        issue_url = utils.new_pagure_issue(pagure_api_url,
+                                           '123456',
+                                           'new package',
+                                           issue_ticket_body)
+
+        expected_issue_url = (
+            '{0}/releng/fedora-scm-requests/issue/1'
+            .format(pagure_api_url)
+        )
+        self.assertEqual(expected_issue_url, issue_url)
+
+        post.assert_called_once_with(
+            '{0}/api/0/releng/fedora-scm-requests/new_issue'
+            .format(pagure_api_url),
+            headers={
+                'Authorization': 'token {0}'.format(123456),
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            data=json.dumps({
+                'title': 'new package',
+                'issue_content': issue_ticket_body,
+            }),
+            timeout=60
+        )

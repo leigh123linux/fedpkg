@@ -218,8 +218,8 @@ class Commands(pyrpkg.Commands):
                     'rawhide')
             except Exception:
                 # We couldn't hit koji, bail.
-                raise pyrpkg.rpkgError('Unable to query koji to find rawhide \
-                                       target')
+                raise pyrpkg.rpkgError(
+                    'Unable to query koji to find rawhide target')
             return self._tag2version(rawhidetarget['dest_tag_name'])
 
     def _determine_runtime_env(self):
