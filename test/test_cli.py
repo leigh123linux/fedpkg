@@ -1200,16 +1200,18 @@ class TestBodhiOverride(CliTestCase):
         self.cbv_p.stop()
         super(TestBodhiOverride, self).tearDown()
 
-    @patch('fedpkg.BodhiClient')
-    def test_create_for_given_build(self, BodhiClient):
-        bodhi_client = BodhiClient.return_value
-        bodhi_client.list_overrides.return_value = {'total': 0}
+    @patch('bodhi.client.bindings.BodhiClient.list_overrides')
+    @patch('bodhi.client.bindings.BodhiClient.save_override')
+    @patch('bodhi.client.bindings.BodhiClient.override_str')
+    def test_create_for_given_build(
+            self, override_str, save_override, list_overrides):
+        list_overrides.return_value = {'total': 0}
         expiration_date = datetime.now() + timedelta(days=7)
         new_override = {
             'expiration_date': expiration_date.strftime('%Y-%m-%d %H:%M:%S'),
             'notes': 'build for fedpkg'
         }
-        bodhi_client.save_override.return_value = new_override
+        save_override.return_value = new_override
 
         cli_cmd = [
             'fedpkg', '--path', self.cloned_repo_path,
@@ -1223,13 +1225,13 @@ class TestBodhiOverride(CliTestCase):
             with patch.object(cli.cmd, 'log') as log:
                 cli.create_buildroot_override()
 
-                bodhi_client.override_str.assert_called_once_with(
-                    bodhi_client.save_override.return_value,
+                override_str.assert_called_once_with(
+                    save_override.return_value,
                     minimal=False)
                 log.info.assert_any_call(
-                    bodhi_client.override_str.return_value)
+                    override_str.return_value)
 
-        bodhi_client.save_override.assert_called_once_with(
+        save_override.assert_called_once_with(
             nvr='rpkg-1.54-1.fc28',
             duration=7,
             notes='build for fedpkg')

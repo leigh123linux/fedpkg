@@ -56,7 +56,7 @@ if _BodhiClient is not None:
 
         @clear_csrf_and_retry
         def save_override(self, *args, **kwargs):
-            super(BodhiClient, self).save_override(*args, **kwargs)
+            return super(BodhiClient, self).save_override(*args, **kwargs)
 
         @clear_csrf_and_retry
         def extend_override(self, override, expiration_date):
