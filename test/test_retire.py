@@ -2,13 +2,13 @@
 
 import os
 import shutil
-import unittest
 import mock
 import tempfile
 import subprocess
 
 from six.moves import configparser
 from fedpkg.cli import fedpkgClient
+from utils import unittest
 
 
 TEST_CONFIG = os.path.join(os.path.dirname(__file__), 'fedpkg-test.conf')
