@@ -239,7 +239,7 @@ class CliTestCase(CommandTestCase):
                                        'fedpkg-test.conf')
 
     def new_cli(self, name='fedpkg', cfg=None, user_cfg=None):
-        config = configparser.SafeConfigParser()
+        config = configparser.ConfigParser()
         if cfg:
             config_file = os.path.join(os.path.dirname(__file__), cfg)
         else:
