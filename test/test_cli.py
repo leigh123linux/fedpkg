@@ -1231,8 +1231,10 @@ class TestBodhiOverride(CliTestCase):
     @patch('bodhi.client.bindings.BodhiClient.list_overrides')
     @patch('bodhi.client.bindings.BodhiClient.save_override')
     @patch('bodhi.client.bindings.BodhiClient.override_str')
+    # Do not acquire lock for local openidc cache file
+    @patch('fedora.client.OpenIdBaseClient._load_cookies')
     def test_create_for_given_build(
-            self, override_str, save_override, list_overrides):
+            self, _load_cookies, override_str, save_override, list_overrides):
         list_overrides.return_value = {'total': 0}
         expiration_date = datetime.now() + timedelta(days=7)
         new_override = {
@@ -1343,10 +1345,12 @@ class TestBodhiOverride(CliTestCase):
                     'Buildroot override for %s already exists and not '
                     'expired.', 'rpkg-1.54-2.fc28')
 
+    @patch('fedora.client.OpenIdBaseClient._load_cookies')
     @patch('bodhi.client.bindings.BodhiClient.list_overrides')
     @patch('bodhi.client.bindings.BodhiClient.save_override')
     @patch('fedpkg.Commands.nvr', new_callable=PropertyMock)
-    def test_retry_create(self, nvr, save_override, list_overrides):
+    def test_retry_create(
+            self, nvr, save_override, list_overrides, _load_cookies):
         nvr.return_value = 'rpkg-1.54-2.fc28'
         list_overrides.return_value = {'total': 0}
 
@@ -1426,10 +1430,15 @@ class TestBodhiOverrideExtend(CliTestCase):
         self.anon_kojisession_m = self.anon_kojisession_p.start()
         self.kojisession = self.anon_kojisession_m.return_value
 
+        self.load_cookies_p = patch(
+            'fedora.client.OpenIdBaseClient._load_cookies')
+        self.mock_load_cookies = self.load_cookies_p.start()
+
         # Fake build returned from Koji for the specified build NVR in tests
         self.kojisession.getBuild.return_value = {'build_id': 1}
 
     def tearDown(self):
+        self.load_cookies_p.stop()
         self.anon_kojisession_p.stop()
         self.cbv_p.stop()
         super(TestBodhiOverrideExtend, self).tearDown()
