@@ -52,7 +52,14 @@ if _BodhiClient is not None:
         return _decorator
 
     class BodhiClient(_BodhiClient):
-        """Customized BodhiClien for fedpkg"""
+        """Customized BodhiClient for fedpkg"""
+
+        UPDATE_TYPES = ['bugfix', 'security', 'enhancement', 'newpackage']
+        REQUEST_TYPES = ['testing', 'stable']
+
+        @clear_csrf_and_retry
+        def save(self, *args, **kwargs):
+            return super(BodhiClient, self).save(*args, **kwargs)
 
         @clear_csrf_and_retry
         def save_override(self, *args, **kwargs):
@@ -276,12 +283,23 @@ class Commands(pyrpkg.Commands):
 
     def update(self, bodhi_config, template='bodhi.template', bugs=[]):
         """Submit an update to bodhi using the provided template."""
-        cmd = ['bodhi', 'updates', 'new', '--file', 'bodhi.template',
-               '--user', self.user]
-        if bodhi_config['staging']:
-            cmd.append('--staging')
-        cmd.append(self.nvr)
-        self._run_command(cmd, shell=True)
+        bodhi = BodhiClient(username=self.user,
+                            staging=bodhi_config['staging'])
+
+        update_details = bodhi.parse_file(template)
+
+        for detail in update_details:
+            if not detail['type']:
+                raise ValueError(
+                    'Missing update type, which is required to create update.')
+            if detail['type'] not in BodhiClient.UPDATE_TYPES:
+                raise ValueError(
+                    'Incorrect update type {0}'.format(detail['type']))
+            if detail['request'] not in BodhiClient.REQUEST_TYPES:
+                raise ValueError(
+                    'Incorrect request type {0}'.format(detail['request']))
+
+            bodhi.save(**detail)
 
     def create_buildroot_override(self, bodhi_config, build, duration,
                                   notes=''):

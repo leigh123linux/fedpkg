@@ -44,6 +44,7 @@ from tempfile import mkdtemp
 from utils import CliTestCase
 
 
+@unittest.skipUnless(bodhi, 'Skip if no supported bodhi-client is available')
 class TestUpdate(CliTestCase):
     """Test update command"""
 
@@ -95,9 +96,51 @@ class TestUpdate(CliTestCase):
         with patch('sys.argv', new=cli_cmd):
             return self.new_cli(name=name, cfg=cfg)
 
-    def assert_bodhi_update(self, cli):
+    @patch('bodhi.client.bindings.BodhiClient.csrf')
+    @patch('bodhi.client.bindings.BodhiClient.send_request')
+    # Do not operate OpenIDC session file with lock
+    @patch('fedora.client.OpenIdBaseClient._load_cookies')
+    def assert_bodhi_update(self, cli, _load_cookies, send_request, csrf,
+                            update_type=None, request_type=None):
+        csrf.return_value = '123456'
+
+        def run_command_side_effect(command, shell):
+            filename = command[-1]
+            with io.open(filename, 'r', encoding='utf-8') as f:
+                content = f.read()
+            with io.open(filename, 'w', encoding='utf-8') as f:
+                # Update parameters here for test
+                if update_type:
+                    content = content.replace(
+                        'type=', 'type={0}'.format(update_type))
+                if request_type:
+                    content = content.replace(
+                        'request=', 'request={0}'.format(request_type))
+                f.write(content)
+
+        self.mock_run_command.side_effect = run_command_side_effect
+
         with patch('os.unlink') as unlink:
             cli.update()
+
+            csrf.assert_called_once_with()
+            send_request.assert_called_once_with(
+                'updates/', verb='POST', auth=True,
+                data={
+                    'autokarma': 'True',
+                    'bugs': '1000,2000',
+                    'builds': ' {0} '.format(self.mock_nvr.return_value),
+                    'close_bugs': True,
+                    'notes': self.fake_clog[0],
+                    'request': 'testing',
+                    'severity': 'unspecified',
+                    'suggest': 'unspecified',
+                    'type': update_type,
+                    'type_': update_type,
+                    'stable_karma': '3',
+                    'unstable_karma': '-3',
+                    'csrf_token': csrf.return_value,
+                })
 
             unlink.assert_has_calls([
                 call('bodhi.template'),
@@ -140,11 +183,10 @@ class TestUpdate(CliTestCase):
         self.mock_run_command.assert_called_once_with(
             ['vi', 'bodhi.template'], shell=True)
 
-    @patch('os.path.isfile', return_value=True)
     @patch('hashlib.new')
     @patch('fedpkg.lookaside.FedoraLookasideCache.hash_file')
     @patch('fedpkg.Commands.user', new_callable=PropertyMock)
-    def test_request_update(self, user, hash_file, hashlib_new, isfile):
+    def test_request_update(self, user, hash_file, hashlib_new):
         user.return_value = 'cqi'
         hashlib_new.return_value.hexdigest.return_value = 'origin hash'
         hash_file.return_value = 'different hash'
@@ -152,21 +194,16 @@ class TestUpdate(CliTestCase):
         cli_cmd = ['fedpkg', '--path', self.cloned_repo_path, 'update']
 
         cli = self.get_cli(cli_cmd)
-        self.assert_bodhi_update(cli)
+        self.assert_bodhi_update(cli, update_type='enhancement')
 
-        self.mock_run_command.assert_has_calls([
-            call(['vi', 'bodhi.template'], shell=True),
-            call(['bodhi', 'updates', 'new', '--file', 'bodhi.template',
-                  '--user', 'cqi', self.mock_nvr.return_value],
-                 shell=True)
-        ])
+        self.mock_run_command.assert_called_once_with(
+            ['vi', 'bodhi.template'], shell=True)
 
-    @patch('os.path.isfile', return_value=True)
     @patch('hashlib.new')
     @patch('fedpkg.lookaside.FedoraLookasideCache.hash_file')
     @patch('fedpkg.Commands.update', side_effect=OSError)
     def test_handle_any_errors_raised_when_execute_bodhi(
-            self, update, hash_file, hashlib_new, isfile):
+            self, update, hash_file, hashlib_new):
         hashlib_new.return_value.hexdigest.return_value = 'origin hash'
         hash_file.return_value = 'different hash'
 
@@ -177,12 +214,10 @@ class TestUpdate(CliTestCase):
             self, rpkgError, 'Could not generate update request',
             self.assert_bodhi_update, cli)
 
-    @patch('os.path.isfile', return_value=True)
     @patch('hashlib.new')
     @patch('fedpkg.lookaside.FedoraLookasideCache.hash_file')
     @patch('fedpkg.Commands.user', new_callable=PropertyMock)
-    def test_create_update_in_stage_bodhi(
-            self, user, hash_file, hashlib_new, isfile):
+    def test_create_update_in_stage_bodhi(self, user, hash_file, hashlib_new):
         user.return_value = 'someone'
         hashlib_new.return_value.hexdigest.return_value = 'origin hash'
         hash_file.return_value = 'different hash'
@@ -191,14 +226,54 @@ class TestUpdate(CliTestCase):
         cli = self.get_cli(cli_cmd,
                            name='fedpkg-stage',
                            cfg='fedpkg-stage.conf')
-        self.assert_bodhi_update(cli)
+        self.assert_bodhi_update(cli, update_type='enhancement')
 
-        self.mock_run_command.assert_has_calls([
-            call(['vi', 'bodhi.template'], shell=True),
-            call(['bodhi', 'updates', 'new', '--file', 'bodhi.template',
-                  '--user', 'someone', '--staging', self.mock_nvr.return_value],
-                 shell=True)
-        ])
+        self.mock_run_command.assert_called_once_with(
+            ['vi', 'bodhi.template'], shell=True)
+
+    @patch('hashlib.new')
+    @patch('fedpkg.lookaside.FedoraLookasideCache.hash_file')
+    @patch('fedpkg.Commands.user', new_callable=PropertyMock)
+    def test_missing_update_type_in_template(
+            self, user, hash_file, hashlib_new):
+        user.return_value = 'someone'
+        hashlib_new.return_value.hexdigest.return_value = 'origin hash'
+        hash_file.return_value = 'different hash'
+
+        cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path, 'update']
+        cli = self.get_cli(cli_cmd)
+        six.assertRaisesRegex(self, rpkgError, 'Missing update type',
+                              self.assert_bodhi_update, cli)
+
+    @patch('hashlib.new')
+    @patch('fedpkg.lookaside.FedoraLookasideCache.hash_file')
+    @patch('fedpkg.Commands.user', new_callable=PropertyMock)
+    def test_incorrect_update_type_in_template(
+            self, user, hash_file, hashlib_new):
+        user.return_value = 'someone'
+        hashlib_new.return_value.hexdigest.return_value = 'origin hash'
+        hash_file.return_value = 'different hash'
+
+        cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path, 'update']
+        cli = self.get_cli(cli_cmd)
+        six.assertRaisesRegex(self, rpkgError, 'Incorrect update type',
+                              self.assert_bodhi_update, cli, update_type='xxx')
+
+    @patch('hashlib.new')
+    @patch('fedpkg.lookaside.FedoraLookasideCache.hash_file')
+    @patch('fedpkg.Commands.user', new_callable=PropertyMock)
+    def test_incorrect_request_type_in_template(
+            self, user, hash_file, hashlib_new):
+        user.return_value = 'someone'
+        hashlib_new.return_value.hexdigest.return_value = 'origin hash'
+        hash_file.return_value = 'different hash'
+
+        cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path, 'update']
+        cli = self.get_cli(cli_cmd)
+        six.assertRaisesRegex(self, rpkgError, 'Incorrect request type',
+                              self.assert_bodhi_update, cli,
+                              update_type='enhancement',
+                              request_type='xxx')
 
 
 @patch.object(BugzillaClient, 'client')
