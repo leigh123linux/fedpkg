@@ -403,3 +403,92 @@ class TestNewPagureIssue(unittest.TestCase):
             }),
             timeout=60
         )
+
+
+@patch('requests.get')
+class TestQueryPDC(unittest.TestCase):
+    """Test utils.query_pdc"""
+
+    def test_connection_error(self, get):
+        get.side_effect = ConnectionError
+
+        result = utils.query_pdc('http://localhost/', 'endpoint', {})
+        six.assertRaisesRegex(
+            self, rpkgError, 'The connection to PDC failed',
+            list, result)
+
+    def test_response_not_ok(self, get):
+        get.return_value.ok = False
+
+        result = utils.query_pdc('http://localhost/', 'endpoint', {})
+        six.assertRaisesRegex(
+            self, rpkgError, 'The following error occurred',
+            list, result)
+
+    def test_read_yield_data_normally(self, get):
+        rv = Mock()
+        rv.ok = True
+        rv.json.side_effect = [
+            {'results': ['item1', 'item2'],
+             'next': 'http://localhost/?page=2'},
+            {'results': ['item3'], 'next': None}
+        ]
+        get.return_value = rv
+
+        result = utils.query_pdc('http://localhost/', 'endpoint', {})
+        self.assertEqual(['item1', 'item2', 'item3'], list(result))
+
+
+class TestGetStreamBranches(unittest.TestCase):
+    """Test get_stream_branches"""
+
+    @patch('requests.get')
+    def test_fedora_and_epel_branches_are_filtered_out(self, get):
+        rv = Mock(ok=True)
+        rv.json.return_value = {
+            'results': [
+                {'name': '8'},
+                {'name': '10'},
+                {'name': 'f28'},
+                {'name': 'epel7'},
+                {'name': 'master'},
+            ],
+            'next': None
+        }
+        get.return_value = rv
+
+        result = utils.get_stream_branches('http://localhost/', 'pkg')
+        self.assertEqual([{'name': '8'}, {'name': '10'}], list(result))
+
+
+class TestExpandRelease(unittest.TestCase):
+    """Test expand_release"""
+
+    def setUp(self):
+        self.releases = {
+            'fedora': ['f28', 'f27'],
+            'epel': ['el6', 'epel7']
+        }
+
+    def test_expand_fedora(self):
+        result = utils.expand_release('fedora', self.releases)
+        self.assertEqual(self.releases['fedora'], result)
+
+    def test_expand_epel(self):
+        result = utils.expand_release('epel', self.releases)
+        self.assertEqual(self.releases['epel'], result)
+
+    def test_expand_master(self):
+        result = utils.expand_release('master', self.releases)
+        self.assertEqual(['master'], result)
+
+    def test_normal_release(self):
+        result = utils.expand_release('f28', self.releases)
+        self.assertEqual(['f28'], result)
+
+        result = utils.expand_release('el6', self.releases)
+        self.assertEqual(['el6'], result)
+
+    def test_expand_unknown_name(self):
+        result = utils.expand_release('some_branch', self.releases)
+        self.assertEqual(None, result)
