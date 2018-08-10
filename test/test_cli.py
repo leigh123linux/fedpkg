@@ -15,6 +15,7 @@ import io
 import json
 import os
 import pkg_resources
+import re
 import six
 import sys
 
@@ -40,13 +41,54 @@ from pyrpkg.errors import rpkgError
 from six.moves.configparser import NoOptionError
 from six.moves.configparser import NoSectionError
 from six.moves import StringIO
-from tempfile import mkdtemp
+from tempfile import mkdtemp, mkstemp
 from utils import CliTestCase
+
+
+class TestIsUpdateAborted(CliTestCase):
+    """Test is_update_aborted"""
+
+    require_test_repos = False
+
+    def setUp(self):
+        fd, self.bodhi_template = mkstemp()
+        os.close(fd)
+
+    def tearDown(self):
+        os.unlink(self.bodhi_template)
+
+    def _is_update_aborted(self):
+        with patch('sys.argv', new=['fedpkg', 'update']):
+            cli = self.new_cli()
+        return cli.is_update_aborted(self.bodhi_template)
+
+    def test_template_is_emtpy(self):
+        self.assertTrue(self._is_update_aborted())
+
+    def test_all_line_are_commented_out(self):
+        with io.open(self.bodhi_template, 'w', encoding='utf-8') as f:
+            f.write(six.u('# line 1\n#line 2\n#line 3\n'))
+
+        self.assertTrue(self._is_update_aborted())
+
+    def test_template_is_ok(self):
+        with io.open(self.bodhi_template, 'w', encoding='utf-8') as f:
+            f.write(six.u('[fedpkg-1.34-1.fc28]\ntype=\nnotes=abc\n'))
+
+        self.assertFalse(self._is_update_aborted())
+
+    def test_template_content_is_broken(self):
+        with io.open(self.bodhi_template, 'w', encoding='utf-8') as f:
+            f.write(six.u('#[fedpkg-1.34-1.fc28]\ntype=\nnotes=abc\n'))
+
+        self.assertTrue(self._is_update_aborted())
 
 
 @unittest.skipUnless(bodhi, 'Skip if no supported bodhi-client is available')
 class TestUpdate(CliTestCase):
     """Test update command"""
+
+    create_repo_per_test = False
 
     def setUp(self):
         super(TestUpdate, self).setUp()
@@ -60,17 +102,23 @@ class TestUpdate(CliTestCase):
         self.mock_run_command = self.run_command_patcher.start()
 
         # Let's always use the bodhi 2 command line to test here
-        self.check_bodhi_version_patcher = patch('fedpkg.cli.check_bodhi_version')
-        self.mock_check_bodhi_version = self.check_bodhi_version_patcher.start()
-
-        # Not write clog actually. Instead, file object will be mocked and
-        # return fake clog content for tests.
-        self.clog_patcher = patch('fedpkg.Commands.clog')
-        self.clog_patcher.start()
+        self.check_bodhi_version_patcher = patch(
+            'fedpkg.cli.check_bodhi_version')
+        self.mock_check_bodhi_version = \
+            self.check_bodhi_version_patcher.start()
 
         self.os_environ_patcher = patch.dict('os.environ', {'EDITOR': 'vi'})
         self.os_environ_patcher.start()
 
+        self.user_patcher = patch('pyrpkg.Commands.user',
+                                  return_value='someone')
+        self.mock_user = self.user_patcher.start()
+
+        # Not write clog actually.
+        self.clog_patcher = patch('fedpkg.Commands.clog')
+        self.clog_patcher.start()
+
+        # Logs will be read in the tests which do not specify --notes option
         self.fake_clog = list(six.moves.map(six.u, [
             'Add tests for command update',
             'New command update - #1000',
@@ -85,6 +133,7 @@ class TestUpdate(CliTestCase):
         if os.path.exists('bodhi.template'):
             os.unlink('bodhi.template')
         os.unlink(os.path.join(self.cloned_repo_path, 'clog'))
+        self.user_patcher.stop()
         self.os_environ_patcher.stop()
         self.clog_patcher.stop()
         self.check_bodhi_version_patcher.stop()
@@ -101,10 +150,12 @@ class TestUpdate(CliTestCase):
     # Do not operate OpenIDC session file with lock
     @patch('fedora.client.OpenIdBaseClient._load_cookies')
     def assert_bodhi_update(self, cli, _load_cookies, send_request, csrf,
-                            update_type=None, request_type=None):
+                            update_type=None, request_type=None, notes=None):
         csrf.return_value = '123456'
 
         def run_command_side_effect(command, shell):
+            # The real call accepts first argument as ['vi', 'bodhi.template'],
+            # command[-1] returns the filename.
             filename = command[-1]
             with io.open(filename, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -112,35 +163,42 @@ class TestUpdate(CliTestCase):
                 # Update parameters here for test
                 if update_type:
                     content = content.replace(
-                        'type=', 'type={0}'.format(update_type))
+                        'type=\n', 'type={0}\n'.format(update_type))
                 if request_type:
-                    content = content.replace(
-                        'request=', 'request={0}'.format(request_type))
+                    # CLI option --request has default value, so the template
+                    # contains the default value.
+                    content = re.sub('request=[a-z]+\n',
+                                     'request={0}\n'.format(request_type),
+                                     content)
                 f.write(content)
 
         self.mock_run_command.side_effect = run_command_side_effect
+
+        expected_data = {
+            'autokarma': 'True',
+            'bugs': '1000,2000',
+            'builds': ' {0} '.format(self.mock_nvr.return_value),
+            'close_bugs': True,
+            'request': 'testing',
+            'severity': 'unspecified',
+            'suggest': 'unspecified',
+            'type': update_type,
+            'type_': update_type,
+            'stable_karma': '3',
+            'unstable_karma': '-3',
+            'csrf_token': csrf.return_value,
+        }
+        if notes:
+            expected_data['notes'] = notes
+        else:
+            expected_data['notes'] = self.fake_clog[0]
 
         with patch('os.unlink') as unlink:
             cli.update()
 
             csrf.assert_called_once_with()
             send_request.assert_called_once_with(
-                'updates/', verb='POST', auth=True,
-                data={
-                    'autokarma': 'True',
-                    'bugs': '1000,2000',
-                    'builds': ' {0} '.format(self.mock_nvr.return_value),
-                    'close_bugs': True,
-                    'notes': self.fake_clog[0],
-                    'request': 'testing',
-                    'severity': 'unspecified',
-                    'suggest': 'unspecified',
-                    'type': update_type,
-                    'type_': update_type,
-                    'stable_karma': '3',
-                    'unstable_karma': '-3',
-                    'csrf_token': csrf.return_value,
-                })
+                'updates/', verb='POST', auth=True, data=expected_data)
 
             unlink.assert_has_calls([
                 call('bodhi.template'),
@@ -151,11 +209,14 @@ class TestUpdate(CliTestCase):
             bodhi_template = f.read()
         self.assertTrue(self.mock_nvr.return_value in bodhi_template)
         self.assertTrue('1000,2000' in bodhi_template)
-        self.assertTrue(self.fake_clog[0] in bodhi_template)
-        rest_clog = os.linesep.join([
-            six.u('# {0}').format(line) for line in self.fake_clog[1:]
-        ])
-        self.assertTrue(rest_clog in bodhi_template)
+        if notes:
+            self.assertTrue(notes.replace('\n', '\n    ') in bodhi_template)
+        else:
+            self.assertTrue(self.fake_clog[0] in bodhi_template)
+            rest_clog = os.linesep.join([
+                six.u('# {0}').format(line) for line in self.fake_clog[1:]
+            ])
+            self.assertTrue(rest_clog in bodhi_template)
 
     def test_fail_if_missing_config_options(self):
         cli_cmd = ['fedpkg', '--path', self.cloned_repo_path, 'update']
@@ -183,14 +244,7 @@ class TestUpdate(CliTestCase):
         self.mock_run_command.assert_called_once_with(
             ['vi', 'bodhi.template'], shell=True)
 
-    @patch('hashlib.new')
-    @patch('fedpkg.lookaside.FedoraLookasideCache.hash_file')
-    @patch('fedpkg.Commands.user', new_callable=PropertyMock)
-    def test_request_update(self, user, hash_file, hashlib_new):
-        user.return_value = 'cqi'
-        hashlib_new.return_value.hexdigest.return_value = 'origin hash'
-        hash_file.return_value = 'different hash'
-
+    def test_request_update(self):
         cli_cmd = ['fedpkg', '--path', self.cloned_repo_path, 'update']
 
         cli = self.get_cli(cli_cmd)
@@ -199,14 +253,8 @@ class TestUpdate(CliTestCase):
         self.mock_run_command.assert_called_once_with(
             ['vi', 'bodhi.template'], shell=True)
 
-    @patch('hashlib.new')
-    @patch('fedpkg.lookaside.FedoraLookasideCache.hash_file')
     @patch('fedpkg.Commands.update', side_effect=OSError)
-    def test_handle_any_errors_raised_when_execute_bodhi(
-            self, update, hash_file, hashlib_new):
-        hashlib_new.return_value.hexdigest.return_value = 'origin hash'
-        hash_file.return_value = 'different hash'
-
+    def test_handle_any_errors_raised_when_execute_bodhi(self, update):
         cli_cmd = ['fedpkg', '--path', self.cloned_repo_path, 'update']
 
         cli = self.get_cli(cli_cmd)
@@ -214,14 +262,7 @@ class TestUpdate(CliTestCase):
             self, rpkgError, 'Could not generate update request',
             self.assert_bodhi_update, cli)
 
-    @patch('hashlib.new')
-    @patch('fedpkg.lookaside.FedoraLookasideCache.hash_file')
-    @patch('fedpkg.Commands.user', new_callable=PropertyMock)
-    def test_create_update_in_stage_bodhi(self, user, hash_file, hashlib_new):
-        user.return_value = 'someone'
-        hashlib_new.return_value.hexdigest.return_value = 'origin hash'
-        hash_file.return_value = 'different hash'
-
+    def test_create_update_in_stage_bodhi(self):
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path, 'update']
         cli = self.get_cli(cli_cmd,
                            name='fedpkg-stage',
@@ -231,49 +272,109 @@ class TestUpdate(CliTestCase):
         self.mock_run_command.assert_called_once_with(
             ['vi', 'bodhi.template'], shell=True)
 
-    @patch('hashlib.new')
-    @patch('fedpkg.lookaside.FedoraLookasideCache.hash_file')
-    @patch('fedpkg.Commands.user', new_callable=PropertyMock)
-    def test_missing_update_type_in_template(
-            self, user, hash_file, hashlib_new):
-        user.return_value = 'someone'
-        hashlib_new.return_value.hexdigest.return_value = 'origin hash'
-        hash_file.return_value = 'different hash'
-
+    def test_missing_update_type_in_template(self):
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path, 'update']
         cli = self.get_cli(cli_cmd)
         six.assertRaisesRegex(self, rpkgError, 'Missing update type',
                               self.assert_bodhi_update, cli)
 
-    @patch('hashlib.new')
-    @patch('fedpkg.lookaside.FedoraLookasideCache.hash_file')
-    @patch('fedpkg.Commands.user', new_callable=PropertyMock)
-    def test_incorrect_update_type_in_template(
-            self, user, hash_file, hashlib_new):
-        user.return_value = 'someone'
-        hashlib_new.return_value.hexdigest.return_value = 'origin hash'
-        hash_file.return_value = 'different hash'
-
+    def test_incorrect_update_type_in_template(self):
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path, 'update']
         cli = self.get_cli(cli_cmd)
         six.assertRaisesRegex(self, rpkgError, 'Incorrect update type',
                               self.assert_bodhi_update, cli, update_type='xxx')
 
-    @patch('hashlib.new')
-    @patch('fedpkg.lookaside.FedoraLookasideCache.hash_file')
-    @patch('fedpkg.Commands.user', new_callable=PropertyMock)
-    def test_incorrect_request_type_in_template(
-            self, user, hash_file, hashlib_new):
-        user.return_value = 'someone'
-        hashlib_new.return_value.hexdigest.return_value = 'origin hash'
-        hash_file.return_value = 'different hash'
-
+    def test_incorrect_request_type_in_template(self):
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path, 'update']
         cli = self.get_cli(cli_cmd)
         six.assertRaisesRegex(self, rpkgError, 'Incorrect request type',
                               self.assert_bodhi_update, cli,
                               update_type='enhancement',
                               request_type='xxx')
+
+    def test_create_with_cli_options(self):
+        cli_cmd = [
+            'fedpkg-stage', '--path', self.cloned_repo_path,
+            'update', '--type', 'bugfix', '--notes', 'Mass rebuild'
+        ]
+
+        cli = self.get_cli(cli_cmd)
+
+        self.assert_bodhi_update(
+            cli, update_type='bugfix', notes='Mass rebuild')
+        self.mock_run_command.assert_not_called()
+
+    def test_show_editor_if_update_type_is_omitted(self):
+        cli_cmd = [
+            'fedpkg-stage', '--path', self.cloned_repo_path,
+            'update', '--notes', 'Mass rebuild'
+        ]
+
+        cli = self.get_cli(cli_cmd)
+
+        self.assert_bodhi_update(
+            cli, update_type='enhancement', notes='Mass rebuild')
+        self.mock_run_command.assert_called_once_with(
+            ['vi', 'bodhi.template'], shell=True)
+
+    def test_show_editor_if_notes_is_omitted(self):
+        cli_cmd = [
+            'fedpkg-stage', '--path', self.cloned_repo_path,
+            'update', '--type', 'bugfix'
+        ]
+
+        cli = self.get_cli(cli_cmd)
+
+        self.assert_bodhi_update(cli, update_type='bugfix')
+        self.mock_run_command.assert_called_once_with(
+            ['vi', 'bodhi.template'], shell=True)
+
+    def test_create_with_notes_in_multiple_lines(self):
+        cli_cmd = [
+            'fedpkg-stage', '--path', self.cloned_repo_path,
+            'update', '--type', 'bugfix', '--notes', 'Line 1\nLine 2\nLine 3'
+        ]
+
+        cli = self.get_cli(cli_cmd)
+
+        self.assert_bodhi_update(
+            cli, update_type='bugfix', notes='Line 1\nLine 2\nLine 3')
+
+    @patch('sys.stderr', new=six.StringIO())
+    def test_invalid_stable_karma_option(self):
+        with self.assertRaises(SystemExit):
+            self.get_cli([
+                'fedpkg-stage', '--path', self.cloned_repo_path,
+                'update', '--stable-karma', '10s'
+            ])
+
+        with self.assertRaises(SystemExit):
+            self.get_cli([
+                'fedpkg-stage', '--path', self.cloned_repo_path,
+                'update', '--stable-karma', '-3'
+            ])
+
+    @patch('sys.stderr', new=six.StringIO())
+    def test_invalid_unstable_karma_option(self):
+        with self.assertRaises(SystemExit):
+            self.get_cli([
+                'fedpkg-stage', '--path', self.cloned_repo_path,
+                'update', '--unstable-karma', '10s'
+            ])
+
+        with self.assertRaises(SystemExit):
+            self.get_cli([
+                'fedpkg-stage', '--path', self.cloned_repo_path,
+                'update', '--unstable-karma', '3'
+            ])
+
+    @patch('sys.stderr', new=six.StringIO())
+    def test_invalid_bug(self):
+        with self.assertRaises(SystemExit):
+            self.get_cli([
+                'fedpkg-stage', '--path', self.cloned_repo_path,
+                'update', '--bugs', '1000', '1001', '100l'
+            ])
 
 
 @patch.object(BugzillaClient, 'client')

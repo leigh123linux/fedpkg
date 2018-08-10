@@ -88,10 +88,11 @@ _fedpkg()
 
     local options=
     local options_target= options_arches= options_branch= options_string= options_file= options_dir= options_srpm= options_mroot= options_builder= options_namespace=
+    local options_update_type= options_update_request=
     local after= after_more=
 
     case $command in
-        help|gimmespec|gitbuildhash|giturl|lint|new|push|unused-patches|update|verrel)
+        help|gimmespec|gitbuildhash|giturl|lint|new|push|unused-patches|verrel)
             ;;
         build)
             options="--nowait --background --skip-tag --scratch"
@@ -221,10 +222,18 @@ _fedpkg()
             after="file"
             after_more=true
             ;;
+        update)
+            options="--not-close-bugs --suggest-reboot --disable-autokarma"
+            options_string="--notes --bugs --stable-karma --unstable-karma"
+            options_update_type="--type"
+            options_update_request="--request"
+            ;;
     esac
 
     local all_options="--help $options"
-    local all_options_value="$options_target $options_arches $options_branch $options_string $options_file $options_dir $options_srpm $options_mroot $options_builder $options_namespace"
+    local all_options_value="$options_target $options_arches $options_branch \
+    $options_string $options_file $options_dir $options_srpm $options_mroot \
+    $options_builder $options_namespace $options_update_type $options_update_request"
 
     # count non-option parameters
 
@@ -279,6 +288,12 @@ _fedpkg()
 
     elif [[ -n $options_namespace ]] && in_array "$prev" "$options_namespace"; then
         COMPREPLY=( $(compgen -W "$(_fedpkg_namespaces)" -- "$cur") )
+
+    elif [[ -n $options_update_type ]] && in_array "$prev" "$options_update_type"; then
+        COMPREPLY=( $(compgen -W "bugfix security enhancement newpackage" -- "$cur") )
+
+    elif [[ -n $options_update_request ]] && in_array "$prev" "$options_update_request"; then
+        COMPREPLY=( $(compgen -W "testing stable" -- "$cur") )
 
     else
         local after_options=

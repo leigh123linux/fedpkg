@@ -410,7 +410,16 @@ _fedpkg-retire () {
 (( $+functions[_fedpkg-update] )) ||
 _fedpkg-update () {
   _arguments -C \
-    '(-h --help)'{-h,--help}'[show help message and exit]'
+    '(-h --help)'{-h,--help}'[show help message and exit]' \
+    '(--type)'{--type}'[update type]' \
+    '(--request)'{--request}'[update request type]' \
+    '(--bugs)'{--bugs}'[bug numbers to be resolved]' \
+    '(--notes)'{--notes}'[update description]' \
+    '(--disable-autokarma)'{--disable-autokarma}'[disable karma automatism]' \
+    '(--stable-karma)'{--stable-karma}'[stable karma]' \
+    '(--unstable-karma)'{--unstable-karma}'[unstable karma]' \
+    '(--not-close-bugs)'{--not-close-bugs}'[do not close bugs automatically]' \
+    '(--suggest-reboot)'{--suggest-reboot}'[suggest reboot]'
 }
 
 (( $+functions[_fedpkg_commands] )) ||

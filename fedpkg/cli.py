@@ -13,7 +13,6 @@
 from __future__ import print_function
 from pyrpkg.cli import cliClient
 import argparse
-import hashlib
 import io
 import os
 import re
@@ -39,6 +38,39 @@ from fedpkg.utils import (
 
 RELEASE_BRANCH_REGEX = r'^(f\d+|el\d+|epel\d+)$'
 LOCAL_PACKAGE_CONFIG = 'package.cfg'
+
+BODHI_TEMPLATE = """\
+[ %(nvr)s ]
+
+# bugfix, security, enhancement, newpackage (required)
+type=%(type_)s
+
+# testing, stable
+request=%(request)s
+
+# Bug numbers: 1234,9876
+bugs=%(bugs)s
+
+%(changelog)s
+# Here is where you give an explanation of your update.
+# Content can span multiple lines, as long as they are indented deeper than
+# the first line. For example,
+# notes=first line
+#     second line
+#     and so on
+notes=%(descr)s
+
+# Enable request automation based on the stable/unstable karma thresholds
+autokarma=%(autokarma)s
+stable_karma=%(stable_karma)s
+unstable_karma=%(unstable_karma)s
+
+# Automatically close bugs when this marked as stable
+close_bugs=%(close_bugs)s
+
+# Suggest that users restart after update
+suggest_reboot=%(suggest_reboot)s
+"""
 
 
 def check_bodhi_version():
@@ -95,12 +127,110 @@ class fedpkgClient(cliClient):
         retire_parser.set_defaults(command=self.retire)
 
     def register_update(self):
+        description = '''
+This will create a bodhi update request for the current package n-v-r.
+
+There are two ways to specify update details. Without any argument from command
+line, either update type or notes is omitted, a template editor will be shown
+and let you edit the detail information interactively.
+
+Alternatively, you could specify argument from command line to create an update
+directly, for example:
+
+    {0} update --type bugfix --notes 'Rebuilt' --bugs 1000 1002
+
+When all lines in template editor are commented out or deleted, the creation
+process is aborted. If the template keeps unchanged, {0} continues on creating
+update. That gives user a chance to confirm the auto-generated notes from
+change log if option --notes is omitted.
+'''.format(self.name)
+
         update_parser = self.subparsers.add_parser(
             'update',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
             help='Submit last build as update',
-            description='This will create a bodhi update request for the '
-                        'current package n-v-r.'
+            description=description,
         )
+
+        def validate_stable_karma(value):
+            error = argparse.ArgumentTypeError(
+                'Stable karma must be an integer which is greater than zero.')
+            try:
+                karma = int(value)
+            except ValueError:
+                raise error
+            if karma <= 0:
+                raise error
+
+        def validate_unstable_karma(value):
+            error = argparse.ArgumentTypeError(
+                'Unstable karma must be an integer which is less than zero.')
+            try:
+                karma = int(value)
+            except ValueError:
+                raise error
+            if karma >= 0:
+                raise error
+
+        def validate_bugs(value):
+            if not value.isdigit():
+                raise argparse.ArgumentTypeError(
+                    'Invalid bug {0}. It should be an integer.'.format(value))
+
+        update_parser.add_argument(
+            '--type',
+            choices=['bugfix', 'security', 'enhancement', 'newpackage'],
+            dest='update_type',
+            help='Update type. Template editor will be shown if type is '
+                 'omitted.')
+        update_parser.add_argument(
+            '--request',
+            choices=['testing', 'stable'],
+            default='testing',
+            help='Requested repository.')
+        update_parser.add_argument(
+            '--bugs',
+            nargs='+',
+            type=validate_bugs,
+            help='Bug numbers. If omitted, bug numbers will be extracted from'
+                 ' change logs.')
+        update_parser.add_argument(
+            '--notes',
+            help='Update description. Multiple lines of notes could be '
+                 'specified. If omitted, template editor will be shown.')
+        update_parser.add_argument(
+            '--disable-autokarma',
+            action='store_false',
+            default=True,
+            dest='autokarma',
+            help='Karma automatism is enabled by default. Use this option to '
+                 'disable that.')
+        update_parser.add_argument(
+            '--stable-karma',
+            type=validate_stable_karma,
+            metavar='KARMA',
+            default=3,
+            help='Stable karma. Default is 3.')
+        update_parser.add_argument(
+            '--unstable-karma',
+            type=validate_unstable_karma,
+            metavar='KARMA',
+            default=-3,
+            help='Unstable karma. Default is -3.')
+        update_parser.add_argument(
+            '--not-close-bugs',
+            action='store_false',
+            default=True,
+            dest='close_bugs',
+            help='By default, update will be created by enabling to close bugs'
+                 ' automatically. If this is what you do not want, use this '
+                 'option to disable the default behavior.')
+        update_parser.add_argument(
+            '--suggest-reboot',
+            action='store_true',
+            default=False,
+            dest='suggest_reboot',
+            help='Suggest user to reboot after update. Default is False.')
         update_parser.set_defaults(command=self.update)
 
     def get_distgit_namespaces(self):
@@ -450,94 +580,104 @@ targets to build the package for a particular stream.
                             'Please try to reinstall %s or consult developers to see what '
                             'is wrong with it.' % self.name)
 
-    def update(self):
-        check_bodhi_version()
-        bodhi_config = self._get_bodhi_config()
-        template = """\
-[ %(nvr)s ]
+    @staticmethod
+    def is_update_aborted(template_file):
+        """Check if the update is aborted
 
-# bugfix, security, enhancement, newpackage (required)
-type=
+        As long as the template file cannot be loaded by configparse, abort
+        immediately.
 
-# testing, stable
-request=testing
+        From user's perspective, it is similar with aborting commit when option
+        -m is omitted. If all lines are commented out, abort.
+        """
+        config = configparser.ConfigParser()
+        try:
+            loaded_files = config.read(template_file)
+        except configparser.MissingSectionHeaderError:
+            return True
+        # Something wrong with the template, which causes it cannot be loaded.
+        if not loaded_files:
+            return True
+        # template can be loaded even if it's empty.
+        if not config.sections():
+            return True
+        return False
 
-# Bug numbers: 1234,9876
-bugs=%(bugs)s
-
-%(changelog)s
-# Here is where you give an explanation of your update.
-# Content can span multiple lines, as long as they are indented deeper than
-# the first line. For example,
-# notes=first line
-#     second line
-#     and so on
-notes=%(descr)s
-
-# Enable request automation based on the stable/unstable karma thresholds
-autokarma=True
-stable_karma=3
-unstable_karma=-3
-
-# Automatically close bugs when this marked as stable
-close_bugs=True
-
-# Suggest that users restart after update
-suggest_reboot=False
-"""
-
+    def _prepare_bodhi_template(self, template_file):
         bodhi_args = {
             'nvr': self.cmd.nvr,
             'bugs': six.u(''),
             'descr': six.u(
-                'Here is where you give an explanation of your update.')
+                'Here is where you give an explanation of your update.'),
+            'request': self.args.request,
+            'autokarma': str(self.args.autokarma),
+            'stable_karma': self.args.stable_karma,
+            'unstable_karma': self.args.unstable_karma,
+            'close_bugs': str(self.args.close_bugs),
+            'suggest_reboot': str(self.args.suggest_reboot),
         }
 
-        # Extract bug numbers from the latest changelog entry
+        if self.args.update_type:
+            bodhi_args['type_'] = self.args.update_type
+        else:
+            bodhi_args['type_'] = ''
+
         self.cmd.clog()
         clog_file = os.path.join(self.cmd.path, 'clog')
         with io.open(clog_file, encoding='utf-8') as f:
             clog = f.read()
-        bugs = re.findall(r'#([0-9]*)', clog)
-        if bugs:
-            bodhi_args['bugs'] = ','.join(bugs)
 
-        # Use clog as default message
-        bodhi_args['descr'], bodhi_args['changelog'] = \
-            self._format_update_clog(clog)
+        if self.args.bugs:
+            bodhi_args['bugs'] = self.args.bugs
+        else:
+            # Extract bug numbers from the latest changelog entry
+            bugs = re.findall(r'#([0-9]*)', clog)
+            if bugs:
+                bodhi_args['bugs'] = ','.join(bugs)
 
-        template = textwrap.dedent(template) % bodhi_args
+        if self.args.notes:
+            bodhi_args['descr'] = self.args.notes.replace('\n', '\n    ')
+            bodhi_args['changelog'] = ''
+        else:
+            # Use clog as default message
+            bodhi_args['descr'], bodhi_args['changelog'] = \
+                self._format_update_clog(clog)
 
-        # Calculate the hash of the unaltered template
-        orig_hash = hashlib.new('sha1')
-        orig_hash.update(template.encode('utf-8'))
-        orig_hash = orig_hash.hexdigest()
+        template = textwrap.dedent(BODHI_TEMPLATE) % bodhi_args
 
-        # Write out the template
-        with io.open('bodhi.template', 'w', encoding='utf-8') as f:
+        with io.open(template_file, 'w', encoding='utf-8') as f:
             f.write(template)
 
-        # Open the template in a text editor
-        editor = os.getenv('EDITOR', 'vi')
-        self.cmd._run_command([editor, 'bodhi.template'], shell=True)
+        if not self.args.update_type or not self.args.notes:
+            # Open the template in a text editor
+            editor = os.getenv('EDITOR', 'vi')
+            self.cmd._run_command([editor, template_file], shell=True)
 
-        # Check to see if we got a template written out.  Bail otherwise
-        if not os.path.isfile('bodhi.template'):
-            raise rpkgError('No bodhi update details saved!')
+            # Check to see if we got a template written out.  Bail otherwise
+            if not os.path.isfile(template_file):
+                raise rpkgError('No bodhi update details saved!')
 
-        # If the template was changed, submit it to bodhi
-        new_hash = self.cmd.lookasidecache.hash_file('bodhi.template', 'sha1')
-        if new_hash != orig_hash:
+            return not self.is_update_aborted(template_file)
+
+        return True
+
+    def update(self):
+        check_bodhi_version()
+        bodhi_config = self._get_bodhi_config()
+
+        bodhi_template_file = 'bodhi.template'
+        ready = self._prepare_bodhi_template(bodhi_template_file)
+
+        if ready:
             try:
-                self.cmd.update(bodhi_config, template='bodhi.template')
+                self.cmd.update(bodhi_config, template=bodhi_template_file)
             except Exception as e:
                 raise rpkgError('Could not generate update request: %s' % e)
+            finally:
+                os.unlink(bodhi_template_file)
+                os.unlink('clog')
         else:
             self.log.info('Bodhi update aborted!')
-
-        # Clean up
-        os.unlink('bodhi.template')
-        os.unlink('clog')
 
     def request_repo(self):
         self._request_repo(

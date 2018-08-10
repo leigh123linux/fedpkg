@@ -59,7 +59,8 @@ class Assertions(object):
 
 class Utils(object):
 
-    def run_cmd(self, cmd, allow_output=None, **kwargs):
+    @staticmethod
+    def run_cmd(cmd, allow_output=None, **kwargs):
         if not allow_output:
             kwargs.update({
                 'stdout': subprocess.PIPE,
@@ -105,7 +106,8 @@ class fedpkgConfig(object):
 fedpkg_test_config = fedpkgConfig()
 
 
-class CommandTestCase(Assertions, Utils, unittest.TestCase):
+class RepoCreationMixin(object):
+    """Mixin providing method to create repos for running tests"""
 
     spec_file_content = '''Summary: Dummy summary
 Name: docpkg
@@ -134,19 +136,20 @@ rm -rf $$RPM_BUILD_ROOT
 - Initial version
 '''
 
-    def setUp(self):
+    @classmethod
+    def create_fake_repos(cls):
         # create a base repo
-        self.repo_base = tempfile.mkdtemp(prefix='fedpkg-commands-tests-')
+        cls.repo_base = tempfile.mkdtemp(prefix='fedpkg-commands-tests-')
         # Have a namespace of rpms and a repo name of testpkg
-        self.repo_path = os.path.join(self.repo_base, 'rpms', 'testpkg')
-        os.makedirs(self.repo_path)
+        cls.repo_path = os.path.join(cls.repo_base, 'rpms', 'testpkg')
+        os.makedirs(cls.repo_path)
 
-        self.spec_filename = 'docpkg.spec'
+        cls.spec_filename = 'docpkg.spec'
 
         # Add spec file to this repo and commit
-        spec_file_path = os.path.join(self.repo_path, self.spec_filename)
+        spec_file_path = os.path.join(cls.repo_path, cls.spec_filename)
         with open(spec_file_path, 'w') as f:
-            f.write(self.spec_file_content)
+            f.write(cls.spec_file_content)
 
         git_cmds = [
             ['git', 'init'],
@@ -163,12 +166,12 @@ rm -rf $$RPM_BUILD_ROOT
             ['git', 'branch', '8'],
             ]
         for cmd in git_cmds:
-            self.run_cmd(cmd, cwd=self.repo_path)
+            cls.run_cmd(cmd, cwd=cls.repo_path)
 
         # Clone the repo
-        self.cloned_repo_path = tempfile.mkdtemp(
+        cls.cloned_repo_path = tempfile.mkdtemp(
             prefix='fedpkg-commands-tests-cloned-')
-        self.run_cmd(['git', 'clone', self.repo_path, self.cloned_repo_path])
+        cls.run_cmd(['git', 'clone', cls.repo_path, cls.cloned_repo_path])
         git_cmds = [
             ['git', 'config', 'user.email', 'tester@example.com'],
             ['git', 'config', 'user.name', 'tester'],
@@ -178,11 +181,36 @@ rm -rf $$RPM_BUILD_ROOT
             ['git', 'branch', '--track', '8', 'origin/8'],
             ]
         for cmd in git_cmds:
-            self.run_cmd(cmd, cwd=self.cloned_repo_path)
+            cls.run_cmd(cmd, cwd=cls.cloned_repo_path)
+
+    @classmethod
+    def destroy_fake_repos(cls):
+        shutil.rmtree(cls.repo_base)
+        shutil.rmtree(cls.cloned_repo_path)
+
+
+class CommandTestCase(RepoCreationMixin, Assertions, Utils, unittest.TestCase):
+
+    create_repo_per_test = True
+    require_test_repos = True
+
+    @classmethod
+    def setUpClass(cls):
+        if cls.require_test_repos and not cls.create_repo_per_test:
+            cls.create_fake_repos()
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.require_test_repos and not cls.create_repo_per_test:
+            cls.destroy_fake_repos()
+
+    def setUp(self):
+        if self.require_test_repos and self.create_repo_per_test:
+            self.create_fake_repos()
 
     def tearDown(self):
-        shutil.rmtree(self.repo_base)
-        shutil.rmtree(self.cloned_repo_path)
+        if self.require_test_repos and self.create_repo_per_test:
+            self.destroy_fake_repos()
 
     def make_commands(self, path=None, user=None, dist=None, target=None,
                       quiet=None):
