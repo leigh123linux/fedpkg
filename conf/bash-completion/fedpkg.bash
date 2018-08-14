@@ -94,7 +94,7 @@ _fedpkg()
         help|gimmespec|gitbuildhash|giturl|lint|new|push|unused-patches|update|verrel)
             ;;
         build)
-            options="--nowait --background --skip-tag --scratch"
+            options="--nowait --background --skip-tag --scratch --skip-remote-rules-validation"
             options_arches="--arches"
             options_srpm="--srpm"
             options_target="--target"
@@ -129,7 +129,7 @@ _fedpkg()
             options_dir="--builddir"
             ;;
         container-build)
-            options="--scratch --nowait --repo-url"
+            options="--scratch --nowait --repo-url --skip-remote-rules-validation"
             options_arches="--arches"
             options_target="--target"
             ;;

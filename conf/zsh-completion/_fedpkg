@@ -63,7 +63,8 @@ _fedpkg-build () {
     '--background[run the build at a low priority]' \
     '--skip-tag[do not attempt to tag package]' \
     '--scratch[perform a scratch build]' \
-    '--srpm[build from an srpm]::srpm:_files -g "*.src.rpm"'
+    '--srpm[build from an srpm]::srpm:_files -g "*.src.rpm"' \
+    '--skip-remote-rules-validation[don'\''t check gating.yaml policies]'
 }
 
 (( $+functions[_fedpkg-chain-build] )) ||
