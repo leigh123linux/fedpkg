@@ -199,7 +199,13 @@ _fedpkg-mockbuild () {
   _arguments -C \
     '(-h --help)'{-h,--help}'[show help message and exit]' \
     '--root[override mock root]:root:_files -/' \
-    '--md5[use md5 checksums]'
+    '--md5[use md5 checksums]' \
+    '--no-clean[Do not clean chroot before building package]' \
+    '--no-cleanup-after[Do not clean chroot after building (if automatic cleanup is enabled)]' \
+    '--no-clean-all[Alias for both --no-clean and --no-cleanup-after]' \
+    '--with[Enable configure option (bcond) for the build]' \
+    '--without[Disable configure option (bcond) for the build]' \
+    '--shell[Run commands interactively within chroot]'
 }
 
 (( $+functions[_fedpkg-mock-config] )) ||

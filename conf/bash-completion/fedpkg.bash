@@ -158,7 +158,8 @@ _fedpkg()
             options_arch="--arch"
             ;;
         mockbuild)
-            options="--md5 --no-clean --no-cleanup-after --no-clean-all"
+            options="--md5 --no-clean --no-cleanup-after --no-clean-all --shell"
+            options_string="--with --without"
             options_mroot="--root --mock-config"
             ;;
         module-build)
