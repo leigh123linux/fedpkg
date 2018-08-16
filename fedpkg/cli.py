@@ -19,6 +19,7 @@ import re
 import json
 import pkg_resources
 import six
+import shutil
 import textwrap
 import itertools
 
@@ -707,7 +708,13 @@ targets to build the package for a particular stream.
             try:
                 self.cmd.update(bodhi_config, template=bodhi_template_file)
             except Exception as e:
-                raise rpkgError('Could not generate update request: %s' % e)
+                # Reserve original edited bodhi template so that packager could
+                # have a chance to recover content on error for next try.
+                shutil.copyfile(bodhi_template_file,
+                                '{0}.last'.format(bodhi_template_file))
+                raise rpkgError('Could not generate update request: %s\n'
+                                'A copy of the filled in template is saved '
+                                'as bodhi.template.last' % e)
             finally:
                 os.unlink(bodhi_template_file)
                 os.unlink('clog')

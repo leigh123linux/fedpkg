@@ -132,6 +132,8 @@ class TestUpdate(CliTestCase):
     def tearDown(self):
         if os.path.exists('bodhi.template'):
             os.unlink('bodhi.template')
+        if os.path.exists('bodhi.template.last'):
+            os.unlink('bodhi.template.last')
         os.unlink(os.path.join(self.cloned_repo_path, 'clog'))
         self.user_patcher.stop()
         self.os_environ_patcher.stop()
@@ -375,6 +377,17 @@ class TestUpdate(CliTestCase):
                 'fedpkg-stage', '--path', self.cloned_repo_path,
                 'update', '--bugs', '1000', '1001', '100l'
             ])
+
+    def test_reserve_edited_template_on_error(self):
+        cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path, 'update']
+        cli = self.get_cli(cli_cmd)
+
+        try:
+            self.assert_bodhi_update(cli, update_type='xxx')
+        except rpkgError:
+            pass
+
+        self.assertTrue(os.path.exists('bodhi.template.last'))
 
 
 @patch.object(BugzillaClient, 'client')
