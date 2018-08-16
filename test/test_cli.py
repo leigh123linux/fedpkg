@@ -821,7 +821,8 @@ class TestRequestRepo(CliTestCase):
         """Tests a request-repo call with --no-initial-commit"""
 
         cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
-                   'request-repo', '--no-initial-commit', '--exception']
+                   'request-repo', '--no-initial-commit', '--exception',
+                   'somepkg']
         cli = self.get_cli(cli_cmd)
         cli.request_repo()
 
