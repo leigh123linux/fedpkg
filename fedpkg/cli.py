@@ -105,6 +105,7 @@ class fedpkgClient(cliClient):
     def setup_fed_subparsers(self):
         """Register the fedora specific targets"""
 
+        self.register_releases_info()
         self.register_retire()
         self.register_update()
         self.register_request_repo()
@@ -354,25 +355,30 @@ undergo a manual review.
 Please refer to the request-repo command to see what has to be done before
 requesting a dist-git branch.
 
+Branch name could be one of current active Fedora and EPEL releases. Use
+command ``{0} releases-info`` to get release names that can be used to request
+a branch.
+
 Below are various examples of requesting a dist-git branch.
 
 Request a branch inside a cloned package repository:
 
-    fedpkg request-branch f27
+    {0} request-branch f27
 
 Request a branch outside package repository, which could apply to cases of
 requested repository has not been approved and created, or just not change
 directory to package repository:
 
-    fedpkg request-branch --repo foo f27
-'''
+    {0} request-branch --repo foo f27
+'''.format(self.name)
+
         request_branch_parser = self.subparsers.add_parser(
             'request-branch',
             formatter_class=argparse.RawDescriptionHelpFormatter,
             help=help_msg,
             description=description)
         request_branch_parser.add_argument(
-            'branch', nargs='?', help='The branch to request')
+            'branch', nargs='?', help='The branch to request.')
         request_branch_parser.add_argument(
             '--repo',
             required=False,
@@ -409,6 +415,31 @@ directory to package repository:
             help='Make a new branch request for every active Fedora release'
         )
         request_branch_parser.set_defaults(command=self.request_branch)
+
+    def register_releases_info(self):
+        help_msg = 'Print Fedora or EPEL current active releases'
+        parser = self.subparsers.add_parser(
+            'releases-info',
+            help=help_msg,
+            description=help_msg)
+
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument(
+            '-e', '--epel',
+            action='store_true',
+            dest='show_epel_only',
+            help='Only show EPEL releases.')
+        group.add_argument(
+            '-f', '--fedora',
+            action='store_true',
+            dest='show_fedora_only',
+            help='Only show Fedora active releases.')
+        group.add_argument(
+            '-j', '--join',
+            action='store_true',
+            help='Show all releases in one line separated by a space.')
+
+        parser.set_defaults(command=self.show_releases_info)
 
     def register_override(self):
         """Register command line parser for subcommand override
@@ -1078,3 +1109,21 @@ targets to build the package for a particular stream.
             task_id = super(fedpkgClient, self)._build(sets)
             task_ids.append(task_id)
         return task_ids
+
+    def show_releases_info(self):
+        server_url = self.config.get('{0}.pdc'.format(self.name), 'url')
+        releases = get_release_branches(server_url)
+
+        def _join(l):
+            return ' '.join(l)
+
+        if self.args.show_epel_only:
+            print(_join(releases['epel']))
+        elif self.args.show_fedora_only:
+            print(_join(releases['fedora']))
+        elif self.args.join:
+            print(' '.join(itertools.chain(releases['fedora'],
+                                           releases['epel'])))
+        else:
+            print('Fedora: {0}'.format(_join(releases['fedora'])))
+            print('EPEL: {0}'.format(_join(releases['epel'])))

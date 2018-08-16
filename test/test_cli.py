@@ -2165,3 +2165,34 @@ class TestBuildFromStreamBranch(CliTestCase):
         build_target.assert_has_calls([call('f27'), call('f28')])
         _build.assert_has_calls([call(None), call(None)])
         self.assertEqual([1, 2], task_ids)
+
+
+@patch('fedpkg.cli.get_release_branches',
+       return_value={
+           'epel': ['el6', 'epel7'],
+           'fedora': ['f29', 'f28']
+        })
+class TestReleasesInfo(CliTestCase):
+    """Test command releases-info"""
+
+    require_test_repos = False
+
+    def assert_output_releases(self, expected_output, option=[]):
+        with patch('sys.argv', ['fedpkg', 'releases-info'] + option):
+            cli = self.new_cli()
+            with patch('sys.stdout', new=six.StringIO()):
+                cli.show_releases_info()
+                output = sys.stdout.getvalue().strip()
+                self.assertEqual(expected_output, output)
+
+    def test_print_epel_releases_only(self, mock_grb):
+        self.assert_output_releases('el6 epel7', option=['--epel'])
+
+    def test_print_fedora_releases_only(self, mock_grb):
+        self.assert_output_releases('f29 f28', option=['--fedora'])
+
+    def test_print_joined_releaes(self, mock_grb):
+        self.assert_output_releases('f29 f28 el6 epel7', option=['--join'])
+
+    def test_print_releases_in_default(self, mock_grb):
+        self.assert_output_releases('Fedora: f29 f28\nEPEL: el6 epel7')
