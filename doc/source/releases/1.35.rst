@@ -1,0 +1,104 @@
+.. _release_1.35:
+
+fedpkg 1.35 Release Notes
+=========================
+
+Released on *August 21, 2018*
+
+This release requires ``rpkg >= 1.56``.
+
+Python compatibility
+--------------------
+
+fedpkg works with Python 2.6, 2.7, 3.6 and 3.7.
+
+What's new in fedpkg 1.35
+-------------------------
+
+New command ``releases-info``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``releases-info`` is helpful for packagers to know current active
+Fedora or EPEL rleases, or both. For example to show active Fedora
+releases::
+
+  fedpkg releases-info --fedora
+
+This command could run anywhere from local system. It's not necessary
+inside a package repository.
+
+Enable Greenwave policy validation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``rpkg-1.56`` supports to validate Greenwave policy for build RPM
+packages and containers. This fedpkg version enables it.
+
+Allow to create Bodhi update with command line options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``update`` command now has a set of options that allow package
+maintainers to create Bodhi update from command line directly without
+entering the template editor to editor update details.
+
+For example to create a bugfix update::
+
+  fedpkg update --type bugfix --notes "Fix bug xxx"
+
+You could also pass multiple lines of notes to ``--notes``.
+
+Please note that, most of command line arguments have default value
+that is same as the one in the template. If ``--type`` or ``--notes``
+is omitted, template editor is still displayed to let packagers
+confirm and edit update details before proceeding creation.
+
+.. warning::
+
+   Behavior to abort update creation process is changed. Originally,
+   nothing changed in template editor will stop proceeding
+   creation. Since this new version, you could terminate creation
+   process by two ways, one is to commented out all lines, and another
+   one is just remove all lines.
+
+Do not delete ``bodhi.template`` if fail to create update
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There could be some reasons that causes update creation fails. Once it
+happens, ``bodhi.template.last`` is saved and includes what you
+entered via command line arguments or edited in template editor. This
+behavior gives packagers opportunity to get data back and save work
+effort for next try.
+
+Change Logs
+-----------
+
+* Reserve last bodhi template on error - `rhbz#1467897`_ (cqi)
+* New command releases-info - `#247`_ (cqi)
+* Fix a test for request-repo command (cqi)
+* New option to request a repo without an initial commit - `#215`_ (cqi)
+* Add --shell to bash completion for mockbuild (cqi)
+* Greenwave conf and support for gating validation (gnaponie)
+* Allow to create update directly with CLI options - `#93`_  `rhbz#1007157`_ (cqi)
+* Add more tests for utils (cqi)
+* Rewrite method to create bodhi update - `rhbz#1492480`_ (cqi)
+* Mock fedora.client.OpenIdBaseClient._load_cookies (cqi)
+* Do not use configparser.SafeConfigParser in tests (cqi)
+* Fix test_retire to use unittest2 in el6 (cqi)
+* Submit builds from stream branch (cqi)
+* The create new project is not needed for packager (pingou)
+* Add py37 testenv (cqi)
+* Set PYCURL_SSL_LIBRARY directly for installing pycurl (cqi)
+* Fix flake8 errors and typo in tests (cqi)
+* Add tests for some commands (cqi)
+* Add tests for utils.py (cqi)
+* Convert test case for utils.py as normal test case (cqi)
+* Add some tests for BugzillaClient (cqi)
+* Fix TypeError raised from override create command - `#256`_ (cqi)
+* Add missing command and options in bash completion (cqi)
+
+.. _`#93`: https://pagure.io/rpkg/issue/93
+.. _`#215`: https://pagure.io/rpkg/issue/215
+.. _`#247`: https://pagure.io/rpkg/issue/247
+.. _`#256`: https://pagure.io/rpkg/issue/256
+.. _`rhbz#1007157`: https://bugzilla.redhat.com/show_bug.cgi?id=1007157
+.. _`rhbz#1467897`: https://bugzilla.redhat.com/show_bug.cgi?id=1467897
+.. _`rhbz#1492480`: https://bugzilla.redhat.com/show_bug.cgi?id=1492480
