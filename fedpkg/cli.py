@@ -258,7 +258,7 @@ at ~/.config/rpkg/{0}.conf. For example:
 Below is a basic example of the command to request a dist-git repository for
 the package foo:
 
-    fedpkg request-repo name 1234
+    fedpkg request-repo foo 1234
 
 Another example to request a module foo:
 
@@ -329,7 +329,7 @@ requesting a repository in the tests namespace.
 Below is a basic example of the command to request a dist-git repository for
 the space tests/foo:
 
-    fedpkg request-tests-repo name "Description of the repository"
+    fedpkg request-tests-repo foo "Description of the repository"
 
 Note that the space name needs to reflect the intent of the tests and will
 undergo a manual review.
