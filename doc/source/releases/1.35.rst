@@ -15,6 +15,26 @@ fedpkg works with Python 2.6, 2.7, 3.6 and 3.7.
 What's new in fedpkg 1.35
 -------------------------
 
+Submit builds from stream branch
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+fedpkg is able to submit multiple builds from a stream branch, if a config file
+``package.cfg`` is created in a stream branch. This file is an INI file, and
+currently has one configuration section named ``koji``, for example:
+
+.. code-block:: ini
+
+   [koji]
+   targets = f28 epel7
+
+which means when packager runs command ``build``, builds will be submitted and
+built for release ``f28`` and ``epel7``.
+
+This file could be created for each stream branch and give specific
+configuration for a branch.
+
+Refer to ``fedpkg build -h`` for more details.
+
 New command ``releases-info``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
