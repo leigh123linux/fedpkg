@@ -24,20 +24,20 @@ class TestDetermineRuntimeEnv(CommandTestCase):
         super(TestDetermineRuntimeEnv, self).setUp()
         self.cmd = self.make_commands()
 
-    @patch('platform.linux_distribution')
+    @patch('fedpkg.linux_distribution')
     def test_return_fedora_disttag(self, linux_distribution):
         linux_distribution.return_value = ('Fedora', '25', 'Twenty Five')
 
         result = self.cmd._determine_runtime_env()
         self.assertEqual('fc25', result)
 
-    @patch('platform.linux_distribution')
+    @patch('fedpkg.linux_distribution')
     def test_return_None_if_os_is_unknown(self, linux_distribution):
         linux_distribution.side_effect = ValueError
 
         self.assertEqual(None, self.cmd._determine_runtime_env())
 
-    @patch('platform.linux_distribution')
+    @patch('fedpkg.linux_distribution')
     def test_return_for_rhel(self, linux_distribution):
         linux_distribution.return_value = ('Red Hat Enterprise Linux Server',
                                            '6.8',
@@ -55,7 +55,7 @@ class TestDetermineRuntimeEnv(CommandTestCase):
         ]
 
         for dist, expected_dist_tag in dists:
-            with patch('platform.linux_distribution', return_value=dist):
+            with patch('fedpkg.linux_distribution', return_value=dist):
                 result = self.cmd._determine_runtime_env()
                 self.assertEqual(expected_dist_tag, result)
 

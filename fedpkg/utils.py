@@ -20,6 +20,11 @@ import requests
 from requests.exceptions import ConnectionError
 from pyrpkg import rpkgError
 
+try:
+    from distro import linux_distribution  # noqa
+except ImportError:
+    from platform import linux_distribution  # noqa
+
 
 def query_pdc(server_url, endpoint, params, timeout=60):
     api_url = '{0}/rest_api/v1/{1}/'.format(

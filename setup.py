@@ -32,6 +32,10 @@ if ver[0] <= 2 and ver[1] < 7:
     tests_require += [
         'unittest2'
     ]
+else:
+    install_requires += [
+        'distro',
+    ]
 
 
 setup(

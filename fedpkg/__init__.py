@@ -13,13 +13,13 @@ import pyrpkg
 import os
 import git
 import re
-import platform
 
 from datetime import datetime, timedelta
 
 from . import cli  # noqa
 from .lookaside import FedoraLookasideCache
 from pyrpkg.utils import cached_property
+from .utils import linux_distribution
 
 try:
     from bodhi.client.bindings import BodhiClient as _BodhiClient
@@ -232,7 +232,7 @@ class Commands(pyrpkg.Commands):
            conflicting
         """
         try:
-            runtime_os, runtime_version, _ = platform.linux_distribution()
+            runtime_os, runtime_version, _ = linux_distribution()
         except Exception:
             return None
 
