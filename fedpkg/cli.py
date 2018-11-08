@@ -52,6 +52,10 @@ request=%(request)s
 # Bug numbers: 1234,9876
 bugs=%(bugs)s
 
+# Severity: low, medium, high, urgent
+# This is required for security updates.
+# severity=unspecified
+
 %(changelog)s
 # Here is where you give an explanation of your update.
 # Content can span multiple lines, as long as they are indented deeper than
