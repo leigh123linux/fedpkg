@@ -644,8 +644,13 @@ targets to build the package for a particular stream.
         return False
 
     def _prepare_bodhi_template(self, template_file):
+        try:
+            nvr = self.cmd.nvr
+        except rpkgError:
+            # This is not an RPM, can't get NVR
+            nvr = "FILL_IN_NVR_HERE"
         bodhi_args = {
-            'nvr': self.cmd.nvr,
+            'nvr': nvr,
             'bugs': six.u(''),
             'descr': six.u(
                 'Here is where you give an explanation of your update.'),
@@ -662,10 +667,15 @@ targets to build the package for a particular stream.
         else:
             bodhi_args['type_'] = ''
 
-        self.cmd.clog()
-        clog_file = os.path.join(self.cmd.path, 'clog')
-        with io.open(clog_file, encoding='utf-8') as f:
-            clog = f.read()
+        try:
+            self.cmd.clog()
+            clog_file = os.path.join(self.cmd.path, 'clog')
+            with io.open(clog_file, encoding='utf-8') as f:
+                clog = f.read()
+            os.unlink(clog_file)
+        except rpkgError:
+            # Not an RPM, no changelog to work with
+            clog = ""
 
         if self.args.bugs:
             bodhi_args['bugs'] = self.args.bugs
@@ -721,7 +731,6 @@ targets to build the package for a particular stream.
                                 'as bodhi.template.last' % e)
             finally:
                 os.unlink(bodhi_template_file)
-                os.unlink('clog')
         else:
             self.log.info('Bodhi update aborted!')
 
