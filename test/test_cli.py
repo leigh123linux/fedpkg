@@ -204,8 +204,8 @@ class TestUpdate(CliTestCase):
 
             unlink.assert_has_calls([
                 call('bodhi.template'),
-                call('clog')
-            ])
+                call(os.path.join(cli.cmd.path, 'clog'))
+            ], any_order=True)
 
         with io.open('bodhi.template', encoding='utf-8') as f:
             bodhi_template = f.read()
