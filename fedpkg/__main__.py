@@ -59,14 +59,6 @@ def main():
     client.do_imports(site='fedpkg')
     client.parse_cmdline()
 
-    # This is due to a difference argparse behavior to Python 2 version.
-    # In Python 3, argparse will proceed to here without reporting
-    # "too few arguments". Instead, client.args does not have attribute
-    # command.
-    if not hasattr(client.args, 'command'):
-        client.parser.print_help()
-        sys.exit(1)
-
     if not client.args.path:
         try:
             client.args.path = pyrpkg.utils.getcwd()
