@@ -803,7 +803,7 @@ targets to build the package for a particular stream.
         # bug is not a required parameter in the event the packager has an
         # exception, in which case, they may use the --exception flag
         # neither in case of modules, which don't require a formal review
-        if not bug and not exception and ns not in ['tests', 'modules']:
+        if not bug and not exception and ns not in ['tests', 'modules', 'flatpaks']:
             raise rpkgError(
                 'A Bugzilla bug is required on new repository requests')
         repo_regex = r'^[a-zA-Z0-9_][a-zA-Z0-9-_.+]*$'
@@ -816,7 +816,7 @@ targets to build the package for a particular stream.
                 .format(repo_name))
 
         summary_from_bug = ''
-        if bug and ns not in ['tests', 'modules']:
+        if bug and ns not in ['tests', 'modules', 'flatpaks']:
             bz_url = config.get('{0}.bugzilla'.format(name), 'url')
             bz_client = BugzillaClient(bz_url)
             bug_obj = bz_client.get_review_bug(bug, ns, repo_name)
@@ -929,13 +929,13 @@ targets to build the package for a particular stream.
             if is_epel(branch):
                 assert_valid_epel_package(repo_name, branch)
 
-            if ns in ['modules', 'test-modules']:
+            if ns in ['modules', 'test-modules', 'flatpaks']:
                 branch_valid = bool(re.match(r'^[a-zA-Z0-9.\-_+]+$', branch))
                 if not branch_valid:
                     raise rpkgError(
                         'Only characters, numbers, periods, dashes, '
-                        'underscores, and pluses are allowed in module branch '
-                        'names')
+                        'underscores, and pluses are allowed in {} branch '
+                        'names'.format('flatpak' if ns == 'flatpaks' else 'module'))
             release_branches = list(itertools.chain(
                 *list(get_release_branches(pdc_url).values())))
             if branch in release_branches:

@@ -1223,6 +1223,22 @@ https://pagure.stg.example.com/releng/fedora-scm-requests/issue/3"""
         except rpkgError as error:
             self.assertEqual(str(error), expected_error)
 
+    def test_request_branch_invalid_flatpak_branch_name(self):
+        """Test request-branch raises an exception when a invalid module branch
+        name is supplied"""
+        cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
+                   '--name', 'nethack', '--namespace', 'flatpaks',
+                   'request-branch', 'some:branch']
+        cli = self.get_cli(cli_cmd)
+        expected_error = (
+            'Only characters, numbers, periods, dashes, underscores, and '
+            'pluses are allowed in flatpak branch names')
+        try:
+            cli.request_branch()
+            assert False, 'rpkgError not raised'
+        except rpkgError as error:
+            self.assertEqual(str(error), expected_error)
+
     def test_request_branch_no_branch(self):
         """Test request-branch raises an exception when a branch isn't supplied
         """
