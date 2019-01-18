@@ -934,7 +934,7 @@ targets to build the package for a particular stream.
                 if not branch_valid:
                     raise rpkgError(
                         'Only characters, numbers, periods, dashes, '
-                        'underscores, and pluses are allowed in {} branch '
+                        'underscores, and pluses are allowed in {0} branch '
                         'names'.format('flatpak' if ns == 'flatpaks' else 'module'))
             release_branches = list(itertools.chain(
                 *list(get_release_branches(pdc_url).values())))

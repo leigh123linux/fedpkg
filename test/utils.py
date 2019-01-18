@@ -250,7 +250,7 @@ class CommandTestCase(RepoCreationMixin, Assertions, Utils, unittest.TestCase):
         """
         heads = [head for head in repo.heads if head.name == branch_name]
         assert len(heads) > 0, \
-            'Repo must have a local branch named {} that ' \
+            'Repo must have a local branch named {0} that ' \
             'is for running tests. But now, it does not exist. Please check ' \
             'if the repo is correct.'.format(branch_name)
 
