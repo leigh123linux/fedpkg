@@ -1,0 +1,54 @@
+.. _release_1.36:
+
+fedpkg 1.36 Release Notes
+=========================
+
+Released on *February 1, 2018*
+
+This release requires ``rpkg >= 1.57``.
+
+Python compatibility
+--------------------
+
+fedpkg works with Python 2.6, 2.7, 3.6 and 3.7.
+
+What's new in fedpkg 1.36
+-------------------------
+
+Add support for a ``flatpaks`` namespace
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+flatpaks will be added as a separate namespace in Fedora distgit:
+see more info at `fedora devel mailing list`_.
+
+The handling will be like modules - where flatpaks are currently:
+- No bugzilla bug is required for repository creation
+- Branch names must be valid module stream names
+
+Make ``fedpkg update`` work for containers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We don't really have an NVR available, but users can fill it in by themselves.
+Also add ``severity=`` option to ``fedpkg update`` template. This is now
+required argument for all security updates.
+
+Change Logs
+-----------
+
+* Added update-docs script (onosek)
+* Sdist fix and Python 2.6 compatibility (onosek)
+* Add support for a 'flatpaks' namespace (otaylor)
+* Move argparse fix to rpkg - `#299`_ (onosek)
+* Fix update command related tests (cqi)
+* Make update work for containers - `#296`_ (lsedlar)
+* Add 'severity=' option to 'fedpkg update' template (praiskup)
+* Add contributing guide - `#293`_ (lsedlar)
+* Use module distro instead of platform - `#278`_ (cqi)
+* Add missing content to 1.35 release notes (cqi)
+* Help: Use foo in foo examples, not name (miro)
+
+.. _`fedora devel mailing list`: https://lists.fedoraproject.org/archives/list/devel@lists.fedoraproject.org/thread/LOLYI2FHGCVJ7EKC6NB3CZ3ACBRKQFCK/
+.. _`#299`: https://pagure.io/fedpkg/issue/299
+.. _`#296`: https://pagure.io/fedpkg/issue/296
+.. _`#293`: https://pagure.io/fedpkg/issue/293
+.. _`#278`: https://pagure.io/fedpkg/issue/278
