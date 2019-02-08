@@ -32,6 +32,7 @@ _fedpkg()
     container-build diff gimmespec giturl help gitbuildhash import install lint \
     local mockbuild mock-config module-build module-build-cancel \
     module-build-local module-build-info module-build-watch module-overview \
+    module-scratch-build \
     new new-sources patch prep pull push retire request-branch request-repo \
     scratch-build sources srpm switch-branch tag unused-patches update upload \
     verify-files verrel override"
@@ -87,7 +88,7 @@ _fedpkg()
     # parse command specific options
 
     local options=
-    local options_target= options_arches= options_branch= options_string= options_file= options_dir= options_srpm= options_mroot= options_builder= options_namespace=
+    local options_target= options_arches= options_branch= options_string= options_file= options_dir= options_srpm= options_srpms= options_mroot= options_builder= options_namespace=
     local options_update_type= options_update_request=
     local after= after_more=
 
@@ -163,16 +164,26 @@ _fedpkg()
             options_mroot="--root --mock-config"
             ;;
         module-build)
-            options="--watch"
-            options_string="--optional"
+            options="--scratch --watch"
+            options_string="--optional --requires --buildrequires"
+            options_file="--file"
+            options_srpms="--srpms"
             ;;
         module-build-local)
             options="--skip-tests"
-            options_string="--add-local-build"
+            options_string="--add-local-build --stream --set-default-stream"
+            options_file="--file"
+            options_srpms="--srpms"
             ;;
         module-overview)
             options="--unfinished"
             options_string="--limit"
+            ;;
+        module-scratch-build)
+            options="--watch"
+            options_string="--optional --requires --buildrequires"
+            options_file="--file"
+            options_srpms="--srpms"
             ;;
         patch)
             options="--rediff"
@@ -233,7 +244,7 @@ _fedpkg()
 
     local all_options="--help $options"
     local all_options_value="$options_target $options_arches $options_branch \
-    $options_string $options_file $options_dir $options_srpm $options_mroot \
+    $options_string $options_file $options_dir $options_srpm $options_srpms $options_mroot \
     $options_builder $options_namespace $options_update_type $options_update_request"
 
     # count non-option parameters
@@ -265,6 +276,9 @@ _fedpkg()
         COMPREPLY=( $(compgen -W "$(_fedpkg_arch) $all_options" -- "$cur") )
 
     elif [[ -n $options_srpm ]] && in_array "$prev" "$options_srpm"; then
+        _filedir_exclude_paths "*.src.rpm"
+
+    elif [[ -n $options_srpms ]] && in_array "$last_option" "$options_srpms"; then
         _filedir_exclude_paths "*.src.rpm"
 
     elif [[ -n $options_branch ]] && in_array "$prev" "$options_branch"; then
