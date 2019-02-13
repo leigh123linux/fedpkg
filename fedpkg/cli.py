@@ -855,7 +855,7 @@ targets to build the package for a particular stream.
         pagure_url = config.get('{0}.pagure'.format(name), 'url')
         pagure_token = get_pagure_token(config, name)
         print(new_pagure_issue(
-            pagure_url, pagure_token, ticket_title, ticket_body))
+            pagure_url, pagure_token, ticket_title, ticket_body, name))
 
     def request_branch(self):
         if self.args.repo_name_for_branch:
@@ -982,7 +982,7 @@ targets to build the package for a particular stream.
                 b, ns, repo_name)
 
             print(new_pagure_issue(
-                pagure_url, pagure_token, ticket_title, ticket_body))
+                pagure_url, pagure_token, ticket_title, ticket_body, name))
 
             # For non-standard rpm branch requests, also request a matching new
             # module repo with a matching branch.

@@ -87,7 +87,7 @@ def get_sl_type(url, sl_name):
         return None
 
 
-def new_pagure_issue(url, token, title, body):
+def new_pagure_issue(url, token, title, body, cli_name):
     """
     Posts a new Pagure issue
     :param url: a string of the URL to Pagure
@@ -127,6 +127,11 @@ def new_pagure_issue(url, token, title, body):
             rv_error = rv.json().get('error')
         except ValueError:
             rv_error = rv.text
+        # show hint for expired token
+        if re.search(r"Invalid or expired token", rv_error, re.IGNORECASE):
+            base_error_msg += '\nFor invalid or expired token refer to ' \
+                '"{0} request-repo -h" to set a token in your user ' \
+                'configuration.'.format(cli_name)
         raise rpkgError(base_error_msg.format(rv_error))
 
     return '{0}/releng/fedora-scm-requests/issue/{1}'.format(

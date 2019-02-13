@@ -357,7 +357,7 @@ class TestNewPagureIssue(unittest.TestCase):
         six.assertRaisesRegex(
             self, rpkgError, 'The connection to Pagure failed',
             utils.new_pagure_issue,
-            'http://distgit/', '123456', 'new package', {'repo': 'pkg1'})
+            'http://distgit/', '123456', 'new package', {'repo': 'pkg1'}, 'fedpkg')
 
     def test_responses_not_ok_and_response_body_is_not_json(self, post):
         rv = Mock(ok=False, text='error')
@@ -368,7 +368,22 @@ class TestNewPagureIssue(unittest.TestCase):
             self, rpkgError,
             'The following error occurred while creating a new issue',
             utils.new_pagure_issue,
-            'http://distgit/', '123456', 'new package', {'repo': 'pkg1'})
+            'http://distgit/', '123456', 'new package', {'repo': 'pkg1'}, 'fedpkg')
+
+    def test_responses_not_ok_when_token_is_expired(self, post):
+        rv = Mock(
+            ok=False,
+            text='Invalid or expired token. Please visit '
+                 'https://pagure.io/settings#api-keys to get or renew your API token.')
+        rv.json.side_effect = ValueError
+        post.return_value = rv
+
+        six.assertRaisesRegex(
+            self, rpkgError,
+            'For invalid or expired token refer to "fedpkg request-repo -h" to set '
+            'a token in your user configuration.',
+            utils.new_pagure_issue,
+            'http://distgit/', '123456', 'new package', {'repo': 'pkg1'}, 'fedpkg')
 
     def test_create_pagure_issue(self, post):
         rv = Mock(ok=True)
@@ -381,7 +396,8 @@ class TestNewPagureIssue(unittest.TestCase):
         issue_url = utils.new_pagure_issue(pagure_api_url,
                                            '123456',
                                            'new package',
-                                           issue_ticket_body)
+                                           issue_ticket_body,
+                                           'fedpkg',)
 
         expected_issue_url = (
             '{0}/releng/fedora-scm-requests/issue/1'
