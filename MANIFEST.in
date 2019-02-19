@@ -1,4 +1,4 @@
-include COPYING README git-changelog CHANGELOG.rst CONTRIBUTING
+include COPYING README.rst git-changelog CHANGELOG.rst CONTRIBUTING
 include doc/fedpkg_man_page.py
 include doc/release-guide.markdown
 include test/utils.py
