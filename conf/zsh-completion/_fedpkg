@@ -226,8 +226,8 @@ _fedpkg-module-build () {
     '--requires[Requires to override in the form of "name:stream"]' \
     '--optional[MBS optional arguments in the form of "key=value"]:optional' \
     '--scratch[Perform a scratch build]' \
-    '--file[The modulemd yaml file for module scratch build.]:file:_files' \
-    '--srpms[Include one or more srpms for module scratch build.]:*:srpms:_files -g "*.src.rpm"' \
+    '--file[The modulemd yaml file for module scratch build.]:file:_files -g "*.yaml"' \
+    '*--srpm[Include srpm for module scratch build.]:srpm:_files -g "*.src.rpm"' \
     ':scm_url' \
     ':branch'
 }
@@ -254,8 +254,8 @@ _fedpkg-module-build-local () {
     '--add-local-build[Import previously finished local module builds into MBS]:build_id' \
     '--stream[The module'\''s stream/SCM branch.]:stream' \
     '(--set-default-stream -s)'{--set-default-stream,-s}'[Set the default stream for given module dependency.]:default_stream' \
-    '--file[The module'\''s modulemd yaml file.]:file:_files' \
-    '--srpms[Include one or more srpms for module build.]:*:srpms:_files -g "*.src.rpm"' \
+    '--file[The module'\''s modulemd yaml file.]:file:_files -g "*.yaml"' \
+    '*--srpm[Include srpm for module build.]:srpm:_files -g "*.src.rpm"' \
     ':scm_url' \
     ':branch'
 }
@@ -283,8 +283,8 @@ _fedpkg-module-scratch-build () {
     '--buildrequires[Buildrequires to override in the form of "name:stream"]' \
     '--requires[Requires to override in the form of "name:stream"]' \
     '--optional[MBS optional arguments in the form of "key=value"]:optional' \
-    '--file[The modulemd yaml file for module scratch build.]:file:_files' \
-    '--srpms[Include one or more srpms for module scratch build.]:*:srpms:_files -g "*.src.rpm"' \
+    '--file[The modulemd yaml file for module scratch build.]:file:_files -g "*.yaml"' \
+    '*--srpm[Include srpm for module scratch build.]:srpm:_files -g "*.src.rpm"' \
     ':scm_url' \
     ':branch'
 }

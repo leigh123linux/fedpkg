@@ -88,8 +88,9 @@ _fedpkg()
     # parse command specific options
 
     local options=
-    local options_target= options_arches= options_branch= options_string= options_file= options_dir= options_srpm= options_srpms= options_mroot= options_builder= options_namespace=
+    local options_target= options_arches= options_branch= options_string= options_file= options_dir= options_srpm= options_mroot= options_builder= options_namespace=
     local options_update_type= options_update_request=
+    local options_yaml=
     local after= after_more=
 
     case $command in
@@ -166,14 +167,14 @@ _fedpkg()
         module-build)
             options="--scratch --watch"
             options_string="--optional --requires --buildrequires"
-            options_file="--file"
-            options_srpms="--srpms"
+            options_yaml="--file"
+            options_srpm="--srpm"
             ;;
         module-build-local)
             options="--skip-tests"
             options_string="--add-local-build --stream --set-default-stream"
-            options_file="--file"
-            options_srpms="--srpms"
+            options_yaml="--file"
+            options_srpm="--srpm"
             ;;
         module-overview)
             options="--unfinished"
@@ -182,8 +183,8 @@ _fedpkg()
         module-scratch-build)
             options="--watch"
             options_string="--optional --requires --buildrequires"
-            options_file="--file"
-            options_srpms="--srpms"
+            options_yaml="--file"
+            options_srpm="--srpm"
             ;;
         patch)
             options="--rediff"
@@ -244,8 +245,9 @@ _fedpkg()
 
     local all_options="--help $options"
     local all_options_value="$options_target $options_arches $options_branch \
-    $options_string $options_file $options_dir $options_srpm $options_srpms $options_mroot \
-    $options_builder $options_namespace $options_update_type $options_update_request"
+    $options_string $options_file $options_dir $options_srpm $options_mroot \
+    $options_builder $options_namespace $options_update_type $options_update_request \
+    $options_yaml"
 
     # count non-option parameters
 
@@ -278,8 +280,8 @@ _fedpkg()
     elif [[ -n $options_srpm ]] && in_array "$prev" "$options_srpm"; then
         _filedir_exclude_paths "*.src.rpm"
 
-    elif [[ -n $options_srpms ]] && in_array "$last_option" "$options_srpms"; then
-        _filedir_exclude_paths "*.src.rpm"
+    elif [[ -n $options_yaml ]] && in_array "$prev" "$options_yaml"; then
+        _filedir_exclude_paths "yaml"
 
     elif [[ -n $options_branch ]] && in_array "$prev" "$options_branch"; then
         COMPREPLY=( $(compgen -W "$(_fedpkg_branch "$path")" -- "$cur") )
