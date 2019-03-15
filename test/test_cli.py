@@ -122,7 +122,7 @@ class TestUpdate(CliTestCase):
         self.fake_clog = list(six.moves.map(six.u, [
             'Add tests for command update',
             'New command update - #1000',
-            'Fix tests - #2000',
+            'Fix tests - #2000, #notabug',
             '处理一些Unicode字符číář',
         ]))
         clog_file = os.path.join(self.cloned_repo_path, 'clog')

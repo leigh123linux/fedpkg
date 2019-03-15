@@ -684,7 +684,7 @@ targets to build the package for a particular stream.
             bodhi_args['bugs'] = ','.join(self.args.bugs)
         else:
             # Extract bug numbers from the latest changelog entry
-            bugs = re.findall(r'#([0-9]*)', clog)
+            bugs = re.findall(r'#([0-9]+)', clog)
             if bugs:
                 bodhi_args['bugs'] = ','.join(bugs)
 
