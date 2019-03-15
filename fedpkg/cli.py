@@ -167,6 +167,7 @@ change log if option --notes is omitted.
                 raise error
             if karma <= 0:
                 raise error
+            return karma
 
         def validate_unstable_karma(value):
             error = argparse.ArgumentTypeError(
@@ -177,11 +178,13 @@ change log if option --notes is omitted.
                 raise error
             if karma >= 0:
                 raise error
+            return karma
 
         def validate_bugs(value):
             if not value.isdigit():
                 raise argparse.ArgumentTypeError(
                     'Invalid bug {0}. It should be an integer.'.format(value))
+            return value
 
         update_parser.add_argument(
             '--type',
@@ -678,7 +681,7 @@ targets to build the package for a particular stream.
             clog = ""
 
         if self.args.bugs:
-            bodhi_args['bugs'] = self.args.bugs
+            bodhi_args['bugs'] = ','.join(self.args.bugs)
         else:
             # Extract bug numbers from the latest changelog entry
             bugs = re.findall(r'#([0-9]*)', clog)
