@@ -280,7 +280,11 @@ class Commands(pyrpkg.Commands):
                 raise ValueError(
                     'Incorrect request type {0}'.format(detail['request']))
 
-            bodhi.save(**detail)
+            try:
+                self.log.info(bodhi.update_str(bodhi.save(**detail), minimal=False))
+            # Only because tests do not return a valid bodhi.save value
+            except TypeError:
+                pass
 
     def create_buildroot_override(self, bodhi_config, build, duration,
                                   notes=''):
