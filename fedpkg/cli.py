@@ -111,7 +111,6 @@ class fedpkgClient(cliClient):
         """Register the fedora specific targets"""
 
         self.register_releases_info()
-        self.register_retire()
         self.register_update()
         self.register_request_repo()
         self.register_request_tests_repo()
@@ -119,19 +118,6 @@ class fedpkgClient(cliClient):
         self.register_override()
 
     # Target registry goes here
-    def register_retire(self):
-        """Register the retire target"""
-
-        retire_parser = self.subparsers.add_parser(
-            'retire',
-            help='Retire a package',
-            description='This command will remove all files from the repo, '
-                        'leave a dead.package file, and push the changes.'
-        )
-        retire_parser.add_argument('reason',
-                                   help='Reason for retiring the package')
-        retire_parser.set_defaults(command=self.retire)
-
     def register_update(self):
         description = '''
 This will create a bodhi update request for the current package n-v-r.
@@ -587,16 +573,6 @@ targets to build the package for a particular stream.
 '''.format('\n'.join(textwrap.wrap(build_parser.description)))
 
     # Target functions go here
-    def retire(self):
-        # Skip if package is already retired...
-        if os.path.isfile(os.path.join(self.cmd.path, 'dead.package')):
-            self.log.warn('dead.package found, package probably already '
-                          'retired - will not remove files from git or '
-                          'overwrite existing dead.package file')
-        else:
-            self.cmd.retire(self.args.reason)
-        self.push()
-
     def _format_update_clog(self, clog):
         ''' Format clog for the update template. '''
         lines = [l for l in clog.split('\n') if l]

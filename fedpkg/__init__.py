@@ -86,6 +86,9 @@ class Commands(pyrpkg.Commands):
         super(Commands, self).__init__(*args, **kwargs)
 
         self.source_entry_type = 'bsd'
+        # un-block retirement of packages (module retirement is allowed by default)
+        if 'rpms' in self.block_retire_ns:
+            self.block_retire_ns.remove('rpms')
 
     def load_user(self):
         """This sets the user attribute, based on the Fedora SSL cert."""
@@ -258,28 +261,6 @@ class Commands(pyrpkg.Commands):
         """
         url = super(Commands, self).construct_build_url(*args, **kwargs)
         return 'git+{0}'.format(url)
-
-    def retire(self, message):
-        """Delete all tracked files and commit a new dead.package file
-
-        Use optional message in commit.
-
-        Runs the commands and returns nothing
-        """
-        cmd = ['git']
-        if self.quiet:
-            cmd.append('--quiet')
-        cmd.extend(['rm', '-rf', '.'])
-        self._run_command(cmd, cwd=self.path)
-
-        fd = open(os.path.join(self.path, 'dead.package'), 'w')
-        fd.write(message + '\n')
-        fd.close()
-
-        cmd = ['git', 'add', os.path.join(self.path, 'dead.package')]
-        self._run_command(cmd, cwd=self.path)
-
-        self.commit(message=message)
 
     def update(self, bodhi_config, template='bodhi.template', bugs=[]):
         """Submit an update to bodhi using the provided template."""
