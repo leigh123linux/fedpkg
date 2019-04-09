@@ -186,7 +186,7 @@ class TestLoadRpmDefines(CommandTestCase):
             "--define '_builddir %s'" % self.cmd.path,
             "--define '_srcrpmdir %s'" % self.cmd.path,
             "--define '_rpmdir %s'" % self.cmd.path,
-            "--define 'dist .%s'" % self.cmd._disttag,
+            "--define 'dist %%{?distprefix}.%s'" % self.cmd._disttag,
             "--define '%s %s'" % (self.cmd._distvar, self.cmd._distval),
             "--eval '%%undefine %s'" % self.cmd._distunset,
             "--define '%s 1'" % self.cmd._disttag,

@@ -160,7 +160,7 @@ class Commands(pyrpkg.Commands):
                             "--define '_builddir %s'" % self.path,
                             "--define '_srcrpmdir %s'" % self.path,
                             "--define '_rpmdir %s'" % self.path,
-                            "--define 'dist .%s'" % self._disttag,
+                            "--define 'dist %%{?distprefix}.%s'" % self._disttag,
                             "--define '%s %s'" % (self._distvar,
                                                   self._distval),
                             "--eval '%%undefine %s'" % self._distunset,
