@@ -152,7 +152,8 @@ class TestUpdate(CliTestCase):
     # Do not operate OpenIDC session file with lock
     @patch('fedora.client.OpenIdBaseClient._load_cookies')
     def assert_bodhi_update(self, cli, _load_cookies, send_request, csrf,
-                            update_type=None, request_type=None, notes=None):
+                            update_type=None, request_type=None, notes=None,
+                            stable_karma=None, unstable_karma=None):
         csrf.return_value = '123456'
 
         def run_command_side_effect(command, shell):
@@ -186,8 +187,8 @@ class TestUpdate(CliTestCase):
             'suggest': 'unspecified',
             'type': update_type,
             'type_': update_type,
-            'stable_karma': '3',
-            'unstable_karma': '-3',
+            'stable_karma': stable_karma or '3',
+            'unstable_karma': unstable_karma or '-3',
             'csrf_token': csrf.return_value,
         }
         if notes:
@@ -254,6 +255,16 @@ class TestUpdate(CliTestCase):
 
         self.mock_run_command.assert_called_once_with(
             ['vi', 'bodhi.template'], shell=True)
+
+    def test_request_update_with_karma(self):
+        cli_cmd = [
+            'fedpkg', '--path', self.cloned_repo_path, 'update',
+            '--stable-karma', '1', '--unstable-karma', '-1'
+        ]
+
+        cli = self.get_cli(cli_cmd)
+        self.assert_bodhi_update(cli, update_type='enhancement',
+                                 stable_karma='1', unstable_karma='-1')
 
     @patch('fedpkg.Commands.update', side_effect=OSError)
     def test_handle_any_errors_raised_when_execute_bodhi(self, update):
