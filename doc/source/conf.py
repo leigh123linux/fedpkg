@@ -24,9 +24,9 @@ copyright = '2018, fedpkg Team'
 author = 'fedpkg Team'
 
 # The short X.Y version
-version = '1.36'
+version = '1.37'
 # The full version, including alpha/beta/rc tags
-release = '1.36'
+release = '1.37'
 
 
 # -- General configuration ---------------------------------------------------

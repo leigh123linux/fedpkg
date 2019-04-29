@@ -1,0 +1,79 @@
+.. _release_1.37:
+
+fedpkg 1.37 Release Notes
+=========================
+
+Released on *April 29, 2019*
+
+This release requires ``rpkg >= 1.58``.
+
+Python compatibility
+--------------------
+
+fedpkg works with Python 2.6, 2.7, 3.6 and 3.7.
+
+What's new in fedpkg 1.37
+-------------------------
+
+Ignore files in a cloned repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Git will ignore automatically generated files. Ignored patterns can be
+specified in config. Initial patterns were added. Patterns are applied in
+``.git/info/exclude`` file only when repository is cloned. And changes are
+valid only for local repository.
+
+Enable shell completion for module scratch builds
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Add custom SRPM shell completion with local module builds.
+* Add missing shell completion options for local module builds.
+* Require SRPMs to be specified individually using multiple ``--srpm SRPM``
+  options.
+* Enable completion of modulemd file path by yaml extension.
+
+Show hint when Pagure token expires
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When Pagure token is expired, hint is added in commands ``fedpkg request-repo``
+and ``fedpkg request-branch`` to keep user informed how to renew the token.
+
+Include possible distprefix in "--define dist" for Forge-based packages
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In forge based packages, and most notably all Golang packages, dist tag are
+computed by a lua script in order to generate a snapshot date and shortcommit.
+
+This patch passes the computed ``%{?distprefix}`` in ``dist`` to take into
+account the specificity of Forge based packages.
+
+Other small fixes
+~~~~~~~~~~~~~~~~~
+
+* Make ``fedpkg update`` output a report after success.
+* Fix fedpkg update --bugs detection.
+* The ``retire`` command is now included in rpkg, supporting both packages
+  and modules.
+
+Change Logs
+-----------
+
+* Ignore files in a cloned repository - patterns (onosek)
+* Create env without --system-site-packages enabled to run flake8 (cqi)
+* Include possible distprefix in --define dist for Forge-based packages
+  (zebob.m)
+* Revise shell completion for module scratch builds to require SRPMs to be
+  specified individually using multiple '--srpm SRPM' options, and enable
+  completion of modulemd file path by yaml extension. (mmathesi)
+* Enable shell completion for module scratch builds. Add custom SRPM shell
+  completion with local module builds. Add missing shell completion options for
+  local module builds. (mmathesi)
+* Make fedpkg update output a report after success - `#315`_ (zebob.m)
+* Retire 'retire' command from 'fedpkg' (mmathesi)
+* More specific expression for bug search (onosek)
+* Fix fedpkg update --bugs detection (zebob.m)
+* README: add links and format change (onosek)
+* Show hint when Pagure token expires - `#285`_ (onosek)
+
+.. _`#315`: https://pagure.io/fedpkg/issue/315
+.. _`#285`: https://pagure.io/fedpkg/issue/285
