@@ -84,7 +84,7 @@ def check_bodhi_version():
     except pkg_resources.DistributionNotFound:
         raise rpkgError('bodhi-client < 2.0 is not supported.')
     major = int(dist.version.split('.', 1)[0])
-    if major >= 4:
+    if major >= 5:
         raise rpkgError(
             'This system has bodhi v{0}, which is unsupported.'.format(major))
 
