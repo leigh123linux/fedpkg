@@ -904,9 +904,25 @@ targets to build the package for a particular stream.
                                 'a git repository')
 
         pdc_url = config.get('{0}.pdc'.format(name), 'url')
+        # When a 'epel\d' branch is requested, it should automatically request
+        # 'epel\d+-playground' branch.
+        epel_playground = False
+        epel_version = None
         if branch:
+            # Check if the requested branch is an epel branch
+            match = re.match(r'^epel(?P<epel_version>\d+)$', branch)
+            if match:
+                epel_playground = True
+                epel_version = int(match.groupdict()["epel_version"])
+
             if is_epel(branch):
                 assert_valid_epel_package(repo_name, branch)
+
+            # Requesting epel\d-playground branches is not allowed
+            if bool(re.match(r'^epel\d+-playground$', branch)):
+                raise rpkgError(
+                    'You cannot directly request {0} branch, as they are '
+                    'created as part of epel branch requests'.format(branch))
 
             if ns in ['modules', 'test-modules', 'flatpaks']:
                 branch_valid = bool(re.match(r'^[a-zA-Z0-9.\-_+]+$', branch))
@@ -941,6 +957,11 @@ targets to build the package for a particular stream.
                 *list(get_release_branches(pdc_url).values())))
             branches = [b for b in release_branches
                         if re.match(r'^(f\d+)$', b)]
+        # If the requested branch is epel branch then also add epel\d+-playground branch
+        # to the request list.
+        # TODO: Remove the check for epel version >= 7 when we enable playground for epel7
+        elif epel_playground and epel_version >= 7:
+            branches = [branch, branch+"-playground"]
         else:
             branches = [branch]
 
@@ -968,6 +989,7 @@ targets to build the package for a particular stream.
             auto_module = (
                 ns == 'rpms'
                 and not re.match(RELEASE_BRANCH_REGEX, b)
+                and not epel_playground  # Dont run auto_module on epel requests
                 and not no_auto_module
             )
             if auto_module:
