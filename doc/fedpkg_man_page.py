@@ -3,7 +3,6 @@
 
 import os
 import sys
-import datetime
 
 from six.moves.configparser import ConfigParser
 

@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 
 try:
     from subprocess import getstatusoutput
-except:
+except ImportError:
     from commands import getstatusoutput
 
 

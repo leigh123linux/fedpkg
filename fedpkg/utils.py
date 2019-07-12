@@ -10,20 +10,16 @@
 # option) any later version.  See http://www.gnu.org/copyleft/gpl.html for
 # the full text of the license.
 
-import re
 import json
+import re
 from datetime import datetime
 
-from six.moves.urllib.parse import urlencode, urlparse
-from six.moves.configparser import NoSectionError, NoOptionError
 import requests
 from requests.exceptions import ConnectionError
-from pyrpkg import rpkgError
+from six.moves.configparser import NoOptionError, NoSectionError
+from six.moves.urllib.parse import urlencode, urlparse
 
-try:
-    from distro import linux_distribution  # noqa
-except ImportError:
-    from platform import linux_distribution  # noqa
+from pyrpkg import rpkgError
 
 
 def query_pdc(server_url, endpoint, params, timeout=60):

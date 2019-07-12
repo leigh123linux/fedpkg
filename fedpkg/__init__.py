@@ -16,15 +16,20 @@ import re
 
 from datetime import datetime, timedelta
 
+# doc/fedpkg_man_page.py uses the 'cli' import
 from . import cli  # noqa
 from .lookaside import FedoraLookasideCache
 from pyrpkg.utils import cached_property
-from .utils import linux_distribution
 
 try:
     from bodhi.client.bindings import BodhiClient as _BodhiClient
 except ImportError:
     _BodhiClient = None
+
+try:
+    from distro import linux_distribution  # noqa
+except ImportError:
+    from platform import linux_distribution  # noqa
 
 
 if _BodhiClient is not None:
