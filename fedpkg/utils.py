@@ -362,7 +362,7 @@ def get_stream_branches(server_url, package_name):
 
 
 def expand_release(rel, active_releases):
-    """Expand special release to real release name
+    r"""Expand special release to real release name
 
     Special releases include fedora and epel. Each of them will be expanded to
     real release name.
