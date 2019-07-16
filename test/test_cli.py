@@ -945,6 +945,81 @@ class TestRequestBranch(CliTestCase):
     @patch('requests.post')
     @patch('fedpkg.cli.get_release_branches')
     @patch('sys.stdout', new=StringIO())
+    def test_request_epel_branch_override(self, mock_grb, mock_request_post):
+        """Tests request-epel-branch-override
+
+        epel8 branch operation generates two requests for two branches:
+        epel8-playground and epel8 itself
+        """
+        mock_grb.return_value = {'fedora': ['f25', 'f26', 'f27'],
+                                 'epel': ['el6', 'epel7', 'epel8']}
+        mock_rv = Mock()
+        mock_rv.ok = True
+        mock_rv.json.return_value = {'issue': {'id': 2}}
+        mock_request_post.return_value = mock_rv
+        # Checkout the epel7 branch
+        self.run_cmd(['git', 'checkout', 'epel8'], cwd=self.cloned_repo_path)
+
+        cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
+                   'request-branch', '--repo', 'sudoku', 'epel8']
+        cli = self.get_cli(cli_cmd)
+        cli.request_branch()
+
+        expected_issue_content = {
+            'action': 'new_branch',
+            'repo': 'sudoku',
+            'namespace': 'rpms',
+            'branch': None,  # to be changed during testing
+            'create_git_branch': True
+        }
+        self.assertEqual(len(mock_request_post.call_args_list), 2)
+
+        # First record
+        # Get the data that was submitted to Pagure
+        post_data = mock_request_post.call_args_list[0][1]['data']
+        actual_issue_content = json.loads(json.loads(
+            post_data)['issue_content'].strip('```'))
+        expected_issue_content['branch'] = 'epel8-playground'
+        self.assertEqual(expected_issue_content, actual_issue_content)
+
+        # Second record
+        post_data = mock_request_post.call_args_list[1][1]['data']
+        actual_issue_content = json.loads(json.loads(
+            post_data)['issue_content'].strip('```'))
+        expected_issue_content['branch'] = 'epel8'
+        self.assertEqual(expected_issue_content, actual_issue_content)
+
+        output = sys.stdout.getvalue().strip()
+        # 2 same addresses separated with end of line
+        expected_output = ('\n'.join(2 * ['https://pagure.stg.example.com/releng/'
+                           'fedora-scm-requests/issue/2']))
+        self.assertEqual(output, expected_output)
+
+    @patch('requests.post')
+    @patch('fedpkg.cli.get_release_branches')
+    @patch('sys.stdout', new=StringIO())
+    def test_request_epel_playground_branch_override(self, mock_grb, mock_request_post):
+        """Tests request-epel-playground-branch-override
+
+        Can not request this branch directly
+        """
+        mock_grb.return_value = {'fedora': ['f25', 'f26', 'f27'],
+                                 'epel': ['el6', 'epel7']}
+        mock_rv = Mock()
+        mock_rv.ok = True
+        mock_rv.json.return_value = {'issue': {'id': 2}}
+        mock_request_post.return_value = mock_rv
+
+        cli_cmd = ['fedpkg-stage', '--path', self.cloned_repo_path,
+                   'request-branch', '--repo', 'sudoku', 'epel7-playground']
+        cli = self.get_cli(cli_cmd)
+        expected_error = r'^You cannot directly request epel7-playground branch, .*$'
+        with six.assertRaisesRegex(self, rpkgError, expected_error):
+            cli.request_branch()
+
+    @patch('requests.post')
+    @patch('fedpkg.cli.get_release_branches')
+    @patch('sys.stdout', new=StringIO())
     def test_request_branch_module(self, mock_grb, mock_request_post):
         """Tests request-branch for a new module branch"""
         mock_grb.return_value = {'fedora': ['f25', 'f26', 'f27'],
