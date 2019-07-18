@@ -960,7 +960,7 @@ targets to build the package for a particular stream.
         # If the requested branch is epel branch then also add epel\d+-playground branch
         # to the request list.
         # TODO: Remove the check for epel version >= 7 when we enable playground for epel7
-        elif epel_playground and epel_version >= 7:
+        elif epel_playground and epel_version >= 8:
             branches = [branch, branch+"-playground"]
         else:
             branches = [branch]
