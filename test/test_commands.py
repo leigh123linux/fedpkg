@@ -246,6 +246,21 @@ class TestLoadRpmDefines(CommandTestCase):
         self.assert_rpmdefines()
 
     @patch('pyrpkg.Commands.branch_merge', new_callable=PropertyMock)
+    def test_load_epel8_playground_dist_tag(self, branch_merge):
+        branch_merge.return_value = 'epel8-playground'
+
+        self.cmd.load_rpmdefines()
+
+        self.assertEqual('8', self.cmd._distval)
+        self.assertEqual('rhel', self.cmd._distvar)
+        self.assertEqual('el8_playground', self.cmd._disttag)
+        self.assertEqual('epel-8-i686', self.cmd.mockconfig)
+        self.assertEqual('epel8-override', self.cmd.override)
+        self.assertTrue(hasattr(self.cmd, '_distunset'))
+
+        self.assert_rpmdefines()
+
+    @patch('pyrpkg.Commands.branch_merge', new_callable=PropertyMock)
     @patch('fedpkg.Commands._findmasterbranch')
     def test_load_master_dist_tag(self, _findmasterbranch, branch_merge):
         _findmasterbranch.return_value = '28'

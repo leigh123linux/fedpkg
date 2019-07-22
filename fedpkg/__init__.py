@@ -141,6 +141,13 @@ class Commands(pyrpkg.Commands):
             self.mockconfig = 'epel-%s-%s' % (self._distval, self.localarch)
             self.override = 'epel%s-override' % self._distval
             self._distunset = 'fedora'
+        elif re.match(r'epel\d+-playground$', self.branch_merge):
+            self._distval = re.search(r'\d+', self.branch_merge).group(0)
+            self._distvar = 'rhel'
+            self._disttag = 'el%s_playground' % self._distval
+            self.mockconfig = 'epel-%s-%s' % (self._distval, self.localarch)
+            self.override = 'epel%s-override' % self._distval
+            self._distunset = 'fedora'
         elif re.match(r'olpc\d$', self.branch_merge):
             self._distval = self.branch_merge.split('olpc')[1]
             self._distvar = 'olpc'
