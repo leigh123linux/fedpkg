@@ -350,11 +350,25 @@ def get_stream_branches(server_url, package_name):
     # Please remember to review the data regularly, there are only stream
     # branches, or some new replacement of PDC fixes the issue as well, it
     # should be ok to remove if from this list.
-    return [
-        item for item in branches
-        if not re.match(r'^(f|el|epel)\d+$', item['name']) and
-        item['name'] != 'master'
-    ]
+    stream_branches = []
+    for item in branches:
+        if item['name'] == 'master':
+            continue
+        elif re.match(r'^(f|el)\d+$', item['name']):
+            continue
+        # epel7 is regular release branch
+        # epel8 and above should be considered a stream branch to use
+        # package.cfg file in the branch.
+        elif 'epel7' == item['name']:
+            continue
+        # epel8-playground and above playground branches should be considered
+        # as release branches so that it will use epelX-playground-candidate
+        # target to build.
+        elif re.match(r'^epel\d+-playground$', item['name']):
+            continue
+        else:
+            stream_branches.append(item)
+    return stream_branches
 
 
 def expand_release(rel, active_releases):
@@ -378,6 +392,10 @@ def expand_release(rel, active_releases):
     elif rel == 'epel':
         return active_releases['epel']
     elif rel in active_releases['fedora'] or rel in active_releases['epel']:
+        return [rel]
+    # if epelX-playground branch then return the release to use
+    # epelX-playground-candidate target
+    elif re.match(r'^epel\d+-playground$', rel):
         return [rel]
     else:
         return None

@@ -468,13 +468,15 @@ class TestGetStreamBranches(unittest.TestCase):
                 {'name': 'f28'},
                 {'name': 'epel7'},
                 {'name': 'master'},
+                {'name': 'epel8'},
+                {'name': 'epel8-playground'}
             ],
             'next': None
         }
         get.return_value = rv
 
         result = utils.get_stream_branches('http://localhost/', 'pkg')
-        self.assertEqual([{'name': '8'}, {'name': '10'}], list(result))
+        self.assertEqual([{'name': '8'}, {'name': '10'}, {'name': 'epel8'}], list(result))
 
 
 class TestExpandRelease(unittest.TestCase):
