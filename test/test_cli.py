@@ -2311,3 +2311,53 @@ class TestReleasesInfo(CliTestCase):
 
     def test_print_releases_in_default(self, mock_grb):
         self.assert_output_releases('Fedora: f29 f28\nEPEL: el6 epel7')
+
+
+class TestRetire(CliTestCase):
+    """
+    Test retire operation with additional fedpkg Fedora release checking
+    """
+
+    @patch('requests.get')
+    def retire_release(self, release_state, mock_get):
+        mock_rv = Mock()
+        if release_state:
+            mock_rv.ok = True
+            mock_rv.json.return_value = {
+                'state': release_state,
+            }
+        else:
+            mock_rv.status_code = 404
+        mock_get.return_value = mock_rv
+
+        with patch('sys.argv', ['fedpkg', '--release', 'f30', 'retire', 'retire_message']):
+            cli = self.new_cli(cfg='fedpkg-test.conf')
+            # retire method in rpkg would be called, but there is not environment configured
+            # therefore just Exception is catched
+            with self.assertRaises(Exception):
+                cli.args.path = '/repo_path'
+                cli.retire()
+
+    @patch('requests.get')
+    def do_not_retire_release(self, release_state, mock_get):
+        mock_rv = Mock()
+        mock_rv.ok = True
+        mock_rv.json.return_value = {
+            'state': release_state,
+        }
+        mock_get.return_value = mock_rv
+
+        with patch('sys.argv', ['fedpkg', '--release', 'f30', 'retire', 'retire_message']):
+            cli = self.new_cli(cfg='fedpkg-test.conf')
+            # retire is terminated after check
+            cli.args.path = '/repo_path'
+            cli.retire()
+
+    def test_retire_fedora_release(self):
+        self.do_not_retire_release("disabled")
+        self.retire_release("pending")
+        self.do_not_retire_release("frozen")
+        self.do_not_retire_release("current")
+        self.do_not_retire_release("archived")
+        # unknown fedora (or other) release
+        self.retire_release(None)

@@ -399,3 +399,40 @@ def expand_release(rel, active_releases):
         return [rel]
     else:
         return None
+
+
+def get_fedora_release_state(config, cli_name, release):
+    """
+    Queries service page for release state. Query result is returned as json dict.
+
+    :param config: ConfigParser object
+    :param cli_name: string of the CLI's name (e.g. fedpkg)
+    :param str release: short release name. Example: F29, F30, F29M, F30C, ...
+    :return: state of the release or None if there is no such release
+    :rtype: str
+    """
+    try:
+        # url of the release service. It needs to be expanded by release name
+        releases_service_url = config.get('{0}.bodhi'.format(cli_name),
+                                          'releases_service',
+                                          vars={'release': release})
+    except (ValueError, NoOptionError, NoSectionError) as e:
+        raise rpkgError('Could not get release state for Fedora '
+                        '({0}): {1}.'.format(release, str(e)))
+
+    try:
+        rv = requests.get(releases_service_url, timeout=60)
+    except ConnectionError as error:
+        error_msg = ('The connection to Bodhi failed while trying to get '
+                     'release state. The error was: {0}'.format(str(error)))
+        raise rpkgError(error_msg)
+
+    if rv.status_code == 404:
+        # release wasn't found
+        return None
+    elif not rv.ok:
+        base_error_msg = ('The following error occurred while trying to '
+                          'get the release state in Bodhi: {0}')
+        raise rpkgError(base_error_msg.format(rv.text))
+
+    return rv.json().get('state')

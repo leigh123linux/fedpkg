@@ -510,3 +510,45 @@ class TestExpandRelease(unittest.TestCase):
     def test_expand_unknown_name(self):
         result = utils.expand_release('some_branch', self.releases)
         self.assertEqual(None, result)
+
+
+class TestGetFedoraReleaseState(unittest.TestCase):
+
+    @patch('requests.get')
+    def test_release_exists_current(self, mock_get):
+        mock_rv = Mock()
+        mock_rv.ok = True
+        mock_rv.json.return_value = {
+            'name': 'F30',
+            'long_name': 'Fedora 30',
+            'version': '30',
+            'branch': 'f30',
+            'state': 'current',  # this item is only important for the test
+        }
+        mock_get.return_value = mock_rv
+
+        config = Mock()
+        config.get.return_value = 'https://service_url/releases/F30'
+
+        rv = utils.get_fedora_release_state(config, 'fedpkg', 'F30')
+        self.assertEqual(rv, 'current')
+
+    @patch('requests.get')
+    def test_release_does_not_exist(self, mock_get):
+        mock_rv = Mock()
+        mock_rv.ok = False
+        mock_rv.status_code = 404
+        mock_get.return_value = mock_rv
+
+        config = Mock()
+        config.get.return_value = 'https://service_url/releases/eng-fedora-29'
+
+        rv = utils.get_fedora_release_state(config, 'fedpkg', 'eng-fedora-29')
+        self.assertEqual(rv, None)
+
+    def test_config_does_not_have_option(self):
+        config = Mock()
+        config.get.side_effect = NoOptionError('releases_service', 'fedpkg.bodhi')
+        six.assertRaisesRegex(self, rpkgError, r"Could not get release state for Fedora \(F30M\): "
+                              "No option 'releases_service' in section: 'fedpkg.bodhi'.",
+                              utils.get_fedora_release_state, config, 'fedpkg', 'F30M')

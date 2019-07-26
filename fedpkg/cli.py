@@ -32,10 +32,9 @@ from six.moves.urllib_parse import urlparse
 from pyrpkg import rpkgError
 from fedpkg.bugzilla import BugzillaClient
 from fedpkg.utils import (
-    get_release_branches, sl_list_to_dict, verify_sls, new_pagure_issue,
-    get_pagure_token, is_epel, assert_valid_epel_package,
-    assert_new_tests_repo, get_dist_git_url, get_stream_branches,
-    expand_release)
+    get_fedora_release_state, get_release_branches, sl_list_to_dict, verify_sls,
+    new_pagure_issue, get_pagure_token, is_epel, assert_valid_epel_package,
+    assert_new_tests_repo, get_dist_git_url, get_stream_branches, expand_release)
 
 RELEASE_BRANCH_REGEX = r'^(f\d+|el\d+|epel\d+)$'
 LOCAL_PACKAGE_CONFIG = 'package.cfg'
@@ -1148,3 +1147,16 @@ targets to build the package for a particular stream.
         else:
             print('Fedora: {0}'.format(_join(releases['fedora'])))
             print('EPEL: {0}'.format(_join(releases['epel'])))
+
+    def retire(self):
+        """
+        Runs the rpkg retire command after check. Check includes reading the state
+        of Fedora release.
+        """
+        state = get_fedora_release_state(self.config, self.name, self.cmd.branch_merge)
+
+        if state is None or state == 'pending':
+            super(fedpkgClient, self).retire()
+        else:
+            self.log.error("Fedora release (%s) is in state '%s' - retire operation "
+                           "is not allowed." % (self.cmd.branch_merge, state))
