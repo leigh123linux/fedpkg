@@ -56,6 +56,8 @@ bugs=%(bugs)s
 # This is required for security updates.
 # severity=unspecified
 
+display_name=
+
 %(changelog)s
 # Here is where you give an explanation of your update.
 # Content can span multiple lines, as long as they are indented deeper than
@@ -692,6 +694,7 @@ class fedpkgClient(cliClient):
         bodhi_args = {
             'nvr': nvr,
             'bugs': six.u(''),
+            'display_name': six.u(''),
             'descr': six.u(
                 'Here is where you give an explanation of your update.'),
             'request': self.args.request,

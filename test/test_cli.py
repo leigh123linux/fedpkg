@@ -179,6 +179,7 @@ class TestUpdate(CliTestCase):
         expected_data = {
             'autokarma': 'True',
             'bugs': '1000,2000',
+            'display_name': six.u(''),
             'builds': ' {0} '.format(self.mock_nvr.return_value),
             'close_bugs': True,
             'request': 'testing',
