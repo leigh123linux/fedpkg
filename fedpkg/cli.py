@@ -74,6 +74,12 @@ close_bugs=%(close_bugs)s
 
 # Suggest that users restart after update
 suggest_reboot=%(suggest_reboot)s
+
+# A boolean to require that all of the bugs in your update have been confirmed by testers.
+require_bugs=%(require_bugs)s
+
+# A boolean to require that this update passes all test cases before reaching stable.
+require_testcases=%(require_testcases)s
 """
 
 
@@ -225,6 +231,20 @@ change log if option --notes is omitted.
             default=False,
             dest='suggest_reboot',
             help='Suggest user to reboot after update. Default is False.')
+        update_parser.add_argument(
+            '--no-require-bugs',
+            action='store_false',
+            default=True,
+            dest='require_bugs',
+            help='Disables the requirement that all of the bugs in your update '
+                 'have been confirmed by testers. Default is True.')
+        update_parser.add_argument(
+            '--no-require-testcases',
+            action='store_false',
+            default=True,
+            dest='require_testcases',
+            help='Disables the requirement that this update passes all test cases '
+                 'before reaching stable. Default is True.')
         update_parser.set_defaults(command=self.update)
 
     def get_distgit_namespaces(self):
@@ -638,6 +658,8 @@ targets to build the package for a particular stream.
             'unstable_karma': self.args.unstable_karma,
             'close_bugs': str(self.args.close_bugs),
             'suggest_reboot': str(self.args.suggest_reboot),
+            'require_bugs': str(self.args.require_bugs),
+            'require_testcases': str(self.args.require_testcases),
         }
 
         if self.args.update_type:
