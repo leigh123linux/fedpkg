@@ -1,5 +1,6 @@
 mock == 1.0.1
 nose == 1.3.7
 nose-cov
+cccolutils
+gitpython
 freezegun
-PyYAML
