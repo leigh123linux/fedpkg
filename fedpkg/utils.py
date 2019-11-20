@@ -232,7 +232,7 @@ def get_pagure_token(config, cli_name):
         return config.get(conf_section, 'token')
     except (NoSectionError, NoOptionError):
         raise rpkgError(
-            'Missing a Pagure token. Refer to "{0} request-repo -h" to set a'
+            'Missing a Pagure token. Refer to "{0} request-repo -h" to set a '
             'token in your user configuration.'.format(cli_name))
 
 
