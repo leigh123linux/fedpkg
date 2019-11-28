@@ -124,23 +124,23 @@ class fedpkgClient(cliClient):
 
     # Target registry goes here
     def register_update(self):
-        description = '''
-This will create a bodhi update request for the current package n-v-r.
+        description = textwrap.dedent('''
+            This will create a bodhi update request for the current package n-v-r.
 
-There are two ways to specify update details. Without any argument from command
-line, either update type or notes is omitted, a template editor will be shown
-and let you edit the detail information interactively.
+            There are two ways to specify update details. Without any argument from command
+            line, either update type or notes is omitted, a template editor will be shown
+            and let you edit the detail information interactively.
 
-Alternatively, you could specify argument from command line to create an update
-directly, for example:
+            Alternatively, you could specify argument from command line to create an update
+            directly, for example:
 
-    {0} update --type bugfix --notes 'Rebuilt' --bugs 1000 1002
+                {0} update --type bugfix --notes 'Rebuilt' --bugs 1000 1002
 
-When all lines in template editor are commented out or deleted, the creation
-process is aborted. If the template keeps unchanged, {0} continues on creating
-update. That gives user a chance to confirm the auto-generated notes from
-change log if option --notes is omitted.
-'''.format(self.name)
+            When all lines in template editor are commented out or deleted, the creation
+            process is aborted. If the template keeps unchanged, {0} continues on creating
+            update. That gives user a chance to confirm the auto-generated notes from
+            change log if option --notes is omitted.
+        '''.format(self.name))
 
         update_parser = self.subparsers.add_parser(
             'update',
@@ -257,26 +257,27 @@ change log if option --notes is omitted.
 
     def register_request_repo(self):
         help_msg = 'Request a new dist-git repository'
-        description = '''Request a new dist-git repository
+        description = textwrap.dedent('''
+            Request a new dist-git repository
 
-Before requesting a new dist-git repository for a new package, you need to
-generate a pagure.io API token at https://{1}/settings/token/new, select the
-"Create a new ticket" ACL and save it in your local user configuration located
-at ~/.config/rpkg/{0}.conf. For example:
+            Before requesting a new dist-git repository for a new package, you need to
+            generate a pagure.io API token at https://{1}/settings/token/new, select the
+            "Create a new ticket" ACL and save it in your local user configuration located
+            at ~/.config/rpkg/{0}.conf. For example:
 
-    [{0}.pagure]
-    token = <api_key_here>
+                [{0}.pagure]
+                token = <api_key_here>
 
-Below is a basic example of the command to request a dist-git repository for
-the package foo:
+            Below is a basic example of the command to request a dist-git repository for
+            the package foo:
 
-    fedpkg request-repo foo 1234
+                fedpkg request-repo foo 1234
 
-Another example to request a module foo:
+            Another example to request a module foo:
 
-    fedpkg request-repo --namespace modules foo
-'''.format(self.name, urlparse(self.config.get(
-            '{0}.pagure'.format(self.name), 'url')).netloc)
+                fedpkg request-repo --namespace modules foo
+        '''.format(self.name, urlparse(self.config.get(
+            '{0}.pagure'.format(self.name), 'url')).netloc))
 
         request_repo_parser = self.subparsers.add_parser(
             'request-repo',
@@ -327,26 +328,26 @@ Another example to request a module foo:
         anongiturl = self.config.get(
             self.name, 'anongiturl', vars={'repo': 'any', 'module': 'any'}
         )
-        description = '''Request a new dist-git repository in tests shared namespace
+        description = textwrap.dedent('''
+            Request a new dist-git repository in tests shared namespace
 
-    {2}/projects/tests/*
+                {2}/projects/tests/*
 
-For more information about tests shared namespace see
+            For more information about tests shared namespace see
 
-    https://fedoraproject.org/wiki/CI/Share_Test_Code
+                https://fedoraproject.org/wiki/CI/Share_Test_Code
 
-Please refer to the request-repo command to see what has to be done before
-requesting a repository in the tests namespace.
+            Please refer to the request-repo command to see what has to be done before
+            requesting a repository in the tests namespace.
 
-Below is a basic example of the command to request a dist-git repository for
-the space tests/foo:
+            Below is a basic example of the command to request a dist-git repository for
+            the space tests/foo:
 
-    fedpkg request-tests-repo foo "Description of the repository"
+                fedpkg request-tests-repo foo "Description of the repository"
 
-Note that the space name needs to reflect the intent of the tests and will
-undergo a manual review.
-
-'''.format(self.name, pagure_url, get_dist_git_url(anongiturl))
+            Note that the space name needs to reflect the intent of the tests and will
+            undergo a manual review.
+        '''.format(self.name, pagure_url, get_dist_git_url(anongiturl)))
 
         request_tests_repo_parser = self.subparsers.add_parser(
             'request-tests-repo',
@@ -363,32 +364,33 @@ undergo a manual review.
 
     def register_request_branch(self):
         help_msg = 'Request a new dist-git branch'
-        description = '''Request a new dist-git branch
+        description = textwrap.dedent('''
+            Request a new dist-git branch
 
-Please refer to the request-repo command to see what has to be done before
-requesting a dist-git branch.
+            Please refer to the request-repo command to see what has to be done before
+            requesting a dist-git branch.
 
-Branch name could be one of current active Fedora and EPEL releases. Use
-command ``{0} releases-info`` to get release names that can be used to request
-a branch.
+            Branch name could be one of current active Fedora and EPEL releases. Use
+            command ``{0} releases-info`` to get release names that can be used to request
+            a branch.
 
-Below are various examples of requesting a dist-git branch.
+            Below are various examples of requesting a dist-git branch.
 
-Request a branch inside a cloned package repository:
+            Request a branch inside a cloned package repository:
 
-    {0} request-branch f27
+                {0} request-branch f27
 
-Request a branch outside package repository, which could apply to cases of
-requested repository has not been approved and created, or just not change
-directory to package repository:
+            Request a branch outside package repository, which could apply to cases of
+            requested repository has not been approved and created, or just not change
+            directory to package repository:
 
-    {0} request-branch --repo foo f27
+                {0} request-branch --repo foo f27
 
-Request a branch with service level tied to the branch. In this case branch
-argument has to be before --sl argument, because --sl allows multiple values.
+            Request a branch with service level tied to the branch. In this case branch
+            argument has to be before --sl argument, because --sl allows multiple values.
 
-    {0} request-branch branch_name --sl bug_fixes:2020-06-01 rawhide:2019-12-01
-'''.format(self.name)
+                {0} request-branch branch_name --sl bug_fixes:2020-06-01 rawhide:2019-12-01
+        '''.format(self.name))
 
         request_branch_parser = self.subparsers.add_parser(
             'request-branch',
@@ -496,22 +498,22 @@ argument has to be before --sl argument, because --sl allows multiple values.
             'create',
             help='Create buildroot override from build',
             formatter_class=argparse.RawDescriptionHelpFormatter,
-            description='''\
-Create a buildroot override from build guessed from current release branch or
-specified explicitly.
+            description=textwrap.dedent('''
+                Create a buildroot override from build guessed from current release branch or
+                specified explicitly.
 
-Examples:
+                Examples:
 
-Create a buildroot override from build guessed from release branch. Note that,
-command must run inside a package repository.
+                Create a buildroot override from build guessed from release branch. Note that,
+                command must run inside a package repository.
 
-    {0} switch-branch f28
-    {0} override create --duration 5
+                    {0} switch-branch f28
+                    {0} override create --duration 5
 
-Create for a specified build:
+                Create for a specified build:
 
-    {0} override create --duration 5 package-1.0-1.fc28
-'''.format(self.name))
+                    {0} override create --duration 5 package-1.0-1.fc28
+            '''.format(self.name)))
         create_parser.add_argument(
             '--duration',
             type=validate_duration,
@@ -533,31 +535,31 @@ Create for a specified build:
             'extend',
             help='Extend buildroot override expiration',
             formatter_class=argparse.RawDescriptionHelpFormatter,
-            description='''\
-Extend buildroot override expiration.
+            description=textwrap.dedent('''
+                Extend buildroot override expiration.
 
-An override expiration date could be extended by number of days or a specific
-date. If override is expired, expiration date will be extended from the date
-of today, otherwise from the expiration date.
+                An override expiration date could be extended by number of days or a specific
+                date. If override is expired, expiration date will be extended from the date
+                of today, otherwise from the expiration date.
 
-Command extend accepts an optional build NVR to find out its override in
-advance. If there is no such an override created previously, please use
-`override create` to create one. If build NVR is omitted, command extend must
-run inside a package repository and build will be guessed from current release
-branch.
+                Command extend accepts an optional build NVR to find out its override in
+                advance. If there is no such an override created previously, please use
+                `override create` to create one. If build NVR is omitted, command extend must
+                run inside a package repository and build will be guessed from current release
+                branch.
 
-Examples:
+                Examples:
 
-1. To give 2 days to override for build somepkg-0.2-1.fc28
+                1. To give 2 days to override for build somepkg-0.2-1.fc28
 
-    {0} override extend 2 somepkg-0.2-1.fc28
+                    {0} override extend 2 somepkg-0.2-1.fc28
 
-2. To extend expiration date to 2018-7-1
+                2. To extend expiration date to 2018-7-1
 
-    cd /path/to/somepkg
-    {0} switch-branch f28
-    {0} override extend 2018-7-1
-'''.format(self.name))
+                    cd /path/to/somepkg
+                    {0} switch-branch f28
+                    {0} override extend 2018-7-1
+            '''.format(self.name)))
         extend_parser.add_argument(
             'duration',
             type=validate_extend_duration,
@@ -576,26 +578,27 @@ Examples:
 
         build_parser = self.subparsers.choices['build']
         build_parser.formatter_class = argparse.RawDescriptionHelpFormatter
-        build_parser.description = '''{0}
+        build_parser.description = textwrap.dedent('''
+            {0}
 
-fedpkg is also able to submit multiple builds to Koji at once from stream
-branch based on a local config, which is inside the repository. The config file
-is named package.cfg in INI format. For example,
+            fedpkg is also able to submit multiple builds to Koji at once from stream
+            branch based on a local config, which is inside the repository. The config file
+            is named package.cfg in INI format. For example,
 
-    [koji]
-    targets = master fedora epel7
+                [koji]
+                targets = master fedora epel7
 
-You only need to put Fedora releases and EPEL in option targets and fedpkg will
-convert it to proper Koji build target for submitting builds. Beside regular
-release names, option targets accepts two shortcut names as well, fedora and
-epel, as you can see in the above example. Name fedora stands for current
-active Fedora releases, and epel stands for the active EPEL releases, which are
-el6 and epel7 currently.
+            You only need to put Fedora releases and EPEL in option targets and fedpkg will
+            convert it to proper Koji build target for submitting builds. Beside regular
+            release names, option targets accepts two shortcut names as well, fedora and
+            epel, as you can see in the above example. Name fedora stands for current
+            active Fedora releases, and epel stands for the active EPEL releases, which are
+            el6 and epel7 currently.
 
-Note that the config file is a branch specific file. That means you could
-create package.cfg for each stream branch separately to indicate on which
-targets to build the package for a particular stream.
-'''.format('\n'.join(textwrap.wrap(build_parser.description)))
+            Note that the config file is a branch specific file. That means you could
+            create package.cfg for each stream branch separately to indicate on which
+            targets to build the package for a particular stream.
+        '''.format('\n'.join(textwrap.wrap(build_parser.description))))
 
     # Target functions go here
     def _format_update_clog(self, clog):
