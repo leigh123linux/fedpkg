@@ -383,6 +383,11 @@ requested repository has not been approved and created, or just not change
 directory to package repository:
 
     {0} request-branch --repo foo f27
+
+Request a branch with service level tied to the branch. In this case branch
+argument has to be before --sl argument, because --sl allows multiple values.
+
+    {0} request-branch branch_name --sl bug_fixes:2020-06-01 rawhide:2019-12-01
 '''.format(self.name)
 
         request_branch_parser = self.subparsers.add_parser(
@@ -411,7 +416,8 @@ directory to package repository:
             help=('The service levels (SLs) tied to the branch. This must be '
                   'in the format of "sl_name:2020-12-01". This is only for '
                   'non-release branches. You may provide more than one by '
-                  'separating each SL with a space.')
+                  'separating each SL with a space. When the argument is used, '
+                  'branch argument has to be placed before --sl.')
         )
         request_branch_parser.add_argument(
             '--no-git-branch', default=False, action='store_true',
