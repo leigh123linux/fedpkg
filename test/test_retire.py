@@ -107,3 +107,18 @@ class RetireTestCase(unittest.TestCase):
         args, kwargs = client.log.warn.call_args
         self.assertIn('dead.package found, package probably already retired',
                       args[0])
+
+    @mock.patch(
+        "requests.get",
+        new=lambda *args, **kwargs: mock.Mock(
+            status_code=200, ok=True, json=lambda: {"state": "archived"}
+        ),
+    )
+    def test_package_on_retired(self):
+        self._setup_repo("ssh://git@pkgs.example.com/fedpkg")
+        args = ["fedpkg", "--dist=master", "retire", "my reason"]
+
+        client = self._fake_client(args)
+        client.retire()
+        args, kwargs = client.log.error.call_args
+        self.assertIn("retire operation is not allowed", args[0])
