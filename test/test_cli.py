@@ -942,10 +942,13 @@ class TestRequestBranch(CliTestCase):
                            'fedora-scm-requests/issue/2')
         self.assertEqual(output, expected_output)
 
+    @patch('requests.get')
     @patch('requests.post')
     @patch('fedpkg.cli.get_release_branches')
     @patch('sys.stdout', new=StringIO())
-    def test_request_epel_branch_override(self, mock_grb, mock_request_post):
+    def test_request_epel_branch_override(
+        self, mock_grb, mock_request_post, mock_request_get
+    ):
         """Tests request-epel-branch-override
 
         epel8 branch operation generates two requests for two branches:
@@ -957,6 +960,11 @@ class TestRequestBranch(CliTestCase):
         mock_rv.ok = True
         mock_rv.json.return_value = {'issue': {'id': 2}}
         mock_request_post.return_value = mock_rv
+
+        mock_rv = Mock()
+        mock_rv.ok = True
+        mock_rv.json.return_value = {"arches": [], "packages": {}}
+        mock_request_get.return_value = mock_rv
         # Checkout the epel7 branch
         self.run_cmd(['git', 'checkout', 'epel8'], cwd=self.cloned_repo_path)
 

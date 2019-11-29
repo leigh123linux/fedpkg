@@ -72,6 +72,7 @@ class RetireTestCase(unittest.TestCase):
                                                      'fedpkg.spec')))
         self.assertEqual(self._get_latest_commit(), reason)
 
+    @mock.patch("requests.get", new=lambda *args, **kwargs: mock.Mock(status_code=404))
     def test_retire_with_namespace(self):
         self._setup_repo('ssh://git@pkgs.example.com/rpms/fedpkg')
         args = ['fedpkg', '--dist=master', 'retire', 'my reason']
@@ -82,6 +83,7 @@ class RetireTestCase(unittest.TestCase):
         self.assertRetired('my reason')
         self.assertEqual(len(client.cmd.push.call_args_list), 1)
 
+    @mock.patch("requests.get", new=lambda *args, **kwargs: mock.Mock(status_code=404))
     def test_retire_without_namespace(self):
         self._setup_repo('ssh://git@pkgs.example.com/fedpkg')
         args = ['fedpkg', '--dist=master', 'retire', 'my reason']
@@ -92,6 +94,7 @@ class RetireTestCase(unittest.TestCase):
         self.assertRetired('my reason')
         self.assertEqual(len(client.cmd.push.call_args_list), 1)
 
+    @mock.patch("requests.get", new=lambda *args, **kwargs: mock.Mock(status_code=404))
     def test_package_is_retired_already(self):
         self._setup_repo('ssh://git@pkgs.example.com/fedpkg')
         with open(os.path.join(self.tmpdir, 'dead.package'), 'w') as f:
