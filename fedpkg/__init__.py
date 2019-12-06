@@ -144,7 +144,7 @@ class Commands(pyrpkg.Commands):
         elif re.match(r'epel\d+-playground$', self.branch_merge):
             self._distval = re.search(r'\d+', self.branch_merge).group(0)
             self._distvar = 'rhel'
-            self._disttag = 'el%s_playground' % self._distval
+            self._disttag = 'epel%s.playground' % self._distval
             self.mockconfig = 'epel-%s-%s' % (self._distval, self.localarch)
             self.override = 'epel%s-override' % self._distval
             self._distunset = 'fedora'
@@ -176,7 +176,9 @@ class Commands(pyrpkg.Commands):
                             "--define '%s %s'" % (self._distvar,
                                                   self._distval),
                             "--eval '%%undefine %s'" % self._distunset,
-                            "--define '%s 1'" % self._disttag]
+                            "--define '%s 1'" % self._disttag.replace(".", "_")]
+        # TODO: consider removing macro "%s 1; it has unknown/dubious functionality"
+
         if self._runtime_disttag:
             if self._disttag != self._runtime_disttag:
                 # This means that the runtime is known, and is different from

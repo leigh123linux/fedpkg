@@ -189,7 +189,7 @@ class TestLoadRpmDefines(CommandTestCase):
             "--define 'dist %%{?distprefix}.%s'" % self.cmd._disttag,
             "--define '%s %s'" % (self.cmd._distvar, self.cmd._distval),
             "--eval '%%undefine %s'" % self.cmd._distunset,
-            "--define '%s 1'" % self.cmd._disttag,
+            "--define '%s 1'" % self.cmd._disttag.replace(".", "_"),
             "--eval '%%undefine %s'" % self.cmd._runtime_disttag
         ]
         self.assertEqual(expected_rpmdefines, self.cmd._rpmdefines)
@@ -253,7 +253,7 @@ class TestLoadRpmDefines(CommandTestCase):
 
         self.assertEqual('8', self.cmd._distval)
         self.assertEqual('rhel', self.cmd._distvar)
-        self.assertEqual('el8_playground', self.cmd._disttag)
+        self.assertEqual('epel8.playground', self.cmd._disttag)
         self.assertEqual('epel-8-i686', self.cmd.mockconfig)
         self.assertEqual('epel8-override', self.cmd.override)
         self.assertTrue(hasattr(self.cmd, '_distunset'))
