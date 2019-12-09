@@ -202,13 +202,21 @@ class Commands(pyrpkg.Commands):
         """ get the '26' part of 'f26-foo' string """
         return dest_tag.split('-')[0].replace('f', '')
 
-    # New functionality
     def _findmasterbranch(self):
         """Find the right "fedora" for master"""
 
         # If we already have a koji session, just get data from the source
         if self._kojisession:
             rawhidetarget = self.kojisession.getBuildTarget('rawhide')
+            return self._tag2version(rawhidetarget['dest_tag_name'])
+
+        # Try connect Koji once more, this time with anonymous session.
+        try:
+            rawhidetarget = self.anon_kojisession.getBuildTarget('rawhide')
+        except Exception:
+            # We couldn't hit Koji. Continue, because fedpkg may work offline.
+            self.log.debug('Unable to query Koji to find rawhide target. Continue offline.')
+        else:
             return self._tag2version(rawhidetarget['dest_tag_name'])
 
         # Create a list of "fedoras"
@@ -234,15 +242,7 @@ class Commands(pyrpkg.Commands):
             # Start with the last item, strip the f, add 1, return it.
             return(int(fedoras[-1].strip('f')) + 1)
         else:
-            # We may not have Fedoras.  Find out what rawhide target does.
-            try:
-                rawhidetarget = self.anon_kojisession.getBuildTarget(
-                    'rawhide')
-            except Exception:
-                # We couldn't hit koji, bail.
-                raise pyrpkg.rpkgError(
-                    'Unable to query koji to find rawhide target')
-            return self._tag2version(rawhidetarget['dest_tag_name'])
+            raise pyrpkg.rpkgError('Unable to find rawhide target')
 
     def _determine_runtime_env(self):
         """Need to know what the runtime env is, so we can unset anything

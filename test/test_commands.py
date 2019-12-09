@@ -323,12 +323,21 @@ class TestFindMasterBranch(CommandTestCase):
         repo.return_value.refs = ['rhel', 'private-branch']
 
         koji_session = anon_kojisession.return_value
-        koji_session.getBuildTarget.return_value = {'dest_tag_name': 'f28'}
+        koji_session.getBuildTarget.return_value = {'dest_tag_name': 'f29'}
 
         result = self.cmd._findmasterbranch()
 
         koji_session.getBuildTarget.assert_called_once_with('rawhide')
-        self.assertEqual('28', result)
+        self.assertEqual('29', result)
+
+    @patch('pyrpkg.Commands.anon_kojisession', new_callable=PropertyMock)
+    def test_if_koji_api_is_offline(self, anon_kojisession):
+        koji_session = anon_kojisession.return_value
+        # As the code shows, any error will be caught
+        koji_session.getBuildTarget.side_effect = ValueError
+
+        result = self.cmd._findmasterbranch()
+        self.assertEqual(28, result)
 
     @patch('pyrpkg.Commands.anon_kojisession', new_callable=PropertyMock)
     @patch('pyrpkg.Commands.repo', new_callable=PropertyMock)
@@ -341,7 +350,7 @@ class TestFindMasterBranch(CommandTestCase):
         koji_session.getBuildTarget.side_effect = ValueError
 
         six.assertRaisesRegex(
-            self, rpkgError, 'Unable to query koji to find rawhide target',
+            self, rpkgError, 'Unable to find rawhide target',
             self.cmd._findmasterbranch)
 
 
