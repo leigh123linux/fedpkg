@@ -90,7 +90,7 @@ def new_pagure_issue(url, token, title, body, cli_name):
     :param token: a string of the Pagure API token that has rights to create
     a ticket
     :param title: a string of the issue's title
-    :param body: a string pf the issue's body
+    :param body: a string of the issue's body
     :return: a string of the URL to the created issue in the UI
     """
     api_url = '{0}/api/0'.format(url.rstrip('/'))
@@ -305,9 +305,9 @@ def assert_new_tests_repo(name, dist_git_url):
 
     url = '{0}/tests/{1}'.format(dist_git_url, name)
     error_msg = (
-        'The connection to dist-git failed'
+        'The connection to dist-git failed '
         'trying to determine if this is a valid new tests '
-        ' repository name.')
+        'repository name.')
     try:
         rv = requests.get(url, timeout=60)
     except ConnectionError as error:

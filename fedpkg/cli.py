@@ -837,6 +837,7 @@ class fedpkgClient(cliClient):
 
             ticket_body = {
                 'action': 'new_repo',
+                'branch': 'master',
                 'namespace': 'tests',
                 'repo': repo_name,
                 'description': description,
