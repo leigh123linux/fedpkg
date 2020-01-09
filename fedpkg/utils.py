@@ -10,7 +10,9 @@
 # option) any later version.  See http://www.gnu.org/copyleft/gpl.html for
 # the full text of the license.
 
+import git
 import json
+import os
 import re
 from datetime import datetime
 
@@ -134,6 +136,76 @@ def new_pagure_issue(url, token, title, body, cli_name):
         url.rstrip('/'), rv.json()['issue']['id'])
 
 
+def do_fork(base_url, remote_base_url, token, username, repo, namespace, cli_name):
+    """
+    Creates a fork of the project.
+    :param base_url: a string of the URL repository
+    :param remote_base_url: a string of the remote tracked repository
+    :param token: a string of the API token that has rights to make a fork
+    :param username: a string of the (FAS) user name
+    :param repo: object, current project git repository
+    :param namespace: a string determines a type of the repository
+    :param cli_name: string of the CLI's name (e.g. fedpkg)
+    :return: a string of the URL to the created fork in the UI
+    """
+    api_url = '{0}/api/0'.format(base_url.rstrip('/'))
+    fork_url = '{0}/fork'.format(api_url)
+
+    repo_name = os.path.basename(repo.working_dir)
+
+    parsed_url = urlparse(remote_base_url)
+    remote_url = '{0}://{1}/forks/{2}/{3}/{4}.git'.format(
+        parsed_url.scheme,
+        parsed_url.netloc,
+        username,
+        namespace,
+        repo_name,
+    )
+
+    headers = {
+        'Authorization': 'token {0}'.format(token),
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
+    payload = json.dumps({
+        'wait': True,
+        'namespace': namespace,
+        'repo': repo_name,
+    })
+    try:
+        rv = requests.post(
+            fork_url, headers=headers, data=payload, timeout=60)
+    except ConnectionError as error:
+        error_msg = ('The connection to API failed while trying to '
+                     'create a new fork. The error was: {0}'.format(str(error)))
+        raise rpkgError(error_msg)
+
+    base_error_msg = ('The following error occurred while creating a new fork: {0}')
+    if not rv.ok:
+        # Lets see if the API returned an error message in JSON that we can
+        # show the user
+        try:
+            rv_error = rv.json().get('error')
+        except ValueError:
+            rv_error = rv.text
+        # show hint for expired token
+        if re.search(r"Invalid or expired token", rv_error, re.IGNORECASE):
+            base_error_msg += '\nFor invalid or expired token refer to ' \
+                '"{0} fork -h" to set a token in your user ' \
+                'configuration.'.format(cli_name)
+        raise rpkgError(base_error_msg.format(rv_error))
+
+    try:
+        repo.create_remote(username, url=remote_url)
+    except git.exc.GitCommandError as e:
+        error_msg = "Fork was created; during create remote:\n  {0}\n  {1}".format(
+            " ".join(e.command), e.stderr)
+        raise rpkgError(error_msg)
+
+    return '{0}/fork/{1}/{2}'.format(
+        base_url.rstrip('/'), username, repo_name)
+
+
 def get_release_branches(server_url):
     """
     Get the active Fedora release branches from PDC
@@ -232,8 +304,24 @@ def get_pagure_token(config, cli_name):
         return config.get(conf_section, 'token')
     except (NoSectionError, NoOptionError):
         raise rpkgError(
-            'Missing a Pagure token. Refer to "{0} request-repo -h" to set a '
-            'token in your user configuration.'.format(cli_name))
+            'Missing a Pagure token. Refer to the help of the current command '
+            '(-h/--help)" to set a token in your user configuration.')
+
+
+def get_distgit_token(config, cli_name):
+    """
+    Gets the distgit token configured in the user's configuration file
+    :param config: ConfigParser object
+    :param cli_name: string of the CLI's name (e.g. fedpkg)
+    :return: string of the distgit token
+    """
+    conf_section = '{0}.distgit'.format(cli_name)
+    try:
+        return config.get(conf_section, 'token')
+    except (NoSectionError, NoOptionError):
+        raise rpkgError(
+            'Missing a distgit token. Refer to the help of the current command '
+            '(-h/--help)" to set a token in your user configuration.')
 
 
 def is_epel(branch):

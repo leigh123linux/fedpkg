@@ -31,10 +31,12 @@ from six.moves.configparser import NoOptionError
 from six.moves.urllib_parse import urlparse
 from pyrpkg import rpkgError
 from fedpkg.bugzilla import BugzillaClient
-from fedpkg.utils import (
-    get_fedora_release_state, get_release_branches, sl_list_to_dict, verify_sls,
-    new_pagure_issue, get_pagure_token, is_epel, assert_valid_epel_package,
-    assert_new_tests_repo, get_dist_git_url, get_stream_branches, expand_release)
+from fedpkg.utils import (assert_new_tests_repo, assert_valid_epel_package,
+                          do_fork, expand_release, get_dist_git_url,
+                          get_fedora_release_state, get_distgit_token,
+                          get_pagure_token, get_release_branches,
+                          get_stream_branches, is_epel, new_pagure_issue,
+                          sl_list_to_dict, verify_sls)
 
 RELEASE_BRANCH_REGEX = r'^(f\d+|el\d+|epel\d+)$'
 LOCAL_PACKAGE_CONFIG = 'package.cfg'
@@ -120,6 +122,7 @@ class fedpkgClient(cliClient):
         self.register_request_repo()
         self.register_request_tests_repo()
         self.register_request_branch()
+        self.register_do_fork()
         self.register_override()
 
     # Target registry goes here
@@ -260,9 +263,9 @@ class fedpkgClient(cliClient):
         description = textwrap.dedent('''
             Request a new dist-git repository
 
-            Before requesting a new dist-git repository for a new package, you need to
-            generate a pagure.io API token at https://{1}/settings/token/new, select the
-            "Create a new ticket" ACL and save it in your local user configuration located
+            Before the operation, you need to generate a pagure.io API token at
+            https://{1}/settings/token/new, select the relevant ACL(s)
+            and save it in your local user configuration located
             at ~/.config/rpkg/{0}.conf. For example:
 
                 [{0}.pagure]
@@ -343,7 +346,7 @@ class fedpkgClient(cliClient):
             Below is a basic example of the command to request a dist-git repository for
             the space tests/foo:
 
-                fedpkg request-tests-repo foo "Description of the repository"
+                {0} request-tests-repo foo "Description of the repository"
 
             Note that the space name needs to reflect the intent of the tests and will
             undergo a manual review.
@@ -367,8 +370,8 @@ class fedpkgClient(cliClient):
         description = textwrap.dedent('''
             Request a new dist-git branch
 
-            Please refer to the request-repo command to see what has to be done before
-            requesting a dist-git branch.
+            Please refer to the help of the request-repo command to see what has
+            to be done before requesting a dist-git branch.
 
             Branch name could be one of current active Fedora and EPEL releases. Use
             command ``{0} releases-info`` to get release names that can be used to request
@@ -436,6 +439,44 @@ class fedpkgClient(cliClient):
             help='Make a new branch request for every active Fedora release'
         )
         request_branch_parser.set_defaults(command=self.request_branch)
+
+    def register_do_fork(self):
+        help_msg = 'Create a new fork of the current repository'
+        description = textwrap.dedent('''
+            Create a new fork of the current repository
+
+            Before the operation, you need to generate an API token at
+            https://{1}/settings/token/new, select the relevant ACL(s)
+            and save it in your local user configuration located
+            at ~/.config/rpkg/{0}.conf. For example:
+
+                [{0}.distgit]
+                token = <api_key_here>
+
+            Below is a basic example of the command to fork a current repository:
+
+                {0} fork
+
+            Operation requires username (FAS_ID). by default, current logged
+            username is taken. It could be overridden by reusing an argument:
+
+                {0} --user FAS_ID fork
+        '''.format(self.name, urlparse(self.config.get(
+            '{0}.distgit'.format(self.name), 'apibaseurl')).netloc))
+
+        fork_parser = self.subparsers.add_parser(
+            'fork',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            help=help_msg,
+            description=description)
+        fork_parser.add_argument(
+            '--namespace',
+            required=False,
+            default='rpms',
+            choices=self.get_distgit_namespaces(),
+            dest='fork_namespace',
+            help='Namespace of the fork. If omitted, default to rpms.')
+        fork_parser.set_defaults(command=self.do_distgit_fork)
 
     def register_releases_info(self):
         help_msg = 'Print Fedora or EPEL current active releases'
@@ -1051,6 +1092,29 @@ class fedpkgClient(cliClient):
                     name=name,
                     config=config,
                 )
+
+    def do_distgit_fork(self):
+        """create fork of the distgit repository"""
+        distgit_api_base_url = self.config.get('{0}.distgit'.format(self.name), "apibaseurl")
+        distgit_remote_base_url = self.config.get(
+            '{0}'.format(self.name),
+            "gitbaseurl",
+            vars={'user': 'any', 'repo': 'any'},
+        )
+        distgit_token = get_distgit_token(self.config, self.name)
+
+        fork_url = do_fork(
+            base_url=distgit_api_base_url,
+            remote_base_url=distgit_remote_base_url,
+            token=distgit_token,
+            username=self.cmd.user,
+            repo=self.cmd.repo,
+            namespace=self.args.fork_namespace,
+            cli_name=self.name,
+        )
+        if fork_url:
+            msg = "Fork of the repository has been created: {0}"
+            self.log.info(msg.format(fork_url))
 
     def create_buildroot_override(self):
         """Create a buildroot override in Bodhi"""
