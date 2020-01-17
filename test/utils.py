@@ -10,16 +10,16 @@
 # option) any later version.  See http://www.gnu.org/copyleft/gpl.html for
 # the full text of the license.
 
+import logging
 import os
+import shutil
 import subprocess
 import tempfile
-import shutil
-import logging
-
-import pyrpkg
-import fedpkg.cli
 
 from six.moves import configparser
+
+import fedpkg.cli
+import pyrpkg
 from fedpkg import Commands
 
 try:

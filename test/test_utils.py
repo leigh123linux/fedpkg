@@ -11,16 +11,15 @@
 # the full text of the license.
 
 import json
-import six
 
-from freezegun import freeze_time
-from mock import patch, Mock
-from pyrpkg.errors import rpkgError
+import six
+from mock import Mock, patch
 from requests.exceptions import ConnectionError
-from six.moves.configparser import NoOptionError
-from six.moves.configparser import NoSectionError
+from six.moves.configparser import NoOptionError, NoSectionError
 
 from fedpkg import utils
+from freezegun import freeze_time
+from pyrpkg.errors import rpkgError
 from utils import unittest
 
 

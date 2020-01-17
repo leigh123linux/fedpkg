@@ -11,32 +11,32 @@
 # the full text of the license.
 
 from __future__ import print_function
-from pyrpkg.cli import cliClient
+
 import argparse
 import io
+import itertools
+import json
 import os
 import re
-import json
-import pkg_resources
-import six
 import shutil
 import textwrap
-import itertools
-
 from datetime import datetime
 
+import pkg_resources
+import six
 from six.moves import configparser
-from six.moves.configparser import NoSectionError
-from six.moves.configparser import NoOptionError
+from six.moves.configparser import NoOptionError, NoSectionError
 from six.moves.urllib_parse import urlparse
-from pyrpkg import rpkgError
+
 from fedpkg.bugzilla import BugzillaClient
 from fedpkg.utils import (assert_new_tests_repo, assert_valid_epel_package,
                           do_fork, expand_release, get_dist_git_url,
-                          get_fedora_release_state, get_distgit_token,
+                          get_distgit_token, get_fedora_release_state,
                           get_pagure_token, get_release_branches,
                           get_stream_branches, is_epel, new_pagure_issue,
                           sl_list_to_dict, verify_sls)
+from pyrpkg import rpkgError
+from pyrpkg.cli import cliClient
 
 RELEASE_BRANCH_REGEX = r'^(f\d+|el\d+|epel\d+)$'
 LOCAL_PACKAGE_CONFIG = 'package.cfg'

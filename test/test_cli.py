@@ -10,14 +10,28 @@
 # option) any later version.  See http://www.gnu.org/copyleft/gpl.html for
 # the full text of the license.
 
-import git
 import io
 import json
 import os
-import pkg_resources
 import re
-import six
 import sys
+from datetime import datetime, timedelta
+from os import rmdir
+from tempfile import mkdtemp, mkstemp
+
+import git
+import pkg_resources
+import six
+from mock import Mock, PropertyMock, call, patch
+from six.moves import StringIO
+from six.moves.configparser import NoOptionError, NoSectionError
+
+import fedpkg.cli
+from fedpkg.bugzilla import BugzillaClient
+from fedpkg.cli import check_bodhi_version
+from freezegun import freeze_time
+from pyrpkg.errors import rpkgError
+from utils import CliTestCase
 
 try:
     import unittest2 as unittest
@@ -29,20 +43,7 @@ try:
 except ImportError:
     bodhi = None
 
-import fedpkg.cli
 
-from datetime import datetime, timedelta
-from fedpkg.bugzilla import BugzillaClient
-from fedpkg.cli import check_bodhi_version
-from freezegun import freeze_time
-from mock import call, patch, PropertyMock, Mock
-from os import rmdir
-from pyrpkg.errors import rpkgError
-from six.moves.configparser import NoOptionError
-from six.moves.configparser import NoSectionError
-from six.moves import StringIO
-from tempfile import mkdtemp, mkstemp
-from utils import CliTestCase
 
 
 class TestIsUpdateAborted(CliTestCase):

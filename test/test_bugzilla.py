@@ -11,11 +11,11 @@
 # the full text of the license.
 
 import six
+from mock import Mock, patch
 
 from fedpkg.bugzilla import BugzillaClient
 from pyrpkg import rpkgError
 from utils import unittest
-from mock import patch, Mock
 
 
 class BugzillaSideEffect(object):

@@ -12,9 +12,11 @@
 
 # So that we import the bugzilla package and not fedpkg.bugzilla
 from __future__ import absolute_import
+
 from datetime import datetime
 
 import bugzilla
+
 from pyrpkg import rpkgError
 
 

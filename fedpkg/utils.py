@@ -10,12 +10,12 @@
 # option) any later version.  See http://www.gnu.org/copyleft/gpl.html for
 # the full text of the license.
 
-import git
 import json
 import os
 import re
 from datetime import datetime
 
+import git
 import requests
 from requests.exceptions import ConnectionError
 from six.moves.configparser import NoOptionError, NoSectionError

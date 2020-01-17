@@ -13,12 +13,13 @@ import logging
 import os
 import sys
 
+import six
+
 import fedpkg
 import fedpkg.utils
 import pyrpkg
 import pyrpkg.utils
 
-import six
 if six.PY3:  # SafeConfigParser == ConfigParser, former deprecated in >= 3.2
     from six.moves.configparser import ConfigParser
 else:

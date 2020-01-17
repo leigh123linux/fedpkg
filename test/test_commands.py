@@ -10,10 +10,10 @@
 # the full text of the license.
 
 import six
-
-from mock import call, patch, Mock, PropertyMock, mock_open
-from pyrpkg.errors import rpkgError
+from mock import Mock, PropertyMock, call, mock_open, patch
 from six.moves import builtins
+
+from pyrpkg.errors import rpkgError
 from utils import CommandTestCase
 
 
