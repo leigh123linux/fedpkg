@@ -1452,6 +1452,7 @@ class TestRequestTestsRepo(CliTestCase):
 
         expected_issue_content = {
             'action': 'new_repo',
+            'branch': 'master',
             'repo': 'foo',
             'namespace': 'tests',
             'description': 'Some description'
