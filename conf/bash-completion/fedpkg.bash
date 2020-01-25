@@ -97,7 +97,7 @@ _fedpkg()
         help|gimmespec|gitbuildhash|giturl|lint|new|push|unused-patches|verrel)
             ;;
         build)
-            options="--nowait --background --skip-tag --scratch --skip-remote-rules-validation"
+            options="--nowait --background --skip-tag --scratch --skip-remote-rules-validation --fail-fast"
             options_arches="--arches"
             options_srpm="--srpm"
             options_target="--target"
