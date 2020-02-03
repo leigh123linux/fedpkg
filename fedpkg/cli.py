@@ -87,13 +87,9 @@ require_testcases=%(require_testcases)s
 
 def check_bodhi_version():
     try:
-        dist = pkg_resources.get_distribution('bodhi_client')
+        pkg_resources.get_distribution('bodhi_client')
     except pkg_resources.DistributionNotFound:
         raise rpkgError('bodhi-client < 2.0 is not supported.')
-    major = int(dist.version.split('.', 1)[0])
-    if major >= 5:
-        raise rpkgError(
-            'This system has bodhi v{0}, which is unsupported.'.format(major))
 
 
 class fedpkgClient(cliClient):
