@@ -34,6 +34,7 @@ _fedpkg()
     module-build-local module-build-info module-build-watch module-overview \
     module-scratch-build \
     new new-sources patch prep pull push retire request-branch request-repo \
+    request-side-tag list-side-tags remove-side-tag \
     scratch-build sources srpm switch-branch tag unused-patches update upload \
     verify-files verrel override"
 
@@ -149,6 +150,10 @@ _fedpkg()
         lint)
             options="--info"
             ;;
+        list-side-tags)
+            options="--mine"
+            options_string="--user --base-tag"
+            ;;
         local)
             options="--md5"
             options_arch="--arch"
@@ -197,6 +202,9 @@ _fedpkg()
         pull)
             options="--rebase --no-rebase"
             ;;
+        remove-side-tag)
+            after_more=true
+            ;;
         retire)
             after_more=true
             ;;
@@ -208,6 +216,9 @@ _fedpkg()
             options="--exception --no-initial-commit"
             options_string="--description --monitor --upstreamurl --summary"
             options_namespace="--namespace"
+            ;;
+        request-side-tag)
+            options_string="--base-tag"
             ;;
         scratch-build)
             options="--nowait --background"
