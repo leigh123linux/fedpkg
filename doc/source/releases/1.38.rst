@@ -1,0 +1,244 @@
+.. _release_1.38:
+
+fedpkg 1.38 Release Notes
+=========================
+
+Released on *March 1, 2020*
+
+This release requires ``rpkg >= 1.59-5``.
+
+Python compatibility
+--------------------
+
+fedpkg works with Python 2.6, 2.7, 3.6 and 3.7.
+
+What's new in fedpkg 1.38
+-------------------------
+
+Create fork of the active repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Adds new command ``fedpkg fork`` that call API method which forks
+active repository for the given (or active) user and creates remote
+record in git configuration.
+
+.. code-block:: ini
+
+    [fedpkg.distgit]
+    apibaseurl = https://src.fedoraproject.org
+    token = <GENERATED_TOKEN>
+
+New token can be regerated here:
+https://src.fedoraproject.org/settings#nav-api-tab
+At least `"Fork a project"` ACL have to be selected during the process.
+
+Warning: this new token is different to the `Pagure`_ token.
+
+.. _`Pagure`: https://pagure.io/settings#nav-api-tab
+
+Clone config customization for namespaces
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+After the ``clone`` operation, a git config is updated with `git-bz`
+config values. Now, these values can be customized based on the
+namespace of the cloned repository. Each namespace has its own
+key `clone_config_<namespace>` in config section. For namespaces,
+that missing this config ('tests' namespace is a good example),
+any of these values aren't updated.
+
+A repository has to be namespaced (``distgit_namespaced = True``)
+for the config to be applied.
+
+Functional change is part of the rpkg, and needs to be released
+separately.
+
+.. code-block:: ini
+
+    [fedpkg]
+    clone_config_rpms =
+      bz.default-tracker bugzilla.redhat.com
+      bz.default-product Fedora
+      bz.default-version rawhide
+      bz.default-component %(repo)s
+      sendemail.to %(repo)s-owner@fedoraproject.org
+    clone_config_modules =
+      bz.default-tracker bugzilla.redhat.com
+      bz.default-product Fedora Modules
+      bz.default-version rawhide
+      bz.default-component %(repo)s
+      sendemail.to module-%(repo)s-owner@fedoraproject.org
+    clone_config_container =
+      bz.default-tracker bugzilla.redhat.com
+      bz.default-product Fedora Container Images
+      bz.default-version rawhide
+      bz.default-component %(repo)s
+      sendemail.to container-%(repo)s-owner@fedoraproject.org
+
+Demo video `here <https://drive.google.com/open?id=1W\_aT\_L0xvKyFjRg9V0-tb8NPT7ZlqsDl>`_
+
+verrel command on master asks Koji first
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``fedpkg verrel`` on master branch could return wrong result in some
+cases. Now running order is: asks active Koji session, asks anonymous
+Koji session and then if there is still no result, tries to determine
+release offline. Fedpkg ability to work offline is still desirable.
+
+Block retiring in released branches
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It checks Fedora release state and it restricts retiring operation
+for other states than `pending`. States are obtained from service here:
+https://bodhi.fedoraproject.org/releases/<release_name>
+Unknown releases are allowed to be retired.
+
+Demo video `here <https://drive.google.com/open?id=1fnb1dfijWU1HxAPaHX9H87y2f8pjRAYS>`_
+
+Removes check of bodhi-client version
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Modification of this part of the code is not needed when a new major
+version of Bodhi is released (if there are no incompatibilities with
+previous Bodhi version).
+
+This approach was chosen instead of bumping the version every time there
+is a Bodhi major release.
+
+epel8 & epel8-playground support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Functionality regarding epel includes:
+
+* Add epel*-playground into rpmdefines
+* Allow epel*-playground requests for epel8 and newer
+* Support for epel*-playground branch requests
+* Use package.cfg for epel8+ branches
+* Change dist tag for epel8-playground - Change dist tag for branch epel8-playground to be the same like in Koji.
+
+`request-tests-repo` add branch into ticket body
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add fixed branch `master` into ticket body. It should prevent releng
+ticket being marked as invalid.
+
+Clarify request-branch 'service levels' argument
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Description of ``request-branch`` command wasn't clear for ``--sl`` argument
+and was modified. ``--sl`` argument allows multiple values and therefore
+only positional argument 'branch' shouldn't be placed at the end of
+line.
+
+Mock requests in all tests
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Without this the test do network operations and fail when run with no
+network access.
+
+Resolve Jenkins unittests failing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Disabling Jenkins unittests for Python2.6, because it is not supported
+by the Jenkins system anymore. To continue running unittests I also
+had to change the approach to install dependent libraries - not to use
+sitepackages. Libraries that are needed are installed by pip directly.
+It leads to skipping of some tests that require bodhi-client.
+
+New options for bodhi template
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Options include ``reqire_testcases`` and ``require_bugs``.
+
+Check nvr before build
+~~~~~~~~~~~~~~~~~~~~~~
+
+When building for `epel8`, it is also triggered `epel8-playground`
+build. nvr have to be checked whether the build is already built.
+There was the check, but it queried different nvr. Now build will
+be terminated when there is the same nvr present in Koji.
+
+utils: fix whitespace in Pagure error message
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Prior to this change, Python would concatenate the two quoted strings
+together without a space, and fedpkg's error message would read
+
+  `... to set atoken in your user configuration.`
+
+Add a space between `a` and `token`.
+
+Line up descriptions for better code readability
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Multi-line descriptions of fedpkg commands were lined up to
+the beginning of the line and it was not so readable. textwrap.dedent
+was used to line descriptions up like normal string literals.
+
+Width of the description column was originally 70 characters, with
+this change you need to add a fixed number of spaces
+on the beginning.
+
+Coding style changes
+~~~~~~~~~~~~~~~~~~~~
+
+* Sorting of imports
+* Avoid warning about invalid escape with python3.8
+* linux_distribution import moved
+
+Other small fixes
+~~~~~~~~~~~~~~~~~
+
+* bash completion: update with side tag commands, added --fail-fast
+* Bump check for bodhi client version 4
+* Unittests for new features and some older functionality as well.
+* git-changelog: Fix running on Python 3 and unify the script with rpkg.
+
+Change Logs
+-----------
+
+* Removes check of bodhi-client version - `rhbz#1796972`_ (onosek)
+* Clone config customization for namespaces - `#231`_ (onosek)
+* Update bash completion with side tag commands (lsedlar)
+* add --fail-fast to bash-completion (cheese)
+* Improve coding style by sorting imports (onosek)
+* Repair tests for previous commits (onosek)
+* Create fork of the active repository - `#276`_ (onosek)
+* request-tests-repo: add branch into ticket body - `#359`_ (onosek)
+* verrel command on master asks Koji first - `#357`_ (onosek)
+* Check nvr before build - `#356`_ (onosek)
+* Change dist tag for epel8-playground (onosek)
+* Add test for retiring on archived release (lsedlar)
+* Mock requests in all tests (lsedlar)
+* Line up descriptions for better code readability (onosek)
+* Clarify request-branch 'service levels' argument - `#283`_ (onosek)
+* Resolve Jenkins unittests failing (onosek)
+* utils: fix whitespace in Pagure error message (kdreyer)
+* New options for bodhi template - `#459`_ (onosek)
+* Block retiring in released branches - `#337`_ (onosek)
+* Use package.cfg for epel8+ branches - `#345`_ (mboddu)
+* Add epel*-playground into rpmdefines (smooge)
+* linux_distribution import moved (onosek)
+* Unittests for epel*-playground branch requests (onosek)
+* Allow epel*-playground requests for epel8 and newer (onosek)
+* Support for epel*-playground branch requests - `#334`_ (mboddu)
+* git-changelog: Fix running on Python 3 (onosek)
+* Avoid warning about invalid escape with python3.8 (zbyszek)
+* Tests for update stable karma - `#321`_ (cqi)
+* Bump check for bodhi client - `#330`_ (lsedlar)
+* Ignore files in a cloned repository - patterns update (onosek)
+
+.. _`rhbz#1796972`: https://bugzilla.redhat.com/show_bug.cgi?id=1796972
+.. _`#231`: https://pagure.io/fedpkg/issue/231
+.. _`#276`: https://pagure.io/fedpkg/issue/276
+.. _`#359`: https://pagure.io/fedpkg/issue/359
+.. _`#357`: https://pagure.io/fedpkg/issue/357
+.. _`#356`: https://pagure.io/fedpkg/issue/356
+.. _`#283`: https://pagure.io/fedpkg/issue/283
+.. _`#459`: https://pagure.io/rpkg/issue/459
+.. _`#337`: https://pagure.io/fedpkg/issue/337
+.. _`#345`: https://pagure.io/fedpkg/issue/345
+.. _`#334`: https://pagure.io/fedpkg/issue/334
+.. _`#321`: https://pagure.io/fedpkg/issue/321
+.. _`#330`: https://pagure.io/fedpkg/issue/330
+
+

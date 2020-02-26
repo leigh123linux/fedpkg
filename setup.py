@@ -40,7 +40,7 @@ else:
 
 setup(
     name="fedpkg",
-    version="1.37",
+    version="1.38",
     author="Dennis Gilmore",
     author_email="dgilmore@fedoraproject.org",
     description=("Fedora plugin to rpkg to manage "
