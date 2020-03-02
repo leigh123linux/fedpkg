@@ -44,8 +44,6 @@ except ImportError:
     bodhi = None
 
 
-
-
 class TestIsUpdateAborted(CliTestCase):
     """Test is_update_aborted"""
 

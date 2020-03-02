@@ -2,3 +2,4 @@ openidc-client
 python-bugzilla
 rpkg
 six
+rpm
