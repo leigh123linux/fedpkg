@@ -5,3 +5,4 @@ nose-cov
 cccolutils
 gitpython
 freezegun
+rpm
