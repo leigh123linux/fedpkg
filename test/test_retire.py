@@ -105,7 +105,7 @@ class RetireTestCase(unittest.TestCase):
         client.log = mock.Mock()
         client.retire()
         args, kwargs = client.log.warn.call_args
-        self.assertIn('dead.package found, package probably already retired',
+        self.assertIn('dead.package found, package or module is already retired',
                       args[0])
 
     @mock.patch(
