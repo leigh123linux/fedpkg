@@ -359,6 +359,9 @@ class fedpkgClient(cliClient):
         request_tests_repo_parser.add_argument(
             'description',
             help='Description of the tests repository')
+        request_tests_repo_parser.add_argument(
+            '--bug', type=int,
+            help='Bugzilla bug ID of the package review request.')
         request_tests_repo_parser.set_defaults(command=self.request_tests_repo)
 
     def register_request_branch(self):
@@ -801,6 +804,7 @@ class fedpkgClient(cliClient):
             repo_name=self.args.name,
             ns='tests',
             description=self.args.description,
+            bug=self.args.bug,
             name=self.name,
             config=self.config,
             anongiturl=self.cmd.anongiturl
@@ -862,7 +866,7 @@ class fedpkgClient(cliClient):
                 .format(repo_name))
 
         summary_from_bug = ''
-        if bug and ns not in ['tests', 'modules', 'flatpaks']:
+        if bug and ns not in ['modules', 'flatpaks']:
             bz_url = config.get('{0}.bugzilla'.format(name), 'url')
             bz_client = BugzillaClient(bz_url)
             bug_obj = bz_client.get_review_bug(bug, ns, repo_name)
@@ -875,6 +879,8 @@ class fedpkgClient(cliClient):
             ticket_body = {
                 'action': 'new_repo',
                 'branch': 'master',
+                'bug_id': bug or '',
+                'monitor': 'no-monitoring',
                 'namespace': 'tests',
                 'repo': repo_name,
                 'description': description,

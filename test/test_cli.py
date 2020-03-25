@@ -1452,8 +1452,10 @@ class TestRequestTestsRepo(CliTestCase):
         expected_issue_content = {
             'action': 'new_repo',
             'branch': 'master',
-            'repo': 'foo',
+            'bug_id': '',
+            'monitor': 'no-monitoring',
             'namespace': 'tests',
+            'repo': 'foo',
             'description': 'Some description'
         }
 
