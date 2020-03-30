@@ -292,38 +292,6 @@ def verify_sls(pdc_url, sl_dict):
             raise rpkgError('The SL "{0}" is not in PDC'.format(sl))
 
 
-def get_pagure_token(config, cli_name):
-    """
-    Gets the Pagure token configured in the user's configuration file
-    :param config: ConfigParser object
-    :param cli_name: string of the CLI's name (e.g. fedpkg)
-    :return: string of the Pagure token
-    """
-    conf_section = '{0}.pagure'.format(cli_name)
-    try:
-        return config.get(conf_section, 'token')
-    except (NoSectionError, NoOptionError):
-        raise rpkgError(
-            'Missing a Pagure token. Refer to the help of the current command '
-            '(-h/--help)" to set a token in your user configuration.')
-
-
-def get_distgit_token(config, cli_name):
-    """
-    Gets the distgit token configured in the user's configuration file
-    :param config: ConfigParser object
-    :param cli_name: string of the CLI's name (e.g. fedpkg)
-    :return: string of the distgit token
-    """
-    conf_section = '{0}.distgit'.format(cli_name)
-    try:
-        return config.get(conf_section, 'token')
-    except (NoSectionError, NoOptionError):
-        raise rpkgError(
-            'Missing a distgit token. Refer to the help of the current command '
-            '(-h/--help)" to set a token in your user configuration.')
-
-
 def is_epel(branch):
     """
     Determines if this is or will be an epel branch
@@ -524,3 +492,43 @@ def get_fedora_release_state(config, cli_name, release):
         raise rpkgError(base_error_msg.format(rv.text))
 
     return rv.json().get('state')
+
+
+def config_get_safely(config, section, option):
+    """
+    Returns option from the user's configuration file. In case of missing
+    section or option method throws an exception with a human-readable
+    warning and a possible hint.
+    The method should be used especially in situations when there are newly
+    added sections/options into the config. In this case, there is a risk that
+    the user's config wasn't properly upgraded.
+
+    :param config: ConfigParser object
+    :param section: section name in the config
+    :param option: name of the option
+    :return: option value from the right section
+    :rtype: str
+    """
+
+    hint = (
+        "First (if possible), refer to the help of the current command "
+        "(-h/--help).\n"
+        "There also might be a new version of the config after upgrade.\n"
+        "Hint: you can check if you have 'fedpkg.conf.rpmnew' or "
+        "'fedpkg.conf.rpmsave' in the config directory. If yes, try to merge "
+        "your changes to the config with the maintainer provided version "
+        "(or replace fedpkg.conf file with 'fedpkg.conf.rpmnew')."
+    )
+
+    try:
+        return config.get(section, option)
+    except NoSectionError:
+        msg = "Missing section '{0}' in the config file.".format(section)
+        raise rpkgError("{0}\n{1}".format(msg, hint))
+    except NoOptionError:
+        msg = "Missing option '{0}' in the section '{1}' of the config file.".format(
+            option, section
+        )
+        raise rpkgError("{0}\n{1}".format(msg, hint))
+    except Exception:
+        raise

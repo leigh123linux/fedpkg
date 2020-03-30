@@ -30,11 +30,10 @@ from six.moves.urllib_parse import urlparse
 
 from fedpkg.bugzilla import BugzillaClient
 from fedpkg.utils import (assert_new_tests_repo, assert_valid_epel_package,
-                          do_fork, expand_release, get_dist_git_url,
-                          get_distgit_token, get_fedora_release_state,
-                          get_pagure_token, get_release_branches,
-                          get_stream_branches, is_epel, new_pagure_issue,
-                          sl_list_to_dict, verify_sls)
+                          config_get_safely, do_fork, expand_release,
+                          get_dist_git_url, get_fedora_release_state,
+                          get_release_branches, get_stream_branches, is_epel,
+                          new_pagure_issue, sl_list_to_dict, verify_sls)
 from pyrpkg import rpkgError
 from pyrpkg.cli import cliClient
 
@@ -256,6 +255,9 @@ class fedpkgClient(cliClient):
 
     def register_request_repo(self):
         help_msg = 'Request a new dist-git repository'
+        pagure_section = '{0}.pagure'.format(self.name)
+        pagure_url = config_get_safely(self.config, pagure_section, 'url')
+        pagure_url_parsed = urlparse(pagure_url).netloc
         description = textwrap.dedent('''
             Request a new dist-git repository
 
@@ -275,8 +277,7 @@ class fedpkgClient(cliClient):
             Another example to request a module foo:
 
                 fedpkg request-repo --namespace modules foo
-        '''.format(self.name, urlparse(self.config.get(
-            '{0}.pagure'.format(self.name), 'url')).netloc))
+        '''.format(self.name, pagure_url_parsed))
 
         request_repo_parser = self.subparsers.add_parser(
             'request-repo',
@@ -322,8 +323,9 @@ class fedpkgClient(cliClient):
 
     def register_request_tests_repo(self):
         help_msg = 'Request a new tests dist-git repository'
-        pagure_url = urlparse(self.config.get(
-            '{0}.pagure'.format(self.name), 'url')).netloc
+        pagure_section = '{0}.pagure'.format(self.name)
+        pagure_url = config_get_safely(self.config, pagure_section, 'url')
+        pagure_url_parsed = urlparse(pagure_url).netloc
         anongiturl = self.config.get(
             self.name, 'anongiturl', vars={'repo': 'any', 'module': 'any'}
         )
@@ -346,7 +348,7 @@ class fedpkgClient(cliClient):
 
             Note that the space name needs to reflect the intent of the tests and will
             undergo a manual review.
-        '''.format(self.name, pagure_url, get_dist_git_url(anongiturl)))
+        '''.format(self.name, pagure_url_parsed, get_dist_git_url(anongiturl)))
 
         request_tests_repo_parser = self.subparsers.add_parser(
             'request-tests-repo',
@@ -441,6 +443,8 @@ class fedpkgClient(cliClient):
 
     def register_do_fork(self):
         help_msg = 'Create a new fork of the current repository'
+        distgit_section = '{0}.distgit'.format(self.name)
+        distgit_api_base_url = config_get_safely(self.config, distgit_section, "apibaseurl")
         description = textwrap.dedent('''
             Create a new fork of the current repository
 
@@ -460,8 +464,7 @@ class fedpkgClient(cliClient):
             username is taken. It could be overridden by reusing an argument:
 
                 {0} --user FAS_ID fork
-        '''.format(self.name, urlparse(self.config.get(
-            '{0}.distgit'.format(self.name), 'apibaseurl')).netloc))
+        '''.format(self.name, urlparse(distgit_api_base_url).netloc))
 
         fork_parser = self.subparsers.add_parser(
             'fork',
@@ -905,8 +908,9 @@ class fedpkgClient(cliClient):
         ticket_body = '```\n{0}\n```'.format(ticket_body)
         ticket_title = 'New Repo for "{0}/{1}"'.format(ns, repo_name)
 
-        pagure_url = config.get('{0}.pagure'.format(name), 'url')
-        pagure_token = get_pagure_token(config, name)
+        pagure_section = '{0}.pagure'.format(name)
+        pagure_url = config_get_safely(config, pagure_section, 'url')
+        pagure_token = config_get_safely(config, pagure_section, 'token')
         print(new_pagure_issue(
             pagure_url, pagure_token, ticket_title, ticket_body, name))
 
@@ -1024,8 +1028,9 @@ class fedpkgClient(cliClient):
             sl_dict = sl_list_to_dict(service_levels)
             verify_sls(pdc_url, sl_dict)
 
-        pagure_url = config.get('{0}.pagure'.format(name), 'url')
-        pagure_token = get_pagure_token(config, name)
+        pagure_section = '{0}.pagure'.format(name)
+        pagure_url = config_get_safely(config, pagure_section, 'url')
+        pagure_token = config_get_safely(config, pagure_section, 'token')
         if all_releases:
             release_branches = list(itertools.chain(
                 *list(get_release_branches(pdc_url).values())))
@@ -1097,13 +1102,14 @@ class fedpkgClient(cliClient):
 
     def do_distgit_fork(self):
         """create fork of the distgit repository"""
-        distgit_api_base_url = self.config.get('{0}.distgit'.format(self.name), "apibaseurl")
+        distgit_section = '{0}.distgit'.format(self.name)
+        distgit_api_base_url = config_get_safely(self.config, distgit_section, "apibaseurl")
         distgit_remote_base_url = self.config.get(
             '{0}'.format(self.name),
             "gitbaseurl",
             vars={'user': 'any', 'repo': 'any'},
         )
-        distgit_token = get_distgit_token(self.config, self.name)
+        distgit_token = config_get_safely(self.config, distgit_section, 'token')
 
         fork_url = do_fork(
             base_url=distgit_api_base_url,

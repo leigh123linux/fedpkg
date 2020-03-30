@@ -177,13 +177,13 @@ class TestAssertNewTestsRepo(unittest.TestCase):
 
 
 class TestGetPagureToken(unittest.TestCase):
-    """Test get_pagure_token"""
+    """Test obtaining of Pagure token"""
 
     def test_return_token(self):
         config = Mock()
         config.get.return_value = '123456'
 
-        token = utils.get_pagure_token(config, 'fedpkg')
+        token = utils.config_get_safely(config, 'fedpkg.pagure', 'token')
 
         self.assertEqual('123456', token)
         config.get.assert_called_once_with('fedpkg.pagure', 'token')
@@ -192,12 +192,15 @@ class TestGetPagureToken(unittest.TestCase):
         config = Mock()
 
         config.get.side_effect = NoOptionError('token', 'fedpkg.pagure')
-        six.assertRaisesRegex(self, rpkgError, 'Missing a Pagure token',
-                              utils.get_pagure_token, config, 'fedpkg')
+        six.assertRaisesRegex(self,
+                              rpkgError, "Missing option 'token' in the section 'fedpkg.pagure'",
+                              utils.config_get_safely,
+                              config,
+                              'fedpkg.pagure', 'token')
 
         config.get.side_effect = NoSectionError('fedpkg.pagure')
-        six.assertRaisesRegex(self, rpkgError, 'Missing a Pagure token',
-                              utils.get_pagure_token, config, 'fedpkg')
+        six.assertRaisesRegex(self, rpkgError, "Missing section 'fedpkg.pagure'",
+                              utils.config_get_safely, config, 'fedpkg.pagure', 'token')
 
 
 @patch('requests.get')
