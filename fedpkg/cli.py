@@ -1260,10 +1260,15 @@ class fedpkgClient(cliClient):
         Runs the rpkg retire command after check. Check includes reading the state
         of Fedora release.
         """
-        state = get_fedora_release_state(self.config, self.name, self.cmd.branch_merge)
-
-        if state is None or state == 'pending':
+        # Allow retiring in epel
+        if is_epel(self.cmd.branch_merge):
             super(fedpkgClient, self).retire()
         else:
-            self.log.error("Fedora release (%s) is in state '%s' - retire operation "
-                           "is not allowed." % (self.cmd.branch_merge, state))
+            state = get_fedora_release_state(self.config, self.name, self.cmd.branch_merge)
+
+            # Allow retiring in Rawhide and Branched until Final Freeze
+            if state is None or state == 'pending':
+                super(fedpkgClient, self).retire()
+            else:
+                self.log.error("Fedora release (%s) is in state '%s' - retire operation "
+                               "is not allowed." % (self.cmd.branch_merge, state))
