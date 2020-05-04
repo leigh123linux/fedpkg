@@ -28,6 +28,14 @@ except ImportError:
     import unittest
 
 
+# to prevent printing the method's docstring in the nosetests list
+def shortDescription(self):
+    return None
+
+
+unittest.TestCase.shortDescription = shortDescription
+
+
 class Assertions(object):
 
     def get_exists_method(self, search_dir=None):
