@@ -11,7 +11,6 @@
 # the full text of the license.
 
 import json
-import os
 import re
 from datetime import datetime
 
@@ -136,7 +135,8 @@ def new_pagure_issue(url, token, title, body, cli_name):
         url.rstrip('/'), rv.json()['issue']['id'])
 
 
-def do_fork(base_url, remote_base_url, token, username, repo, namespace, cli_name):
+def do_fork(base_url, remote_base_url, token, username, repo, repo_name,
+            namespace, cli_name):
     """
     Creates a fork of the project.
     :param base_url: a string of the URL repository
@@ -144,14 +144,13 @@ def do_fork(base_url, remote_base_url, token, username, repo, namespace, cli_nam
     :param token: a string of the API token that has rights to make a fork
     :param username: a string of the (FAS) user name
     :param repo: object, current project git repository
+    :param repo_name: a string of the repository name
     :param namespace: a string determines a type of the repository
     :param cli_name: string of the CLI's name (e.g. fedpkg)
     :return: a string of the URL to the created fork in the UI
     """
     api_url = '{0}/api/0'.format(base_url.rstrip('/'))
     fork_url = '{0}/fork'.format(api_url)
-
-    repo_name = os.path.basename(repo.working_dir)
 
     parsed_url = urlparse(remote_base_url)
     remote_url = '{0}://{1}/forks/{2}/{3}/{4}.git'.format(
@@ -202,8 +201,9 @@ def do_fork(base_url, remote_base_url, token, username, repo, namespace, cli_nam
             " ".join(e.command), e.stderr)
         raise rpkgError(error_msg)
 
-    return '{0}/fork/{1}/{2}'.format(
-        base_url.rstrip('/'), username, repo_name)
+    # create and return url of the repo in web browser
+    return '{0}/fork/{1}/{2}/{3}'.format(
+        base_url.rstrip('/'), username, namespace, repo_name)
 
 
 def get_release_branches(server_url):

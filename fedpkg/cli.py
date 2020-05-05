@@ -471,13 +471,6 @@ class fedpkgClient(cliClient):
             formatter_class=argparse.RawDescriptionHelpFormatter,
             help=help_msg,
             description=description)
-        fork_parser.add_argument(
-            '--namespace',
-            required=False,
-            default='rpms',
-            choices=self.get_distgit_namespaces(),
-            dest='fork_namespace',
-            help='Namespace of the fork. If omitted, default to rpms.')
         fork_parser.set_defaults(command=self.do_distgit_fork)
 
     def register_releases_info(self):
@@ -1107,7 +1100,7 @@ class fedpkgClient(cliClient):
         distgit_remote_base_url = self.config.get(
             '{0}'.format(self.name),
             "gitbaseurl",
-            vars={'user': 'any', 'repo': 'any'},
+            vars={'user': self.cmd.user, 'repo': self.cmd.repo_name},
         )
         distgit_token = config_get_safely(self.config, distgit_section, 'token')
 
@@ -1117,7 +1110,8 @@ class fedpkgClient(cliClient):
             token=distgit_token,
             username=self.cmd.user,
             repo=self.cmd.repo,
-            namespace=self.args.fork_namespace,
+            repo_name=self.cmd.repo_name,
+            namespace=self.cmd.ns,
             cli_name=self.name,
         )
         if fork_url:
