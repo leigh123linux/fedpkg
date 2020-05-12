@@ -323,16 +323,13 @@ class fedpkgClient(cliClient):
 
     def register_request_tests_repo(self):
         help_msg = 'Request a new tests dist-git repository'
-        pagure_section = '{0}.pagure'.format(self.name)
-        pagure_url = config_get_safely(self.config, pagure_section, 'url')
-        pagure_url_parsed = urlparse(pagure_url).netloc
         anongiturl = self.config.get(
             self.name, 'anongiturl', vars={'repo': 'any', 'module': 'any'}
         )
         description = textwrap.dedent('''
             Request a new dist-git repository in tests shared namespace
 
-                {2}/projects/tests/*
+                {1}/projects/tests/*
 
             For more information about tests shared namespace see
 
@@ -348,7 +345,7 @@ class fedpkgClient(cliClient):
 
             Note that the space name needs to reflect the intent of the tests and will
             undergo a manual review.
-        '''.format(self.name, pagure_url_parsed, get_dist_git_url(anongiturl)))
+        '''.format(self.name, get_dist_git_url(anongiturl)))
 
         request_tests_repo_parser = self.subparsers.add_parser(
             'request-tests-repo',
@@ -639,15 +636,15 @@ class fedpkgClient(cliClient):
     # Target functions go here
     def _format_update_clog(self, clog):
         ''' Format clog for the update template. '''
-        lines = [l for l in clog.split('\n') if l]
+        lines = [ln for ln in clog.split('\n') if ln]
         if len(lines) == 0:
             return "- Rebuilt.", ""
         elif len(lines) == 1:
             return lines[0], ""
         log = ["# Changelog:"]
         log.append('# - ' + lines[0])
-        for l in lines[1:]:
-            log.append('# ' + l)
+        for ln in lines[1:]:
+            log.append('# ' + ln)
         log.append('#')
         return lines[0], "\n".join(log)
 
@@ -1235,8 +1232,8 @@ class fedpkgClient(cliClient):
         server_url = self.config.get('{0}.pdc'.format(self.name), 'url')
         releases = get_release_branches(server_url)
 
-        def _join(l):
-            return ' '.join(l)
+        def _join(ln):
+            return ' '.join(ln)
 
         if self.args.show_epel_only:
             print(_join(releases['epel']))
