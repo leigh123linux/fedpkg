@@ -128,6 +128,16 @@ class TestUpdate(CliTestCase):
         with io.open(clog_file, 'w', encoding='utf-8') as f:
             f.write(os.linesep.join(self.fake_clog))
 
+        # Get 'bodhi_client' version. Particular versions have differences
+        # across distributions.
+        self.bodhi_version = None
+        try:
+            version_object = pkg_resources.get_distribution('bodhi_client')
+            if version_object.has_version():
+                self.bodhi_version = int(version_object.version.split('.')[0])
+        except pkg_resources.DistributionNotFound:
+            pass
+
     def tearDown(self):
         if os.path.exists('bodhi.template'):
             os.unlink('bodhi.template')
@@ -195,6 +205,11 @@ class TestUpdate(CliTestCase):
             expected_data['notes'] = notes
         else:
             expected_data['notes'] = self.fake_clog[0]
+
+        # there wasn't the option in older releases of bodhi, but these
+        # releases are still active (epel7, epel8)
+        if self.bodhi_version <= 4:
+            del expected_data["display_name"]
 
         with patch('os.unlink') as unlink:
             cli.update()
