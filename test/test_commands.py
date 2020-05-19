@@ -312,10 +312,6 @@ class TestFindMasterBranch(CommandTestCase):
         koji_session.getBuildTarget.assert_called_once_with('rawhide')
         self.assertEqual('28', result)
 
-    def test_find_from_fedora_branches(self):
-        result = self.cmd._findmasterbranch()
-        self.assertEqual(28, result)
-
     @patch('pyrpkg.Commands.anon_kojisession', new_callable=PropertyMock)
     @patch('pyrpkg.Commands.repo', new_callable=PropertyMock)
     def test_get_from_koji_for_the_last_chance(self, repo, anon_kojisession):
