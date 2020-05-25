@@ -30,10 +30,11 @@ from six.moves.urllib_parse import urlparse
 
 from fedpkg.bugzilla import BugzillaClient
 from fedpkg.utils import (assert_new_tests_repo, assert_valid_epel_package,
-                          config_get_safely, do_fork, expand_release,
-                          get_dist_git_url, get_fedora_release_state,
-                          get_release_branches, get_stream_branches, is_epel,
-                          new_pagure_issue, sl_list_to_dict, verify_sls)
+                          config_get_safely, do_add_remote, do_fork,
+                          expand_release, get_dist_git_url,
+                          get_fedora_release_state, get_release_branches,
+                          get_stream_branches, is_epel, new_pagure_issue,
+                          sl_list_to_dict, verify_sls)
 from pyrpkg import rpkgError
 from pyrpkg.cli import cliClient
 
@@ -1094,7 +1095,10 @@ class fedpkgClient(cliClient):
                 )
 
     def do_distgit_fork(self):
-        """create fork of the distgit repository"""
+        """create fork of the distgit repository
+        That includes creating fork itself using API call and then adding
+        remote tracked repository
+        """
         distgit_section = '{0}.distgit'.format(self.name)
         distgit_api_base_url = config_get_safely(self.config, distgit_section, "apibaseurl")
         distgit_remote_base_url = self.config.get(
@@ -1104,19 +1108,41 @@ class fedpkgClient(cliClient):
         )
         distgit_token = config_get_safely(self.config, distgit_section, 'token')
 
-        fork_url = do_fork(
+        ret = do_fork(
             base_url=distgit_api_base_url,
-            remote_base_url=distgit_remote_base_url,
             token=distgit_token,
-            username=self.cmd.user,
-            repo=self.cmd.repo,
             repo_name=self.cmd.repo_name,
             namespace=self.cmd.ns,
             cli_name=self.name,
         )
-        if fork_url:
-            msg = "Fork of the repository has been created: {0}"
-            self.log.info(msg.format(fork_url))
+
+        # assemble url of the repo in web browser
+        fork_url = '{0}/fork/{1}/{2}/{3}'.format(
+            distgit_api_base_url.rstrip('/'),
+            self.cmd.user,
+            self.cmd.ns,
+            self.cmd.repo_name,
+        )
+
+        if ret:
+            msg = "Fork of the repository has been created: '{0}'"
+        else:
+            msg = "Repo '{0}' already exists."
+        self.log.info(msg.format(fork_url))
+
+        ret = do_add_remote(
+            base_url=distgit_api_base_url,
+            remote_base_url=distgit_remote_base_url,
+            username=self.cmd.user,
+            repo=self.cmd.repo,
+            repo_name=self.cmd.repo_name,
+            namespace=self.cmd.ns,
+        )
+        if ret:
+            msg = "Adding as remote '{0}'."
+        else:
+            msg = "Remote with name '{0}' already exists."
+        self.log.info(msg.format(self.cmd.user))
 
     def create_buildroot_override(self):
         """Create a buildroot override in Bodhi"""

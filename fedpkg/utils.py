@@ -135,31 +135,18 @@ def new_pagure_issue(url, token, title, body, cli_name):
         url.rstrip('/'), rv.json()['issue']['id'])
 
 
-def do_fork(base_url, remote_base_url, token, username, repo, repo_name,
-            namespace, cli_name):
+def do_fork(base_url, token, repo_name, namespace, cli_name):
     """
     Creates a fork of the project.
     :param base_url: a string of the URL repository
-    :param remote_base_url: a string of the remote tracked repository
     :param token: a string of the API token that has rights to make a fork
-    :param username: a string of the (FAS) user name
-    :param repo: object, current project git repository
     :param repo_name: a string of the repository name
     :param namespace: a string determines a type of the repository
     :param cli_name: string of the CLI's name (e.g. fedpkg)
-    :return: a string of the URL to the created fork in the UI
+    :return: a bool; True when fork was created, False when already exists
     """
     api_url = '{0}/api/0'.format(base_url.rstrip('/'))
     fork_url = '{0}/fork'.format(api_url)
-
-    parsed_url = urlparse(remote_base_url)
-    remote_url = '{0}://{1}/forks/{2}/{3}/{4}.git'.format(
-        parsed_url.scheme,
-        parsed_url.netloc,
-        username,
-        namespace,
-        repo_name,
-    )
 
     headers = {
         'Authorization': 'token {0}'.format(token),
@@ -187,6 +174,10 @@ def do_fork(base_url, remote_base_url, token, username, repo, repo_name,
             rv_error = rv.json().get('error')
         except ValueError:
             rv_error = rv.text
+
+        if re.search(r"Repo .+ already exists", rv_error, re.IGNORECASE):
+            return False
+
         # show hint for expired token
         if re.search(r"Invalid or expired token", rv_error, re.IGNORECASE):
             base_error_msg += '\nFor invalid or expired token refer to ' \
@@ -194,16 +185,43 @@ def do_fork(base_url, remote_base_url, token, username, repo, repo_name,
                 'configuration.'.format(cli_name)
         raise rpkgError(base_error_msg.format(rv_error))
 
+    return True
+
+
+def do_add_remote(base_url, remote_base_url, username, repo, repo_name,
+                  namespace):
+    """
+    Adds remote tracked repository
+    :param base_url: a string of the URL repository
+    :param remote_base_url: a string of the remote tracked repository
+    :param username: a string of the (FAS) user name
+    :param repo: object, current project git repository
+    :param repo_name: a string of the repository name
+    :param namespace: a string determines a type of the repository
+    :return: a bool; True if remote was created, False when already exists
+    """
+    parsed_url = urlparse(remote_base_url)
+    remote_url = '{0}://{1}/forks/{2}/{3}/{4}.git'.format(
+        parsed_url.scheme,
+        parsed_url.netloc,
+        username,
+        namespace,
+        repo_name,
+    )
+
+    # check already existing remote
+    for remote in repo.remotes:
+        if remote.name == username:
+            return False
+
     try:
+        # create remote with username as its name
         repo.create_remote(username, url=remote_url)
     except git.exc.GitCommandError as e:
-        error_msg = "Fork was created; during create remote:\n  {0}\n  {1}".format(
+        error_msg = "During create remote:\n  {0}\n  {1}".format(
             " ".join(e.command), e.stderr)
         raise rpkgError(error_msg)
-
-    # create and return url of the repo in web browser
-    return '{0}/fork/{1}/{2}/{3}'.format(
-        base_url.rstrip('/'), username, namespace, repo_name)
+    return True
 
 
 def get_release_branches(server_url):
