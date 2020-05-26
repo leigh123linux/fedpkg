@@ -355,22 +355,24 @@ class TestNewPagureIssue(unittest.TestCase):
 
     def test_raise_error_if_connection_error(self, post):
         post.side_effect = ConnectionError
+        logger = Mock()
 
         six.assertRaisesRegex(
             self, rpkgError, 'The connection to Pagure failed',
             utils.new_pagure_issue,
-            'http://distgit/', '123456', 'new package', {'repo': 'pkg1'}, 'fedpkg')
+            logger, 'http://distgit/', '123456', 'new package', {'repo': 'pkg1'}, 'fedpkg')
 
     def test_responses_not_ok_and_response_body_is_not_json(self, post):
         rv = Mock(ok=False, text='error')
         rv.json.side_effect = ValueError
         post.return_value = rv
+        logger = Mock()
 
         six.assertRaisesRegex(
             self, rpkgError,
             'The following error occurred while creating a new issue',
             utils.new_pagure_issue,
-            'http://distgit/', '123456', 'new package', {'repo': 'pkg1'}, 'fedpkg')
+            logger, 'http://distgit/', '123456', 'new package', {'repo': 'pkg1'}, 'fedpkg')
 
     def test_responses_not_ok_when_token_is_expired(self, post):
         rv = Mock(
@@ -379,23 +381,26 @@ class TestNewPagureIssue(unittest.TestCase):
                  'https://pagure.io/settings#api-keys to get or renew your API token.')
         rv.json.side_effect = ValueError
         post.return_value = rv
+        logger = Mock()
 
         six.assertRaisesRegex(
             self, rpkgError,
             'For invalid or expired token refer to "fedpkg request-repo -h" to set '
             'a token in your user configuration.',
             utils.new_pagure_issue,
-            'http://distgit/', '123456', 'new package', {'repo': 'pkg1'}, 'fedpkg')
+            logger, 'http://distgit/', '123456', 'new package', {'repo': 'pkg1'}, 'fedpkg')
 
     def test_create_pagure_issue(self, post):
         rv = Mock(ok=True)
         rv.json.return_value = {'issue': {'id': 1}}
         post.return_value = rv
+        logger = Mock()
 
         pagure_api_url = 'http://distgit'
         issue_ticket_body = {'repo': 'pkg1'}
 
-        issue_url = utils.new_pagure_issue(pagure_api_url,
+        issue_url = utils.new_pagure_issue(logger,
+                                           pagure_api_url,
                                            '123456',
                                            'new package',
                                            issue_ticket_body,

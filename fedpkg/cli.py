@@ -782,6 +782,7 @@ class fedpkgClient(cliClient):
 
     def request_repo(self):
         self._request_repo(
+            logger=self.log,
             repo_name=self.args.name,
             ns=self.args.new_repo_namespace,
             branch='master',
@@ -798,23 +799,26 @@ class fedpkgClient(cliClient):
 
     def request_tests_repo(self):
         self._request_repo(
+            logger=self.log,
             repo_name=self.args.name,
             ns='tests',
             description=self.args.description,
             bug=self.args.bug,
             name=self.name,
             config=self.config,
-            anongiturl=self.cmd.anongiturl
+            anongiturl=self.cmd.anongiturl,
         )
 
     @staticmethod
-    def _request_repo(repo_name, ns, description, name, config, branch=None,
-                      summary=None, upstreamurl=None, monitor=None, bug=None,
-                      exception=None, anongiturl=None, initial_commit=True):
+    def _request_repo(logger, repo_name, ns, description, name, config,
+                      branch=None, summary=None, upstreamurl=None,
+                      monitor=None, bug=None, exception=None, anongiturl=None,
+                      initial_commit=True):
         """ Implementation of `request_repo`.
 
         Submits a request for a new dist-git repo.
 
+        :param logger: A logger object.
         :param repo_name: The repository name string.  Typically the
             value of `self.cmd.repo_name`.
         :param ns: The repository namespace string, i.e. 'rpms' or 'modules'.
@@ -906,7 +910,7 @@ class fedpkgClient(cliClient):
         pagure_url = config_get_safely(config, pagure_section, 'url')
         pagure_token = config_get_safely(config, pagure_section, 'token')
         print(new_pagure_issue(
-            pagure_url, pagure_token, ticket_title, ticket_body, name))
+            logger, pagure_url, pagure_token, ticket_title, ticket_body, name))
 
     def request_branch(self):
         if self.args.repo_name_for_branch:
@@ -918,6 +922,7 @@ class fedpkgClient(cliClient):
         except rpkgError:
             active_branch = None
         self._request_branch(
+            logger=self.log,
             service_levels=self.args.sl,
             all_releases=self.args.all_releases,
             branch=self.args.branch,
@@ -931,13 +936,14 @@ class fedpkgClient(cliClient):
         )
 
     @staticmethod
-    def _request_branch(service_levels, all_releases, branch, active_branch,
-                        repo_name, ns, no_git_branch, no_auto_module,
-                        name, config):
+    def _request_branch(logger, service_levels, all_releases, branch,
+                        active_branch, repo_name, ns, no_git_branch,
+                        no_auto_module, name, config):
         """ Implementation of `request_branch`.
 
         Submits a request for a new branch of a given dist-git repo.
 
+        :param logger: A logger object.
         :param service_levels: A list of service level strings.  Typically the
             value of `self.args.service_levels`.
         :param all_releases: A boolean indicating if this request should be made
@@ -1055,7 +1061,8 @@ class fedpkgClient(cliClient):
                 b, ns, repo_name)
 
             print(new_pagure_issue(
-                pagure_url, pagure_token, ticket_title, ticket_body, name))
+                logger, pagure_url, pagure_token, ticket_title, ticket_body,
+                name))
 
             # For non-standard rpm branch requests, also request a matching new
             # module repo with a matching branch.
@@ -1069,6 +1076,7 @@ class fedpkgClient(cliClient):
                 summary = ('Automatically requested module for '
                            'rpms/%s:%s.' % (repo_name, b))
                 fedpkgClient._request_repo(
+                    logger=logger,
                     repo_name=repo_name,
                     ns='modules',
                     branch='master',
@@ -1082,6 +1090,7 @@ class fedpkgClient(cliClient):
                     config=config,
                 )
                 fedpkgClient._request_branch(
+                    logger=logger,
                     service_levels=service_levels,
                     all_releases=all_releases,
                     branch=b,
@@ -1109,6 +1118,7 @@ class fedpkgClient(cliClient):
         distgit_token = config_get_safely(self.config, distgit_section, 'token')
 
         ret = do_fork(
+            logger=self.log,
             base_url=distgit_api_base_url,
             token=distgit_token,
             repo_name=self.cmd.repo_name,

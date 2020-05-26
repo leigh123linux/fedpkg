@@ -84,9 +84,10 @@ def get_sl_type(url, sl_name):
         return None
 
 
-def new_pagure_issue(url, token, title, body, cli_name):
+def new_pagure_issue(logger, url, token, title, body, cli_name):
     """
     Posts a new Pagure issue
+    :param logger: A logger object
     :param url: a string of the URL to Pagure
     :param token: a string of the Pagure API token that has rights to create
     a ticket
@@ -117,13 +118,18 @@ def new_pagure_issue(url, token, title, body, cli_name):
 
     base_error_msg = ('The following error occurred while creating a new '
                       'issue in Pagure: {0}')
+
+    try:
+        # Extract response error text (and debug data)
+        rv_json = rv.json()
+        logger.debug("Pagure API response: '{0}'".format(rv_json))
+        rv_error = rv_json.get('error')
+    except (ValueError, AttributeError):
+        rv_error = rv.text
+
     if not rv.ok:
         # Lets see if the API returned an error message in JSON that we can
         # show the user
-        try:
-            rv_error = rv.json().get('error')
-        except ValueError:
-            rv_error = rv.text
         # show hint for expired token
         if re.search(r"Invalid or expired token", rv_error, re.IGNORECASE):
             base_error_msg += '\nFor invalid or expired token refer to ' \
@@ -135,9 +141,10 @@ def new_pagure_issue(url, token, title, body, cli_name):
         url.rstrip('/'), rv.json()['issue']['id'])
 
 
-def do_fork(base_url, token, repo_name, namespace, cli_name):
+def do_fork(logger, base_url, token, repo_name, namespace, cli_name):
     """
     Creates a fork of the project.
+    :param logger: A logger object
     :param base_url: a string of the URL repository
     :param token: a string of the API token that has rights to make a fork
     :param repo_name: a string of the repository name
@@ -166,15 +173,18 @@ def do_fork(base_url, token, repo_name, namespace, cli_name):
                      'create a new fork. The error was: {0}'.format(str(error)))
         raise rpkgError(error_msg)
 
+    try:
+        # Extract response error text (and debug data)
+        rv_json = rv.json()
+        logger.debug("Pagure API response: '{0}'".format(rv_json))
+        rv_error = rv_json.get('error')
+    except (ValueError, AttributeError):
+        rv_error = rv.text
+
     base_error_msg = ('The following error occurred while creating a new fork: {0}')
     if not rv.ok:
         # Lets see if the API returned an error message in JSON that we can
         # show the user
-        try:
-            rv_error = rv.json().get('error')
-        except ValueError:
-            rv_error = rv.text
-
         if re.search(r"Repo .+ already exists", rv_error, re.IGNORECASE):
             return False
 
