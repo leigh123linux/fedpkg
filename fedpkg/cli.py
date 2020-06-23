@@ -686,6 +686,39 @@ class fedpkgClient(cliClient):
             return True
         return False
 
+    @staticmethod
+    def _extract_issue_ids(text):
+        """
+        matching based on slightly modified expression taken from there:
+        https://github.com/fedora-infra/bodhi/blob/5.3/bodhi/server/config.py
+
+        Examples:
+        Fixes: rhbz#11111
+        Fix:  rh#22222
+        resolves:rhbz#33333, rhbz#44444 rh#55555
+        close: fedora#6666
+        fix:epel#77777
+        """
+        # matches one Bugzilla bug ID (in case there are more IDs with one common prefix)
+        id_pattern_raw = r'(?:fedora|epel|rh(?:bz)?)#(\d{5,})'
+        bz_pattern = re.compile(
+            # says: there is at least one complete (including prefix) Bugzilla bug occurrence
+            r'(?:fix(?:es)?|close(?:s)?|resolve(?:s)?)(?::|:\s+|\s+)' + id_pattern_raw,
+            re.IGNORECASE,
+        )
+        id_pattern = re.compile(id_pattern_raw, re.IGNORECASE)
+
+        issue_ids = set()
+        for line in text.splitlines():
+            # is there complete Bugzilla ID including prefix
+            bz_match = bz_pattern.match(line)
+            if bz_match is not None:
+                # gather all Bugzilla IDs behind the prefix
+                line_ids = re.findall(id_pattern, line)
+                issue_ids.update(line_ids)
+
+        return sorted(list(issue_ids))
+
     def _prepare_bodhi_template(self, template_file):
         try:
             nvr = self.cmd.nvr
@@ -727,7 +760,7 @@ class fedpkgClient(cliClient):
             bodhi_args['bugs'] = ','.join(self.args.bugs)
         else:
             # Extract bug numbers from the latest changelog entry
-            bugs = re.findall(r'#([0-9]+)', clog)
+            bugs = self._extract_issue_ids(clog)
             if bugs:
                 bodhi_args['bugs'] = ','.join(bugs)
 

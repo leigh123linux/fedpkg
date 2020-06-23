@@ -33,7 +33,7 @@ def main():
     default_user_config_path = os.path.join(
         os.path.expanduser('~'), '.config', 'rpkg', '%s.conf' % cli_name)
     # Setup an argparser and parse the known commands to get the config file
-    # - use the custom ArgumentParser class from pyrpkg.cli and dissable
+    # - use the custom ArgumentParser class from pyrpkg.cli and disable
     #   argument abbreviation to ensure that --user will be not treated as
     #   --user-config
     parser = pyrpkg.cli.ArgumentParser(add_help=False, allow_abbrev=False)

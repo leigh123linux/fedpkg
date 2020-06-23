@@ -120,9 +120,11 @@ class TestUpdate(CliTestCase):
         # Logs will be read in the tests which do not specify --notes option
         self.fake_clog = list(six.moves.map(six.u, [
             'Add tests for command update',
-            'New command update - #1000',
-            'Fix tests - #2000, #notabug',
+            'New command update - #1000',  # invalid bug id format
+            'Fix tests - #2000, #notabug',  # both invalid bug id format
             '处理一些Unicode字符číář',
+            'fix: rh#10001'
+            'Fixes: rhbz#20001'
         ]))
         clog_file = os.path.join(self.cloned_repo_path, 'clog')
         with io.open(clog_file, 'w', encoding='utf-8') as f:
@@ -188,7 +190,7 @@ class TestUpdate(CliTestCase):
 
         expected_data = {
             'autokarma': 'True',
-            'bugs': '1000,2000',
+            'bugs': '10001,20001',
             'display_name': six.u(''),
             'builds': ' {0} '.format(self.mock_nvr.return_value),
             'close_bugs': True,
@@ -226,7 +228,7 @@ class TestUpdate(CliTestCase):
         with io.open('bodhi.template', encoding='utf-8') as f:
             bodhi_template = f.read()
         self.assertTrue(self.mock_nvr.return_value in bodhi_template)
-        self.assertTrue('1000,2000' in bodhi_template)
+        self.assertTrue('10001,20001' in bodhi_template)
         if notes:
             self.assertTrue(notes.replace('\n', '\n    ') in bodhi_template)
         else:
@@ -927,7 +929,7 @@ class TestRequestBranch(CliTestCase):
     @patch('fedpkg.cli.get_release_branches')
     @patch('sys.stdout', new=StringIO())
     def test_request_branch_override(self, mock_grb, mock_request_post):
-        """Tests request-branch with an overriden package and branch name"""
+        """Tests request-branch with an overridden package and branch name"""
         mock_grb.return_value = {'fedora': ['f25', 'f26', 'f27'],
                                  'epel': ['el6', 'epel7']}
         mock_rv = Mock()
@@ -1368,7 +1370,7 @@ https://pagure.stg.example.com/releng/fedora-scm-requests/issue/3"""
     @patch('requests.get')
     def test_request_branch_invalid_epel_package(self, mock_get):
         """Test request-branch raises an exception when an EPEL branch is
-        requested but ths package is already an EL package on all supported
+        requested but this package is already an EL package on all supported
         arches"""
         mock_rv = Mock()
         mock_rv.ok = True
@@ -2359,7 +2361,7 @@ class TestRetire(CliTestCase):
         with patch('sys.argv', ['fedpkg', '--release', branch, 'retire', 'retire_message']):
             cli = self.new_cli(cfg='fedpkg-test.conf')
             # retire method in rpkg would be called, but there is not environment configured
-            # therefore just Exception is catched
+            # therefore just Exception is caught
             with self.assertRaises(Exception):
                 cli.args.path = '/repo_path'
                 cli.retire()
